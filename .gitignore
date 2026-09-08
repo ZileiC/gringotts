@@ -46,3 +46,8 @@ flutter/windows/flutter/ephemeral/
 # Symbolication related
 app.*.symbols
 app.*.map.json
+
+# T-01 working artifacts (do not commit)
+.t01_windows_screenshot.png
+.worklog_entry.md
+.worklog_full.md

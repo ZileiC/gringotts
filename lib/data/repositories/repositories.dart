@@ -1,0 +1,170 @@
+import 'package:drift/drift.dart';
+
+import '../../domain/models.dart';
+import '../../domain/seed_ids.dart';
+import '../app_database.dart';
+
+/// Data access layer for bookkeeping transactions.
+///
+/// Physical deletes are never exposed; all removals go through [softDelete].
+class TransactionRepository {
+  TransactionRepository(this._db);
+
+  final AppDatabase _db;
+
+  /// Creates a transaction row. Amount must be provided in integer cents.
+  Future<Transaction> create({
+    required int amountCents,
+    required TransactionType type,
+    String? categoryId,
+    String? merchant,
+    String? note,
+    required DateTime occurredAt,
+    bool isDraft = false,
+    TransactionSource source = TransactionSource.manual,
+  }) {
+    assert(amountCents >= 0, 'amount_cents must be a non-negative integer');
+    return _db.into(_db.transactions).insertReturning(
+          TransactionsCompanion.insert(
+            amountCents: amountCents,
+            type: type,
+            categoryId: Value(categoryId),
+            merchant: Value(merchant),
+            note: Value(note),
+            occurredAt: occurredAt,
+            isDraft: Value(isDraft),
+            source: Value(source),
+          ),
+        );
+  }
+
+  /// Stream of all non-deleted transactions, newest first.
+  Stream<List<Transaction>> watchAll() => _db.liveTransactions.watch();
+
+  /// Soft-deletes a transaction by setting its tombstone timestamp.
+  ///
+  /// The row is never physically removed (sync-ready tombstone pattern).
+  Future<int> softDelete(String id) {
+    return (_db.update(_db.transactions)
+          ..where((t) => t.id.equals(id)))
+        .write(TransactionsCompanion(
+          deletedAt: Value(DateTime.now().toUtc()),
+          updatedAt: Value(DateTime.now().toUtc()),
+        ));
+  }
+
+  /// Restores a soft-deleted transaction by clearing its tombstone.
+  Future<int> restore(String id) {
+    return (_db.update(_db.transactions)
+          ..where((t) => t.id.equals(id)))
+        .write(TransactionsCompanion(deletedAt: const Value(null)));
+  }
+
+  /// Permanently marks a draft transaction as a confirmed record.
+  Future<int> confirmDraft(String id) {
+    return (_db.update(_db.transactions)
+          ..where((t) => t.id.equals(id) & t.isDraft.equals(true)))
+        .write(TransactionsCompanion(
+          isDraft: const Value(false),
+          updatedAt: Value(DateTime.now().toUtc()),
+        ));
+  }
+}
+
+/// Data access layer for categories (fixed seeds + user-defined).
+class CategoryRepository {
+  CategoryRepository(this._db);
+
+  final AppDatabase _db;
+
+  /// Stream of all non-deleted categories in fixed sort order.
+  Stream<List<Category>> watchAll() => _db.liveCategories.watch();
+
+  /// All seed category ids in canonical order (dining .. other).
+  List<String> get seedIds => const [
+        categoryIdDining,
+        categoryIdTransport,
+        categoryIdShopping,
+        categoryIdHousing,
+        categoryIdEntertainment,
+        categoryIdStudy,
+        categoryIdMedical,
+        categoryIdGift,
+        categoryIdOther,
+      ];
+
+  /// Creates a user-defined category.
+  Future<Category> createCustom({
+    required String name,
+    String? icon,
+    required int sort,
+  }) {
+    return _db.into(_db.categories).insertReturning(
+          CategoriesCompanion.insert(
+            name: name,
+            icon: Value(icon),
+            sort: sort,
+            isCustom: const Value(true),
+          ),
+        );
+  }
+}
+
+/// Data access layer for asset records.
+class AssetRepository {
+  AssetRepository(this._db);
+
+  final AppDatabase _db;
+
+  /// Creates an asset row. Value must be provided in integer cents.
+  Future<Asset> create({
+    required String name,
+    required AssetCategory category,
+    required int valueCents,
+    required DateTime purchasedAt,
+    String? photoPath,
+    AssetStatus status = AssetStatus.inService,
+  }) {
+    assert(valueCents >= 0, 'value_cents must be a non-negative integer');
+    return _db.into(_db.assets).insertReturning(
+          AssetsCompanion.insert(
+            name: name,
+            category: category,
+            valueCents: valueCents,
+            purchasedAt: purchasedAt,
+            photoPath: Value(photoPath),
+            status: Value(status),
+          ),
+        );
+  }
+
+  /// Marks an asset as sold with the realized price.
+  Future<int> markSold({
+    required String id,
+    required int soldPriceCents,
+    required DateTime soldAt,
+  }) {
+    assert(soldPriceCents >= 0, 'sold_price_cents must be non-negative');
+    return (_db.update(_db.assets)
+          ..where((a) => a.id.equals(id)))
+        .write(AssetsCompanion(
+          status: const Value(AssetStatus.sold),
+          soldPriceCents: Value(soldPriceCents),
+          soldAt: Value(soldAt),
+          updatedAt: Value(DateTime.now().toUtc()),
+        ));
+  }
+
+  /// Soft-deletes an asset by setting its tombstone timestamp.
+  Future<int> softDelete(String id) {
+    return (_db.update(_db.assets)
+          ..where((a) => a.id.equals(id)))
+        .write(AssetsCompanion(
+          deletedAt: Value(DateTime.now().toUtc()),
+          updatedAt: Value(DateTime.now().toUtc()),
+        ));
+  }
+
+  /// Stream of all non-deleted assets, newest purchase first.
+  Stream<List<Asset>> watchAll() => _db.liveAssets.watch();
+}

@@ -46,7 +46,7 @@ Android 为核心的 AI+ 账本 app：智能速记 + 资产档案（CPD 日均�
 - 根目录的 .md 是管理文档：PROJECT_STATE / WORKLOG / FEATURES 按各自约定维护，代码文件勿动
 
 ## 工作流程约定
-1. 开工先读 PROJECT_STATE.md 与 FEATURES.md
+1. 开工先读 PROJECT_STATE.md、FEATURES.md 与 **TICKETS_M1.md**（当前派工工单，按序施工）
 2. 代码仓库就在本目录（github.com/jharayden/gringotts，private）
 3. 每次收工在 WORKLOG.md 顶部追加一段：做了什么 / 关键决策 / 遗留问题 / 下一步
 4. PROJECT_STATE.md 的"已确定/待定/决策记录"只在阶段完成时更新（由管理层维护）

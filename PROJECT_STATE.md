@@ -57,6 +57,7 @@
 | 2026-09-08 | **GitHub 仓库建立**：github.com/jharayden/gringotts，private | 首提交 = 管理档案 + .gitignore |
 | 2026-09-08 | **M1.0 工单发布**（T-01~T-07）+ 执行层环境验证通过 | 前置任务一次性完成 |
 | 2026-09-08 | **T-01 验收：通过 ✅** | 独立复验：analyze 0 issues / test 7/7 全绿 / APK 48.9MB 实存 / 铁律抽查干净（无 account 字段、无 double 存钱）/ schema 与工单逐项吻合；drift_dev int() 解析 bug 已由执行层定位修复并记录 |
+| 2026-09-08 | **品牌定版 + UI 重构窗口 = T-08 收官票** | 用户黑金徽标入库 brand/gringotts-logo.png（md5 44ff10f0…）；设计语言从徽标反推；自 T-02 起强制 design tokens 层；功能全绿后一次性换肤 |
 
 ## 下次 Session 开场
 1. 读本文件 + WORKLOG.md

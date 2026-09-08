@@ -60,6 +60,60 @@ class TransactionRepository {
         .write(TransactionsCompanion(deletedAt: const Value(null)));
   }
 
+  /// Stream of recent non-draft transactions for frequency analysis.
+  Stream<List<Transaction>> watchRecent({int windowDays = 14}) {
+    final cutoff =
+        DateTime.now().toUtc().subtract(Duration(days: windowDays));
+    return (_db.select(_db.transactions)
+          ..where((t) =>
+              t.deletedAt.isNull() &
+              t.isDraft.equals(false) &
+              t.occurredAt.isBiggerOrEqualValue(cutoff))
+          ..orderBy([(u) => OrderingTerm.desc(u.occurredAt)]))
+        .watch();
+  }
+
+  /// Distinct live merchants, most recent first (history association).
+  Future<List<String>> distinctMerchants({int limit = 50}) async {
+    final rows = await (_db.select(_db.transactions)
+          ..where((t) =>
+              t.deletedAt.isNull() & t.merchant.isNotNull() & t.merchant.equals('').not())
+          ..orderBy([(u) => OrderingTerm.desc(u.occurredAt)]))
+        .get();
+    final seen = <String>{};
+    final result = <String>[];
+    for (final row in rows) {
+      final m = row.merchant!;
+      if (seen.add(m)) result.add(m);
+      if (result.length >= limit) break;
+    }
+    return result;
+  }
+
+  /// Most frequent [categoryId] for a merchant in history, or null.
+  Future<String?> merchantCategory(String merchant) async {
+    final rows = await (_db.select(_db.transactions)
+          ..where((t) =>
+              t.deletedAt.isNull() &
+              t.merchant.equals(merchant) &
+              t.categoryId.isNotNull()))
+        .get();
+    if (rows.isEmpty) return null;
+    final counts = <String, int>{};
+    for (final row in rows) {
+      final id = row.categoryId!;
+      counts[id] = (counts[id] ?? 0) + 1;
+    }
+    String? best;
+    var bestCount = 0;
+    counts.forEach((id, count) {
+      if (count > bestCount) {
+        best = id;
+        bestCount = count;
+      }
+    });
+    return best;
+  }
   /// Permanently marks a draft transaction as a confirmed record.
   Future<int> confirmDraft(String id) {
     return (_db.update(_db.transactions)

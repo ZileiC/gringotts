@@ -2,6 +2,11 @@
 
 > 执行层（Codex）每次收工在顶部追加一段：做了什么 / 关键决策 / 遗留问题 / 下一步。管理层（Hermes）通过本文件验收进度。
 
+## 2026-09-08（管理层记录：品牌定版 + T-08 换肤票发布）
+- 用户定版黑金 Gringotts 徽标 → `brand/gringotts-logo.png`（md5 44ff10f0… 校验一致入库）；T-08 将由它生成 Android 自适应图标 / Windows 图标 / 启动画面
+- TICKETS_M1 增补 **T-08 品牌 UI 重构（M1.0 收官票）**：硬前提 = T-01~T-07 全部验收通过；设计语言 = 深黑层底 + 香槟金 accent + 品牌衬线仅品牌时刻
+- **对执行层的即时影响**：自 T-02 起颜色/字体/间距一律走 `lib/ui/tokens.dart`（组件禁硬编码）；T-08 之前不铺品牌皮肤，避免每屏装两遍
+
 ## 2026-09-08（管理层验收记录：T-01 ✅ 通过）
 - 独立复验（管理层亲自执行，不信自报）：flutter analyze → No issues found；flutter test → All tests passed (7)；APK 实存 build/app/outputs/flutter-apk/app-release.apk (51.3MB on disk)；铁律抽查：无 account 字段（models.dart 有显式注释 B3 rejected）、lib/data+domain 无 double 存钱
 - schema 逐项对照工单：UUID text 主键 / created_at/updated_at/deleted_at 三时间戳 / integer cents / 墓碑查询层 / 9 类 seed / assets sold 字段 — 全部吻合

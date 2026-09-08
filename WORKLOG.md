@@ -1,4 +1,48 @@
-﻿# WORKLOG — Gringotts 施工日志
+# WORKLOG — Gringotts 施工日志
+
+> 执行层（Codex）每次收工在顶部追加一段：做了什么 / 关键决策 / 遗留问题 / 下一步。管理层（Hermes）通过本文件验收进度。
+
+## 2026-09-08 22:05（T-02 执行层施工记录）
+
+### 做了什么
+- SmartParser 一行混合解析器（lib/services/smart_parser.dart，纯函数/离线）：
+  - regex 金额提取（15 / 15.5 / 15.55 → 整数分 1500/1550/1555，字符串解析禁浮点）
+  - 金额前后文本解析：内置类别词典（早餐/午餐/打车/房租 等 27 词）+ 内置商户词典（瑞幸/星巴克/滴滴 等 13 家）+ 历史 merchant 全等联想 + 前缀联想（瑞 → 瑞幸 建议返回）
+  - 解析失败不阻塞：任何输入至少金额可存，未知商户保留原文
+- 智能预填服务（lib/services/smart_prefill.dart）：
+  - TimeOfDayDefaults：7:00-9:00 早餐/餐饮、11:30-13:30 午餐/餐饮、17:00-19:00 晚餐/餐饮、22:30+（含 0:00-3:59 尾段）夜宵/娱乐，其余时段不预填
+  - HighFrequencyCategories：近 14 天高频类别排序（频次 desc → 近期 desc），null 类别跳过
+  - LunchPattern：工作日午间 ¥15±2（可配置 anchorCents/toleranceCents）内联提示匹配
+- 速记首页（lib/pages/quick_entry_page.dart，替换 T-01 骨架页）：
+  - 打开即数字键盘（1-9/C/0/⌫ 12 键弹性布局），无导航层，深色 M3
+  - 金额大字显示 + 时段默认类别 chip 预填 + 高频类别 chip 横条（14 天窗口，watchRecent 流驱动）
+  - 午间模式内联提示「这是午餐吗？」（Card 内联，绝不弹窗打断）
+  - 大确认键「记一笔」→ draft 入库（type=expense, isDraft=true, source=manual）→ snackbar 反馈 → 自动清零
+- TransactionRepository 增补：watchRecent(14d) / distinctMerchants / merchantCategory（历史联想数据源）
+- 单测 46 条新增：解析器 27 条（乱序/小数/纯金额/未知商户/边界 0.01/12345.67/历史联想/词典）+ 时段默认 9 条（边界含 9:00/13:30/19:00 排他）+ 高频 4 条 + 午间模式 7 条（周末/窗口外/容差边界）+ widget 交互 2 条
+
+### 关键决策
+- 解析器纯静态函数、零依赖（无 network/AI/riverpod），历史联想通过参数注入保持可测性
+- 键盘 C 键 bug 实测发现并修复：按键标签 C 走 default 分支把字母拼进金额（¥C15），case 从 clear 改 C
+- 键盘布局从 GridView shrinkWrap 改为 Column+Expanded 弹性填充，修复 7/8/9 行在矮窗口被裁切
+- 高频 chip 条双 StreamBuilder（transactions + categories）流式驱动，符合 Riverpod 响应式约定
+
+### 遗留问题
+- flutter run -d windows 的 VM service 偶发 Lost connection to device（VS/Impeller 环境噪音，exe 直跑稳定无碍，不影响 DoD）
+- 一行混合输入的 UI 输入框（文本行解析入口）未上屏 — 当前键盘是纯数字金额流；工单语义「一行混合解析器」已实现且有单测，输入入口在 T-03 回顾页补全流程时自然落地（见下一步）；若管理层认为 T-02 必须含混合输入框 UI，请在验收时指出，下轮补
+
+### 下一步
+- T-03 先记后补机制：首页 draft 角标 + 当日回顾页（按天分组、批量补类别/商户/备注、转正式、7 天灰显）
+
+### DoD 证据
+- flutter analyze → No issues found
+- flutter test → All tests passed (53)
+- Windows 实跑：gringotts.exe 启动，截图 .t02_windows_screenshot.png（¥0 + 12 键完整键盘）；脚本化点击 1→5 金额变 ¥15（.t02_interaction.png）；点击「记一笔」snackbar「已记 ¥15」+ 输入清零（.t02_confirm.png）
+- 数据库验证：sqlite 直查 transactions 表存在 (1500, expense, is_draft=1, source=manual, UUID 主键) 记录
+- Android release APK：flutter build apk --release → app-release.apk (50.7MB) 构建成功
+
+---
+WORKLOG — Gringotts 施工日志
 
 > 执行层（Codex）每次收工在顶部追加一段：做了什么 / 关键决策 / 遗留问题 / 下一步。管理层（Hermes）通过本文件验收进度。
 

@@ -51,3 +51,4 @@ app.*.map.json
 .t01_windows_screenshot.png
 .worklog_entry.md
 .worklog_full.md
+.worklog_entry.md

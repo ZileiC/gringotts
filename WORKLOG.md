@@ -2,6 +2,12 @@
 
 > 执行层（Codex）每次收工在顶部追加一段：做了什么 / 关键决策 / 遗留问题 / 下一步。管理层（Hermes）通过本文件验收进度。
 
+## 2026-09-08（管理层验收记录：T-01 ✅ 通过）
+- 独立复验（管理层亲自执行，不信自报）：flutter analyze → No issues found；flutter test → All tests passed (7)；APK 实存 build/app/outputs/flutter-apk/app-release.apk (51.3MB on disk)；铁律抽查：无 account 字段（models.dart 有显式注释 B3 rejected）、lib/data+domain 无 double 存钱
+- schema 逐项对照工单：UUID text 主键 / created_at/updated_at/deleted_at 三时间戳 / integer cents / 墓碑查询层 / 9 类 seed / assets sold 字段 — 全部吻合
+- 结论：**T-01 验收通过**，无缺陷工单。下一票 T-02 智能速记核心
+- 备注：drift_dev 2.34.6 的 int() 列解析 bug 定位与修复记录质量高，已存档于本文件 T-01 施工记录
+
 ## 2026-09-08 19:10（T-01 执行层施工记录）
 
 ### 做了什么

@@ -1,0 +1,61 @@
+# Gringotts — 项目主页（Session 专用）
+
+> 本目录是 Gringotts 的唯一任务目录：定位、brainstorm、技术选型、交接与连续性都在这里。
+> 每个 session 开始时先读这个文件，结束时更新它。
+> 命名：Gringotts = 古灵阁，巫师世界唯一银行——「你的钱，存进最懂钱的地方」。
+
+## 项目状态
+- **阶段**：M1.0 待派工 — 本地核心账本（智能速记全量 + 资产档案 CPD + 统计图表 + 导出）；范围已锁（见 FEATURES.md 路线图），工单细化中
+- **技术栈**：Flutter + Drift (SQLite) + Riverpod（已定，理由见 FEATURES.md T1）
+- **主端**：Android 手机核心；Windows = 开发预览 + 后期 AI 分析/备份工作台
+- **仓库**：github.com/jharayden/gringotts（private，2026-09-08 建立并推送首提交）
+- **版本语义**：里程碑 M1.0→M4.0，里程碑内修补 M1.1/M1.2…
+- **最后更新**：2026-09-08（B 区裁决完成 + 速记先行改向 + 仓库建立）
+
+## 工作流模式（2026-09-08 用户划定）
+- **本 session（Hermes）= 管理层**：方向把控、brainstorm、任务分派、验收、GitHub 仓库管理；**代码只读不改**
+- **Codex = 执行层**：专门 codex session 在本目录干活，自动读 AGENTS.md，负责编码、构建、打包
+- **接口文件**：AGENTS.md（执行层工作约定唯一真相源）/ WORKLOG.md（施工日志，执行层收工必写）/ PROJECT_STATE.md（本文件，管理层维护）/ FEATURES.md（产品档案）
+- 管理层通过 WORKLOG 验收进度；同一时间只允许一个 agent 改代码
+
+## 已确定（Confirmed）
+- **定位**：AI+ 账本 application；最终形态 = AI 赋能理财提示 + 经济状况智能分析的账本 APP
+- **主端 = Android 手机核心，Windows 辅助**
+- **核心功能三主线**：
+  1. 资产档案页（对标「有数」+ B8 CPD/变现复盘，清单已核实进 FEATURES.md A1）
+  2. 快速记账：**手动智能速记为主 artery**（3 秒一笔、先记后补，设计见 FEATURES.md A2）；截屏记账转入备选池，M1.0 实测后裁决生死
+  3. AI 接入：用户自选 provider + API key；周期报表分析 / 专家 skill 每日理财建议 / 消费咨询对话
+- **B 区裁决（2026-09-08）**：B1/B2/B4/B5/B6/B7/B8/B10 采纳（落位见 FEATURES.md B 区表）；**B3 账户体系、B9 多币种否决**
+- **版本编号**：M1.0–M4.0 里程碑制，内部修补 1.1/1.2 递增（用户定）
+- **双 session**：Hermes = 管理层（代码只读）+ Codex = 执行层（专门 session）
+- **数据**：本地优先，隐私铁律（账本数据不出设备，AI 调用仅用户主动触发时出）
+
+## 待定（Open Questions）
+- M1.0 工单细化（管理层下一步产出，派工前完成）
+- 备选池各项裁决门未到（截屏记账 = M1.0 实测后）
+
+## 文件索引
+- `PROJECT_STATE.md` — 本文件，交接入口（管理层维护）
+- `AGENTS.md` — Codex 开工自动读的工作约定（唯一真相源）
+- `WORKLOG.md` — 施工日志（执行层收工必写）
+- `FEATURES.md` — 产品档案：功能地图、brainstorm 裁决区、速记设计、备选池、技术路线、路线图、负范围
+
+## 决策记录（Decisions Log）
+| 日期 | 决策 | 备注 |
+|------|------|------|
+| 2026-09-08 | 建立本目录 Desktop/Gringotts | 用户指令 |
+| 2026-09-08 | 定位与三大核心功能确认 | 有数功能已核实；AI BYO |
+| 2026-09-08 | **Session 角色划定**：Hermes=管理层+brainstorm+repo 管理，代码只读；Codex=执行层 | 铁律，不越界 |
+| 2026-09-08 | 技术栈 = Flutter + Drift + Riverpod | 与 LifeOS 同栈，本机执行层环境已验证 |
+| 2026-09-08 | 执行层入口 = AGENTS.md（Codex 标准）| 不建 CLAUDE.md，单一真相源防漂移 |
+| 2026-09-08 | **B 区裁决**：B3、B9 否决，其余 8 项采纳 | 落位见 FEATURES.md B 区 |
+| 2026-09-08 | **速记先行**：手动智能速记 = 主 artery；截屏记账转备选池，实测后裁决 | 用户指示「好用可直接放弃截屏」 |
+| 2026-09-08 | **版本编号 = M1.0–M4.0 里程碑制**，修补 1.1/1.2 递增 | 用户定 |
+| 2026-09-08 | **GitHub 仓库建立**：github.com/jharayden/gringotts，private | 首提交 = 管理档案四件套 + .gitignore |
+
+## 下次 Session 开场
+1. 读本文件 + WORKLOG.md
+2. 管理层：验收进度 → 定下阶段任务；执行层：读 AGENTS.md 自动开工
+
+## 交接区（Handoff）
+- Session 结束前必须更新：项目状态、已确定、待定、决策记录。

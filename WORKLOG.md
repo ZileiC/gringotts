@@ -6,6 +6,7 @@
 - 用户定版黑金 Gringotts 徽标 → `brand/gringotts-logo.png`（md5 44ff10f0… 校验一致入库）；T-08 将由它生成 Android 自适应图标 / Windows 图标 / 启动画面
 - TICKETS_M1 增补 **T-08 品牌 UI 重构（M1.0 收官票）**：硬前提 = T-01~T-07 全部验收通过；设计语言 = 深黑层底 + 香槟金 accent + 品牌衬线仅品牌时刻
 - **对执行层的即时影响**：自 T-02 起颜色/字体/间距一律走 `lib/ui/tokens.dart`（组件禁硬编码）；T-08 之前不铺品牌皮肤，避免每屏装两遍
+- ⚠️ **操作失误备案（管理层）**：品牌提交 `7cd0348` 用了 `git add -A`，把执行层 T-02 的在制文件（smart_parser / smart_prefill / quick_entry_page / 配套测试 / .t02_*.png 截图）一并扫入。管理层未改动任何代码内容，仅提交时机错误。**T-02 验收以执行层自己的 WORKLOG 收工记录为准；`7cd0348` 中的 T-02 文件视为 WIP 快照，不计作执行层的正式票提交。**后续管理层提交改为白名单 `git add <files>`，杜绝再犯
 
 ## 2026-09-08（管理层验收记录：T-01 ✅ 通过）
 - 独立复验（管理层亲自执行，不信自报）：flutter analyze → No issues found；flutter test → All tests passed (7)；APK 实存 build/app/outputs/flutter-apk/app-release.apk (51.3MB on disk)；铁律抽查：无 account 字段（models.dart 有显式注释 B3 rejected）、lib/data+domain 无 double 存钱

@@ -58,3 +58,6 @@ app.*.map.json
 
 # T-04 evidence frames (md5-unique, kept local)
 .t04_*.png
+
+# T-05 evidence frames (md5-unique, kept local)
+.t05_*.png

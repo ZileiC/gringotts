@@ -3,6 +3,53 @@
 > 执行层（Codex）每次收工在顶部追加一段：做了什么 / 关键决策 / 遗留问题 / 下一步。管理层（Hermes）通过本文件验收进度。
 > ⚠️ 并发写入约定：追加前先重新读取文件最新版，在头部插入自己的段落，不要重建文件横幅；管理层 patch 前同样先重读。
 
+## 2026-09-09 13:45（T-05 执行层施工记录）
+
+### 做了什么
+- 聚合服务（lib/services/statistics_service.dart，纯函数）：
+  - 口径铁律落地：draft 永不计入 / 墓碑行排除 / transfer 占位不进支出收入净结余任何一桶
+  - expenseByCategory：类别汇总（含未分类 null 桶）按金额降序
+  - trend 双线引擎：key 函数抽周期标签，expense/income 分桶，orderedLabels 固定桶序（日 7 桶 / 月 12 桶 / 年升序）
+  - dailyTrend（6 天前..今天）/ monthlyTrend（1-12 月）/ yearlyTrend + totals（净结余 = 收入 − 支出）
+- 导出服务（lib/services/export_service.dart）：
+  - transactionsCsv：标准 CSV + 引号转义（逗号/引号/换行）
+  - **CSV 带 UTF-8 BOM（EF BB BF）**——Excel 中文乱码防线；JSON 全量 dump（version/exported_at/transactions/categories/assets 含墓碑字段）
+  - exportAll：一次导出 CSV+JSON 双文件到文档目录（Win: USERPROFILE/Documents；Android: Download），时间戳命名防覆盖
+- 统计页（lib/pages/stats_page.dart，全 tokens）：
+  - 日/月/年 SegmentedButton 三档切换
+  - 净结余卡：大字 ¥X + 收入/支出分项
+  - fl_chart 双线趋势（支出红/收入绿，触摸 tooltip 显示周期+金额）
+  - fl_chart 类别占比饼图（百分比标签 + 9 色图例 + 未分类兜底）
+  - 导出按钮（列表底部，scrollUntilVisible 可达）
+- 速记页加「统计」入口按钮 + F3 调试快捷键
+- 测试新增 10 条：聚合口径 4 条（draft 不计/墓碑排除/transfer 不计/未分类桶）+ 收支双线独立 5 条（日/月/年趋势各桶断言 + 净结余 draft 收入排除）+ 导出 2 条（BOM 字节断言/表头断言）
+
+### 关键决策
+- monthlyTrend 固定 12 桶（1-12 月），无数据月为 0 —— 折线不跳轴，AI 解读层（M2.0）拿到的序列连续
+- 统计页入口 = 速记页顶栏第三按钮（回顾/资产/统计），无导航层破坏
+- 导出目录用 Platform.environment 探测（Win USERPROFILE / 类 Unix HOME），Android 端走 Download 固定路径
+- integration 沿用 assert-first + toImage + md5 管线：3 帧 md5 唯一（d979b3f4 / d1a12144 / 2417a3e8）
+
+### 遗留问题
+- 无阻塞。趋势图 X 轴标签密度在大数据量时可优化（当前 interval 自适应，可读）
+- PowerShell 5.1 ConvertFrom-Json 对 11KB JSON 报 max depth（PS 自身限制），python json.load 验证通过（version 1 / tx 20 / cats 9 / assets 9）——文件本身合法
+
+### 下一步
+- T-06 直达入口：Android shortcuts「记一笔」+ Quick Settings tile（Windows 可忽略）
+
+### DoD 证据
+- flutter analyze → No issues found
+- flutter test → All tests passed (83)
+- integration test → 00:16 +1: All tests passed；3 帧 md5 唯一
+- Windows 实跑帧（真实渲染）：
+  - .t05_state1_stats_daily.png 日视图：净结余 ¥-120（8 笔已确认×¥15，draft 全排除）+ 双线趋势 + 饼图
+  - .t05_state2_stats_monthly.png 月视图：12 桶折线，9 月峰值
+  - .t05_state3_stats_yearly.png 年视图
+- 导出实测：Documents 落盘 gringotts_transactions_1788932248609.csv（BOM ef-bb-bf 验证 + 22 行）+ gringotts_full_1788932248609.json（python 解析 tx20/cats9/assets9）
+- Android release APK：app-release.apk (60.5MB) 构建成功
+
+---
+
 ## 2026-09-09（管理层验收记录：T-04 ✅ 通过，附缺陷 D1 进 M1.1）
 - **五层验收**：
   1. 记录核对：commit `5121c5c`（14 文件 +1283）对版；截图管线整改按 T-03 处置要求落实（assert-first + toImage + md5 打印），外部 PrintWindow 脚本废弃的理由成立（前台锁丢点击）

@@ -3,6 +3,38 @@
 > 执行层（Codex）每次收工在顶部追加一段：做了什么 / 关键决策 / 遗留问题 / 下一步。管理层（Hermes）通过本文件验收进度。
 > ⚠️ 并发写入约定：追加前先重新读取文件最新版，在头部插入自己的段落，不要重建文件横幅；管理层 patch 前同样先重读。
 
+## 2026-09-09 15:10（T-06 执行层施工记录）
+
+### 做了什么
+- DirectEntryService（lib/services/direct_entry_service.dart）：quick_actions 插件注册长按桌面图标快捷方式「记一笔」（type action_new_record，icon ic_launcher）；setTileActive 方法通道占位（桌面平台 no-op 容错）
+- Quick Settings tile（原生）：RecordTileService.kt（TileService 子类，点按 launch MainActivity = 速记首页）+ AndroidManifest 注册（BIND_QUICK_SETTINGS_TILE 权限保护 + QS_TILE intent-filter + ic_launcher 图标 + 「记一笔」label）
+- main.dart 启动时初始化快捷方式注册
+- 单测 2 条：tile 通道 mock 断言 + 快捷方式注册无异常（quick_actions 通道 mock）
+
+### 关键决策
+- tile 点按行为 = 直接 launch MainActivity（首页即速记页，无需额外路由），与长按快捷方式同一目的地 —— 两条直达路径 UX 完全一致
+- tile 状态未实现 onTap/setActive 回调（M1.0 无「正在速记」状态语义，Unavailable 灰态为 Android 默认；点按行为正常）——状态回调留 M1.x 若有需求
+- 验收环境从零搭建：sdkmanager 装 emulator + system-images;android-35;google_apis;x86_64，avdmanager 建 Pixel 6 AVD（test_api35），首启 50s 完成引导
+
+### 遗留问题
+- tile 在面板中显示 Unavailable 灰态（无 TileService.onTap 状态回调）；点按直达正常。若管理层要求 active 态视觉，M1.x 补
+- 快捷方式图标暂用 Flutter 默认图（T-08 品牌票统一换 brand 徽标）
+- 模拟器环境为本票新装（emulator + API35 镜像 + AVD），后续票可直接复用 test_api35
+
+### 下一步
+- T-07 M1.0 收尾整合：全量回归（速记→draft→补全→统计→资产→导出 Windows 全链路）+ release APK + 完工报告
+
+### DoD 证据（模拟器实跑，emulator-5554 / Pixel 6 API 35）
+- flutter analyze → No issues found
+- flutter test → All tests passed (85)
+- shortcut 注册实证：dumpsys shortcut 显示 shortLabel=记一笔 + intent action_new_record → MainActivity
+- **shortcut 点按实证**：长按 gringotts 图标 → 快捷菜单「记一笔」（.t06_longpress_menu.png）→ uiautomator 定位 deep_shortcut bounds[348,1192][915,1329] → 点按 → mCurrentFocus=MainActivity + .t06_shortcut_tapped.png（速记页 ¥0 + 键盘 + 餐饮预填）
+- **QS tile 实证**：cmd statusbar add-tile 成功（sysui_qs_tiles 首位 custom(dev.jharayden.gringotts/.RecordTileService)）+ .t06_qs_tile.png（面板第一位「记一笔」tile）→ 点按 → mCurrentFocus=MainActivity（.t06_tile_tapped.png 速记页）
+- tile 权限保护实证：am startservice 直接调 TileService 被 BIND_QUICK_SETTINGS_TILE 拒绝（外部应用不可绕过 SystemUI，安全设计生效）
+- Android debug APK 安装模拟器 Success；release APK 60.5MB 构建成功
+
+---
+
 ## 2026-09-09（管理层验收记录：T-05 ✅ 通过，附备忘 N1）
 - **五层验收**：
   1. 记录核对：commit `d23cd7c` 对版；收支对称增补（用户补票）全项落地；固定 12 桶防跳轴的决策对 M2.0 AI 解读层友好

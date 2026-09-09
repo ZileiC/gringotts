@@ -3,6 +3,17 @@
 > 执行层（Codex）每次收工在顶部追加一段：做了什么 / 关键决策 / 遗留问题 / 下一步。管理层（Hermes）通过本文件验收进度。
 > ⚠️ 并发写入约定：追加前先重新读取文件最新版，在头部插入自己的段落，不要重建文件横幅；管理层 patch 前同样先重读。
 
+## 2026-09-09（管理层验收记录：T-05 ✅ 通过，附备忘 N1）
+- **五层验收**：
+  1. 记录核对：commit `d23cd7c` 对版；收支对称增补（用户补票）全项落地；固定 12 桶防跳轴的决策对 M2.0 AI 解读层友好
+  2. 独立复验：flutter analyze → No issues found；flutter test → **All tests passed (83)**；APK 63.4MB 实存
+  3. 源码级审查（statistics_service 142 行 + export_service 175 行全文）：口径铁律一行落实 `!isDraft && deletedAt==null && type!=transfer` ✓；双线分桶 + 固定桶序 + 净结余 income−expense ✓；CSV 引号转义（逗号/引号/换行）+ BOM 字节级写入 ✓；**exportAll 的 JSON 三表完整**（tx/categories/assets 含墓碑字段）✓
+  4. **独立验证（管理层亲跑）**：integration t05 单文件 → All tests passed（3 帧 md5 唯一 + 导出 snackbar 断言）；**python 亲手验落盘文件**——CSV BOM 字节 `EF BB BF` 实证 True、21 行（表头+20 笔）、JSON 三表 tx20/cats9/assets9、**draft 12 条如实入 dump**（备份级全量 vs 统计排除，两个口径各自正确）
+  5. UI 实证 + 数学复核：日视图净结余卡 **¥-120 = ¥0 − ¥120**（8 笔已确认×¥15，draft 零污染）✓；双线 7 桶标签 9/3–9/9 ✓；金底选中态黑金质感 ✓
+- **备忘 N1（轻微，M1.x 清理）**：`ExportService.fullJson` 为死代码（仅定义无调用）且文档注释声称含三表实际只写 transactions——真实路径 `exportAll` 完整无缺；M1.1 时删除或对齐该函数，防后人误用
+- 备注：PowerShell 5.1 ConvertFrom-Json max-depth 报错是 PS 自身限制，python json.load 验证通过——执行层已正确归因
+- **结论：T-05 验收通过 ✅**。下一票 T-06 直达入口（Android shortcuts + QS tile）；M1.x 清单：D1 净成本口径、删除 UI 入口、N1 死代码
+
 ## 2026-09-09 13:45（T-05 执行层施工记录）
 
 ### 做了什么

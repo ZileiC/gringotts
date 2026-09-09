@@ -271,6 +271,35 @@ class AssetRepository {
         ));
   }
 
+  /// One-shot fetch of live assets (CPD tests / integration assertions).
+  Future<List<Asset>> getLiveAssets() => _db.liveAssets.get();
+
+  /// Stream of in-service assets only.
+  Stream<List<Asset>> watchInService() {
+    return (_db.select(_db.assets)
+          ..where((a) =>
+              a.deletedAt.isNull() & a.status.equalsValue(AssetStatus.inService))
+          ..orderBy([(u) => OrderingTerm.desc(u.purchasedAt)]))
+        .watch();
+  }
+
+  /// Stream of sold assets only (realization review section).
+  Stream<List<Asset>> watchSold() {
+    return (_db.select(_db.assets)
+          ..where((a) =>
+              a.deletedAt.isNull() & a.status.equalsValue(AssetStatus.sold))
+          ..orderBy([(u) => OrderingTerm.desc(u.soldAt)]))
+        .watch();
+  }
+
+  /// Marks a retired asset (no longer used but kept).
+  Future<int> markRetired(String id) {
+    return (_db.update(_db.assets)..where((a) => a.id.equals(id)))
+        .write(AssetsCompanion(
+      status: const Value(AssetStatus.retired),
+      updatedAt: Value(DateTime.now().toUtc()),
+    ));
+  }
   /// Stream of all non-deleted assets, newest purchase first.
   Stream<List<Asset>> watchAll() => _db.liveAssets.watch();
 }

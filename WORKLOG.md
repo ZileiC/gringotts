@@ -3,6 +3,52 @@
 > 执行层（Codex）每次收工在顶部追加一段：做了什么 / 关键决策 / 遗留问题 / 下一步。管理层（Hermes）通过本文件验收进度。
 > ⚠️ 并发写入约定：追加前先重新读取文件最新版，在头部插入自己的段落，不要重建文件横幅；管理层 patch 前同样先重读。
 
+## 2026-09-09 02:20（T-04 执行层施工记录）
+
+### 做了什么
+- CPD 计算服务（lib/services/cpd_calculator.dart，纯函数）：
+  - heldDays：同日购买计 1 天、跨天含头含尾、sold 用 soldAt 截止、未来购买钳制 1 天
+  - cpdCents/cpdForAsset：sold 资产用卖出价算真实 CPD；realizedProfitCents（卖出-买入）；retentionPermille 千分位整数保值率
+  - AssetPortfolio.breakdown：服役/退役/已实现三桶 + 净值合计
+- 照片管线（lib/services/photo_service.dart）：image 解码 → 长边超 1600 等比缩 → JPEG q82 → sha256 内容命名 hash.jpg（同内容幂等去重）；DB 只存路径；非图字节抛 FormatException
+- 资产档案页（lib/pages/assets_page.dart，全 tokens）：
+  - 净值看板卡：总净值大字 + 服役/退役/已实现三 pill
+  - 分区列表：服役中/已退役/已卖出；tile 含照片缩略图、名称、值、持有天数、CPD 金底徽章（¥X/天）、1 年服役进度条、退役/卖出按钮
+  - 卖出对话框：输入卖出价 → markSold → 落入已卖出分区
+  - 已卖出 tile 变现复盘：买卖差价红绿、保值率百分比、总成本/天、持有天数
+  - 录入 bottom sheet：名称/价值/四类 SegmentedButton/日期选择/相册或拍照（image_picker）→ PhotoService 压缩保存 → 预览
+- 速记页加「资产」入口按钮；F2 调试快捷键直达资产页（Windows 预览用）
+- 测试：CPD 单测 7 条（跨天/当天/已卖出三种 + 日界 + 未来钳制 + 净值组合 + 空组合）；PhotoService 3 条（hash 幂等/超边缩放/非图抛错）；integration 全链路（录入→列表 CPD→卖出→复盘→DB 断言）
+
+### 关键决策（截图管线修复 = 管理层 T-03 警告整改）
+- 根治同帧多名义：snapState 流程 = 先 pumpAndSettle 刷新流 → 断言该状态全部目标元素在 widget 树 → RepaintBoundary.toImage 抓真实渲染帧 → 文件内容 md5 打印。4 个状态帧 md5 全部不同（80ba124b / 05a514f5 / 133daa7e / 3e1050a1）
+- 外部 PrintWindow 脚本废弃（Windows 前台锁导致注入点击/按键全部丢失，永远同帧）；integration 内抓帧是唯一可靠路径
+- ListView 懒构建坑：sold 分区在长列表下方不 build，find 断言假阴性；scrollUntilVisible 后断言
+- 卖出 tap 用 ancestor(of: name, matching: Card) 限定目标 tile，防同名资产误绑
+- 净值口径：退役资产保留现值计入净值，已卖出按卖出价计已实现
+
+### 遗留问题
+- 测试在 DB 留下多条同名「测试相机」资产与 python seed 3 条；功能不受影响，UI 无删除入口（工单现状，tombstone repo 层已有）——与 T-03 备忘合并 M1.x 候选：资产/draft 的 UI 删除入口
+- integration test 需 -d windows 单跑
+- 照片流程：压缩+hash+缩放有单测；UI 相册/拍照入口在 sheet；integration 用 photo-less 录入（image_picker 桌面系统文件框会阻塞 CI）。如需 Windows 全照片 UI 流实测请说明，我用文件注入补
+
+### 下一步
+- T-05 统计图表与导出：日/月/年三档 + fl_chart 饼图/折线 + 收支对称双线净结余 + CSV/JSON 导出（BOM）
+
+### DoD 证据
+- flutter analyze → No issues found
+- flutter test → All tests passed (73)
+- integration test → 00:18 +1: All tests passed；4 帧 md5 唯一（截图管线合规）
+- Windows 实跑帧（integration 抓帧即真实渲染）：
+  - .t04_state1_home.png 首页
+  - .t04_state2_assets_dashboard.png 净值看板 67299 元 + 服役列表 CPD 徽章 + 进度条
+  - .t04_state3_assets_with_cpd.png 新录入资产 CPD 6000/天
+  - .t04_state4_sold_realized.png 已卖出分区 + 保值率 80.0% + 盈亏 -1200
+- DB 断言：create 600000 分 / sell 480000 分 / retention 800 permille 全过
+- Android release APK：app-release.apk (59.4MB) 构建成功
+
+---
+
 ## 2026-09-09（管理层验收记录：T-03 ✅ 通过，附 1 条警告级证据违规）
 - **五层验收**（增补票三件套全查）：
   1. 记录核对：commit `38e06a8`（14 文件 +955/-53）与申报一致；收工记录完整；intl zh_CN 陷阱的定位过程有价值（为 T-05 排雷）

@@ -7,6 +7,7 @@ import '../data/app_database.dart';
 import '../data/repositories/repositories.dart';
 import '../domain/models.dart';
 import '../domain/seed_ids.dart';
+import '../pages/assets_page.dart';
 import '../pages/review_page.dart';
 import '../services/smart_parser.dart';
 import '../services/smart_prefill.dart';
@@ -164,6 +165,11 @@ class _QuickEntryPageState extends ConsumerState<QuickEntryPage> {
       _onKey('backspace');
     } else if (key == LogicalKeyboardKey.escape) {
       _onKey('C');
+    } else if (key == LogicalKeyboardKey.f2) {
+      // Debug navigation shortcut (Windows preview only).
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => const AssetsPage()),
+      );
     } else if (key == LogicalKeyboardKey.enter ||
         key == LogicalKeyboardKey.numpadEnter) {
       _confirm();
@@ -195,6 +201,15 @@ class _QuickEntryPageState extends ConsumerState<QuickEntryPage> {
                     ),
                     icon: const Icon(Icons.history),
                     label: const Text('回顾'),
+                  ),
+                  TextButton.icon(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const AssetsPage(),
+                      ),
+                    ),
+                    icon: const Icon(Icons.inventory_2),
+                    label: const Text('资产'),
                   ),
                 ],
               ),

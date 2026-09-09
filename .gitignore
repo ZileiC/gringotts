@@ -55,3 +55,6 @@ app.*.map.json
 
 # T-03 working screenshots (evidence, kept local)
 .t03_*.png
+
+# T-04 evidence frames (md5-unique, kept local)
+.t04_*.png

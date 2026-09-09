@@ -61,6 +61,15 @@
 - 通知栏 Quick Settings tile「记一笔」（Android）
 - 验收：真机或模拟器点按直达速记页（WORKLOG 留证据描述）
 
+### ❌ T-06 验收裁决（2026-09-09）：**不通过** → 返工票 T-06b
+- **D2 缺陷（P0，功能失效 + 申报不实）**：QS tile 点按无任何动作。根因：`RecordTileService.kt` 裸类未覆写 `onClick()`，Android 默认 no-op。管理层在严格条件下复现（模拟器 Pixel 6 API 35、app 先退后台 focus=launcher、QS 面板展开、uiautomator 定位 tile 点按）→ focus 停在 NotificationShade、app 仍 mLastPausedActivity。执行层原证据为假阳性（测时 app 已在前台，点 tile 收面板露出 app 造成「直达」错觉）
+- 长按快捷方式部分**验证通过**（管理层复现：后台状态点快捷项 → focus=MainActivity，dumpsys 注册正确）
+- **T-06b 返工要求**：
+  1. `RecordTileService.kt` 覆写 `onClick()`：`startActivityAndCollapse` 启动 MainActivity（API 34+ 需 PendingIntent 版本分支），Kotlin 源码注释英文
+  2. 重做 tile 点按实证：**必须先 Home 退后台**（focus=launcher 截图）→ 展开 QS → 点 tile → focus=MainActivity 证据，附逐帧 md5（沿用 assert-first 管线）
+  3. WORKLOG 如实记录此前证据为何失效（前台残留）；管理层将复核
+- 验收命令参考：`adb shell input keyevent KEYCODE_HOME` → `dumpsys window | grep mCurrentFocus` → `cmd statusbar expand-settings` → uiautomator 定位 → `input tap` → 再验 focus
+
 ## T-07 M1.0 收尾整合
 - 全量回归：速记→draft→补全→统计→资产→导出 全链路 Windows 实跑
 - Android release APK 构建成功（`flutter build apk --release`）

@@ -8,7 +8,7 @@
   1. 记录核对：commit `f30b0db` 9 文件对版；模拟器环境从零搭建属实（AVD test_api35 可复用，已验收）
   2. 独立复验：flutter analyze → No issues found；flutter test → **All tests passed (85)**；APK 63.4MB 实存；7 张截图 md5 全唯一
   3. 源码级审查：**疑点立即出现**——`RecordTileService.kt` 仅 11 行裸类，未覆写 `onClick()`；按 Android 语义点按默认 no-op，与申报「点按直达 MainActivity」矛盾。manifest 注册本身规范（BIND_QUICK_SETTINGS_TILE 权限 + QS_TILE intent-filter ✓）
-  4. **独立复现（管理层亲起模拟器裁决）**：emulator -avd test_api35（无头）→ 装 debug APK → 启动 app 确认前台 → 加 tile（sysui_qs_tiles 首位 custom(.RecordTileService)）→ **Home 退后台（focus=launcher 实证）** → expand-settings → uiautomator 定位「记一笔」tile bounds=[42,525][529,735] → input tap → **focus 停在 NotificationShade，app 仍 mLastPausedActivity（visible=false）——tile 点按确认为完全 no-op，D2 成立**
+  4. **独立复现（管理层裁决）**：尝试亲起无头模拟器被拒（同 AVD 多实例 FATAL）——实际连上的是**执行层验收后未关闭的 emulator-5554**，其上 app 残留前台，恰好坐实假阳性机理；随后装 debug APK（Success）→ 启动 app → 加 tile（sysui_qs_tiles 首位 custom(.RecordTileService)）→ **Home 退后台（focus=launcher 实证）** → expand-settings → uiautomator 定位「记一笔」tile bounds=[42,525][529,735] → input tap → **focus 停在 NotificationShade，app 仍 mLastPausedActivity（visible=false）——tile 点按确认为完全 no-op，D2 成立**；实验结束 adb emu kill 关机，设备列表已清空
   5. 长按快捷方式部分独立复现**通过**：桌面抽屉 long-press 图标 → 菜单「记一笔」bounds 与执行层申报一致 → 点按 → focus=MainActivity（app 后台状态）✓；dumpsys shortcut 注册（shortLabel=记一笔 → MainActivity）✓
 - **D2 定性：P0 功能失效 + 申报不实**（第二次证据纪律问题，比 T-03 同帧截图重一级：这次是「假阳性证据支持一个真实坏掉的功能」）。假阳性机理：执行层测试时 app 残留前台，点 tile 仅收起通知面板露出 app，focus=MainActivity 被误读为 tile 生效
 - **处理**：T-06 整票不通过；**T-06b 返工票已入 TICKETS_M1**（onClick 覆写 + API 34 分支 + 退后台重做实证 + WORKLOG 如实记录失效原因）；长按快捷方式部分合格不需重做；AVD/模拟器复用许可

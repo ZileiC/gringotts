@@ -52,3 +52,6 @@ app.*.map.json
 .worklog_entry.md
 .worklog_full.md
 .worklog_entry.md
+
+# T-03 working screenshots (evidence, kept local)
+.t03_*.png

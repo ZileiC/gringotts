@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../data/app_database.dart';
 import '../app/app.dart';
+import '../data/app_database.dart';
 import '../data/repositories/repositories.dart';
 import '../domain/models.dart';
 import '../domain/seed_ids.dart';
+import '../pages/review_page.dart';
+import '../services/smart_parser.dart';
 import '../services/smart_prefill.dart';
+import '../ui/tokens.dart';
 
-/// Speed-entry home page: numeric keypad, amount-only, no navigation layer.
+/// Speed-entry home page: numeric keypad + mixed input, no navigation layer.
 ///
 /// Record action never blocks on category selection (draft-first workflow).
 class QuickEntryPage extends ConsumerStatefulWidget {
@@ -23,14 +27,24 @@ class _QuickEntryPageState extends ConsumerState<QuickEntryPage> {
   String? _selectedCategoryId;
   String? _timeDefaultCategoryId;
   bool _lunchHintVisible = false;
+  bool _isIncome = false;
+  final FocusNode _focusNode = FocusNode();
 
   TransactionRepository get _txRepo => ref.read(transactionRepositoryProvider);
-
   int? get _amountCents {
     if (_input.isEmpty) return null;
-    final value = int.tryParse(_input);
-    if (value == null) return null;
-    return value * 100;
+    // Mixed-input form: run the local parser so `.5`, `瑞幸 15` etc. work.
+    final parsed = SmartParser.parse(_input, history: const []);
+    return parsed.amountCents;
+  }
+
+  SmartParseResult get _mixedParse =>
+      SmartParser.parse(_input, history: const []);
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
   }
 
   @override
@@ -53,7 +67,7 @@ class _QuickEntryPageState extends ConsumerState<QuickEntryPage> {
           _selectedCategoryId = null;
           _lunchHintVisible = false;
         default:
-          if (_input.length < 9) _input += key;
+          if (_input.length < 30) _input += key;
       }
       _updateLunchHint();
     });
@@ -61,7 +75,7 @@ class _QuickEntryPageState extends ConsumerState<QuickEntryPage> {
 
   void _updateLunchHint() {
     final amount = _amountCents;
-    if (amount == null) {
+    if (amount == null || _isIncome) {
       _lunchHintVisible = false;
       return;
     }
@@ -75,11 +89,17 @@ class _QuickEntryPageState extends ConsumerState<QuickEntryPage> {
     final amount = _amountCents;
     if (amount == null || amount <= 0) return;
 
-    final categoryId = _selectedCategoryId ?? _timeDefaultCategoryId;
+    final parse = _mixedParse;
+    // Income mode: no time-of-day prefill, no lunch pattern (management
+    // addendum). Category may still be picked via chips.
+    final categoryId =
+        _isIncome ? _selectedCategoryId : (_selectedCategoryId ?? _timeDefaultCategoryId);
+
     await _txRepo.create(
       amountCents: amount,
-      type: TransactionType.expense,
+      type: _isIncome ? TransactionType.income : TransactionType.expense,
       categoryId: categoryId,
+      merchant: parse.merchant,
       occurredAt: DateTime.now(),
       isDraft: true,
       source: TransactionSource.manual,
@@ -91,7 +111,7 @@ class _QuickEntryPageState extends ConsumerState<QuickEntryPage> {
           : (amount / 100).toStringAsFixed(2);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('已记 ¥$display'),
+          content: Text('${_isIncome ? '已入账' : '已记'} ¥$display'),
           duration: const Duration(seconds: 1),
         ),
       );
@@ -105,6 +125,52 @@ class _QuickEntryPageState extends ConsumerState<QuickEntryPage> {
 
   @override
   Widget build(BuildContext context) {
+    return KeyboardListener(
+      focusNode: _focusNode,
+      autofocus: true,
+      onKeyEvent: _handleKeyEvent,
+      child: _buildScaffold(context),
+    );
+  }
+
+  void _handleKeyEvent(KeyEvent event) {
+    if (event is! KeyDownEvent) return;
+    final key = event.logicalKey;
+    final digitKeys = <LogicalKeyboardKey, String>{
+      LogicalKeyboardKey.digit0: '0',
+      LogicalKeyboardKey.digit1: '1',
+      LogicalKeyboardKey.digit2: '2',
+      LogicalKeyboardKey.digit3: '3',
+      LogicalKeyboardKey.digit4: '4',
+      LogicalKeyboardKey.digit5: '5',
+      LogicalKeyboardKey.digit6: '6',
+      LogicalKeyboardKey.digit7: '7',
+      LogicalKeyboardKey.digit8: '8',
+      LogicalKeyboardKey.digit9: '9',
+      LogicalKeyboardKey.numpad0: '0',
+      LogicalKeyboardKey.numpad1: '1',
+      LogicalKeyboardKey.numpad2: '2',
+      LogicalKeyboardKey.numpad3: '3',
+      LogicalKeyboardKey.numpad4: '4',
+      LogicalKeyboardKey.numpad5: '5',
+      LogicalKeyboardKey.numpad6: '6',
+      LogicalKeyboardKey.numpad7: '7',
+      LogicalKeyboardKey.numpad8: '8',
+      LogicalKeyboardKey.numpad9: '9',
+    };
+    if (digitKeys.containsKey(key)) {
+      _onKey(digitKeys[key]!);
+    } else if (key == LogicalKeyboardKey.backspace) {
+      _onKey('backspace');
+    } else if (key == LogicalKeyboardKey.escape) {
+      _onKey('C');
+    } else if (key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter) {
+      _confirm();
+    }
+  }
+
+  Widget _buildScaffold(BuildContext context) {
     final theme = Theme.of(context);
     final amount = _amountCents;
 
@@ -112,56 +178,102 @@ class _QuickEntryPageState extends ConsumerState<QuickEntryPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Amount display + prefill category chip.
+            // Top row: badge + review entry.
             Padding(
-              padding: const EdgeInsets.fromLTRB(24, 32, 24, 8),
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.m, AppSpacing.s, AppSpacing.m, 0,
+              ),
+              child: Row(
+                children: [
+                  const _TodayDraftBadge(),
+                  const Spacer(),
+                  TextButton.icon(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const ReviewPage(),
+                      ),
+                    ),
+                    icon: const Icon(Icons.history),
+                    label: const Text('回顾'),
+                  ),
+                ],
+              ),
+            ),
+            // Amount display + mixed input field + mode toggle.
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.m, AppSpacing.m, AppSpacing.m, AppSpacing.s,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    '¥ ${_input.isEmpty ? '0' : _input}',
-                    style: theme.textTheme.displayLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -1,
-                    ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        '¥ ${_input.isEmpty ? '0' : _input}',
+                        style: theme.textTheme.displayLarge,
+                      ),
+                      const Spacer(),
+                      SegmentedButton<bool>(
+                        segments: const [
+                          ButtonSegment(value: false, label: Text('支出')),
+                          ButtonSegment(value: true, label: Text('收入')),
+                        ],
+                        selected: {_isIncome},
+                        onSelectionChanged: (selection) => setState(() {
+                          _isIncome = selection.first;
+                          _updateLunchHint();
+                        }),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.m),
+                  TextField(
+                    decoration: const InputDecoration(
+                      hintText: '混合输入：瑞幸 15 / 15.5 午餐 / .5',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    onChanged: (value) => setState(() {
+                      _input = value;
+                      _updateLunchHint();
+                    }),
+                  ),
+                  const SizedBox(height: AppSpacing.s),
                   _CategoryPrefillRow(
                     selectedCategoryId: _selectedCategoryId,
-                    timeDefaultCategoryId: _timeDefaultCategoryId,
+                    timeDefaultCategoryId:
+                        _isIncome ? null : _timeDefaultCategoryId,
                     onCategorySelected: (id) =>
                         setState(() => _selectedCategoryId = id),
                   ),
                 ],
               ),
             ),
-            // Inline lunch hint (never a dialog).
             if (_lunchHintVisible)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
                 child: _LunchHint(
                   onConfirm: () =>
                       setState(() => _selectedCategoryId = categoryIdDining),
                 ),
               ),
-            // High frequency category chips (recent 14 days).
             _HighFrequencyChipBar(
               selectedCategoryId: _selectedCategoryId,
               onSelected: (id) => setState(() => _selectedCategoryId = id),
             ),
-            // Numeric keypad.
             Expanded(child: _Keypad(onKey: _onKey)),
-            // Big confirm button.
             Padding(
-              padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+              padding: const EdgeInsets.all(AppSpacing.m),
               child: SizedBox(
                 width: double.infinity,
                 height: 56,
                 child: FilledButton(
                   onPressed: amount == null || amount <= 0 ? null : _confirm,
                   style: FilledButton.styleFrom(
-                    textStyle: const TextStyle(
-                      fontSize: 18,
+                    textStyle: TextStyle(
+                      fontSize: AppFont.title,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -172,6 +284,37 @@ class _QuickEntryPageState extends ConsumerState<QuickEntryPage> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Home badge: "今日 N 笔待完善" - zero drafts renders nothing.
+class _TodayDraftBadge extends ConsumerWidget {
+  const _TodayDraftBadge();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final txRepo = ref.watch(transactionRepositoryProvider);
+    return StreamBuilder<int>(
+      stream: txRepo.watchTodayDraftCount(),
+      builder: (context, snapshot) {
+        final count = snapshot.data ?? 0;
+        if (count == 0) return const SizedBox.shrink();
+        return Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.m,
+            vertical: AppSpacing.xs,
+          ),
+          decoration: BoxDecoration(
+            color: AppColors.goldContainer,
+            borderRadius: BorderRadius.circular(AppRadius.pill),
+          ),
+          child: Text(
+            '今日 $count 笔待完善',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        );
+      },
     );
   }
 }
@@ -205,8 +348,8 @@ class _CategoryPrefillRow extends ConsumerWidget {
         }
 
         return Wrap(
-          spacing: 8,
-          runSpacing: 4,
+          spacing: AppSpacing.s,
+          runSpacing: AppSpacing.xs,
           children: [
             if (effective != null)
               InputChip(
@@ -238,7 +381,9 @@ class _LunchHint extends StatelessWidget {
     return Card(
       color: Theme.of(context).colorScheme.secondaryContainer,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.m, vertical: AppSpacing.xs,
+        ),
         child: Row(
           children: [
             Expanded(
@@ -248,10 +393,7 @@ class _LunchHint extends StatelessWidget {
               ),
             ),
             TextButton(onPressed: onConfirm, child: const Text('是')),
-            TextButton(
-              onPressed: () {},
-              child: const Text('否'),
-            ),
+            TextButton(onPressed: () {}, child: const Text('否')),
           ],
         ),
       ),
@@ -295,9 +437,9 @@ class _HighFrequencyChipBar extends ConsumerWidget {
               height: 48,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 24),
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
                 itemCount: rankedIds.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 8),
+                separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.s),
                 itemBuilder: (context, index) {
                   final id = rankedIds[index];
                   Category? cat;
@@ -339,7 +481,7 @@ class _Keypad extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
       child: Column(
         children: [
           for (var row = 0; row < 4; row++)
@@ -349,7 +491,7 @@ class _Keypad extends StatelessWidget {
                   for (var col = 0; col < 3; col++)
                     Expanded(
                       child: Padding(
-                        padding: const EdgeInsets.all(4),
+                        padding: const EdgeInsets.all(AppSpacing.xs),
                         child: _KeyCap(
                           label: switch (_keys[row * 3 + col]) {
                             'backspace' => '⌫',
@@ -379,15 +521,17 @@ class _KeyCap extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Theme.of(context).colorScheme.surfaceContainerHigh,
-      borderRadius: BorderRadius.circular(12),
+      color: AppColors.surfaceElevated,
+      borderRadius: BorderRadius.circular(AppRadius.m),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppRadius.m),
         child: Center(
           child: Text(
             label,
-            style: Theme.of(context).textTheme.titleLarge,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontSize: AppFont.keypad,
+            ),
           ),
         ),
       ),

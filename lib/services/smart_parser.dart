@@ -47,7 +47,7 @@ class SmartParseResult {
 class SmartParser {
   SmartParser._();
 
-  static final RegExp _amountPattern = RegExp(r'\d+(?:\.\d+)?');
+  static final RegExp _amountPattern = RegExp(r'(?:\d+(?:\.\d+)?|\.\d+)');
 
   /// Category keywords -> fixed seed category id.
   static const Map<String, String> categoryWords = {
@@ -194,6 +194,10 @@ class SmartParser {
   /// Converts a yuan string (`15`, `15.5`, `15.55`) to integer cents.
   /// Truncates beyond two decimal places; never uses floating point storage.
   static int _toCents(String yuanText) {
+    // Leading-dot form (`.5` = 0.50): normalize to `0.5` first.
+    if (yuanText.startsWith('.')) {
+      yuanText = '0$yuanText';
+    }
     final parts = yuanText.split('.');
     final yuan = int.parse(parts[0]);
     var cents = 0;

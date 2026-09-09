@@ -53,6 +53,26 @@ class _FakeTransactionRepository implements TransactionRepository {
       throw UnimplementedError();
 
   @override
+  Stream<List<Transaction>> watchDrafts() => Stream.value(const <Transaction>[]);
+
+  @override
+  Stream<int> watchTodayDraftCount() => Stream.value(0);
+
+  @override
+  Future<int> updateFields(
+    String id, {
+    String? categoryId,
+    String? merchant,
+    String? note,
+  }) =>
+      throw UnimplementedError();
+
+  @override
+  Future<int> confirmedExpenseCentsInRange(
+          DateTime start, DateTime end) async =>
+      0;
+
+  @override
   Future<int> softDelete(String id) => throw UnimplementedError();
 
   @override

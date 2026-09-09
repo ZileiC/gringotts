@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/app_database.dart';
 import '../data/repositories/repositories.dart';
 import '../pages/quick_entry_page.dart';
+import '../ui/tokens.dart';
 
 /// Provides the singleton [AppDatabase] for the whole app.
 final Provider<AppDatabase> databaseProvider = Provider<AppDatabase>((ref) {
@@ -39,14 +40,7 @@ class GringottsApp extends ConsumerWidget {
     // Material 3, dark theme is the only theme (no switching entry).
     return MaterialApp(
       title: 'Gringotts',
-      theme: ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.dark,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFFD4AF37),
-          brightness: Brightness.dark,
-        ),
-      ),
+      theme: buildAppTheme(),
       home: const QuickEntryPage(),
     );
   }

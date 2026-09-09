@@ -60,6 +60,42 @@ class TransactionRepository {
         .write(TransactionsCompanion(deletedAt: const Value(null)));
   }
 
+  /// Stream of all live draft transactions (for the review page).
+  Stream<List<Transaction>> watchDrafts() {
+    return (_db.select(_db.transactions)
+          ..where((t) => t.deletedAt.isNull() & t.isDraft.equals(true))
+          ..orderBy([(u) => OrderingTerm.desc(u.occurredAt)]))
+        .watch();
+  }
+
+  /// Count of live drafts that occurred today (home badge).
+  Stream<int> watchTodayDraftCount() {
+    final now = DateTime.now();
+    final startOfDay = DateTime(now.year, now.month, now.day);
+    final endOfDay = startOfDay.add(const Duration(days: 1));
+    final countExpr = _db.transactions.id.count();
+    final query = _db.selectOnly(_db.transactions)
+      ..addColumns([countExpr])
+      ..where(_db.transactions.deletedAt.isNull() &
+          _db.transactions.isDraft.equals(true) &
+          _db.transactions.occurredAt.isBiggerOrEqualValue(startOfDay) &
+          _db.transactions.occurredAt.isSmallerThanValue(endOfDay));
+    return query.map((row) => row.read(countExpr) ?? 0).watchSingle();
+  }
+
+  /// Sum of non-draft expense cents for a local day range (T-03 test hook).
+  Future<int> confirmedExpenseCentsInRange(DateTime start, DateTime end) async {
+    final sumExpr = _db.transactions.amountCents.sum();
+    final query = _db.selectOnly(_db.transactions)
+      ..addColumns([sumExpr])
+      ..where(_db.transactions.deletedAt.isNull() &
+          _db.transactions.isDraft.equals(false) &
+          _db.transactions.type.equalsValue(TransactionType.expense) &
+          _db.transactions.occurredAt.isBiggerOrEqualValue(start) &
+          _db.transactions.occurredAt.isSmallerThanValue(end));
+    final row = await query.getSingle();
+    return row.read(sumExpr) ?? 0;
+  }
   /// Stream of recent non-draft transactions for frequency analysis.
   Stream<List<Transaction>> watchRecent({int windowDays = 14}) {
     final cutoff =
@@ -113,6 +149,22 @@ class TransactionRepository {
       }
     });
     return best;
+  }
+  /// Updates mutable fields on a transaction (category/merchant/note).
+  Future<int> updateFields(
+    String id, {
+    String? categoryId,
+    String? merchant,
+    String? note,
+  }) {
+    final now = DateTime.now().toUtc();
+    return (_db.update(_db.transactions)..where((t) => t.id.equals(id)))
+        .write(TransactionsCompanion(
+      categoryId: Value(categoryId),
+      merchant: Value(merchant),
+      note: Value(note),
+      updatedAt: Value(now),
+    ));
   }
   /// Permanently marks a draft transaction as a confirmed record.
   Future<int> confirmDraft(String id) {

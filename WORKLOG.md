@@ -1,7 +1,46 @@
-# WORKLOG — Gringotts 施工日志
+﻿# WORKLOG — Gringotts 施工日志
 
 > 执行层（Codex）每次收工在顶部追加一段：做了什么 / 关键决策 / 遗留问题 / 下一步。管理层（Hermes）通过本文件验收进度。
 > ⚠️ 并发写入约定：追加前先重新读取文件最新版，在头部插入自己的段落，不要重建文件横幅；管理层 patch 前同样先重读。
+
+## 2026-09-09 00:30（T-03 执行层施工记录）
+
+### 做了什么
+- Design tokens（lib/ui/tokens.dart，T-03 起强制）：AppColors 黑金色板 / AppSpacing 4pt 网格 / AppRadius / AppFont 字阶 + buildAppTheme()；app.dart 与速记页/回顾页组件全部改走 tokens，零硬编码色值字号
+- 管理层增补 A（混合输入 + A1 修复）：
+  - SmartParser 金额 regex 扩展支持前导点形式，_toCents 前导点归一化（.5 → 0.50 → 50 分）；.5 纯金额不再漏入商户字段
+  - 速记页新增混合输入框（hint：瑞幸 15 / 15.5 午餐 / .5），走 SmartParser 全链路，金额/商户/类别建议一体
+- 管理层增补 B（收入模式）：支出/收入 SegmentedButton（默认支出）；收入不套时段预填、不触发午餐识别，类别仅 chip 手选；确认文案「已入账」
+- T-03 工单本体：
+  - 首页角标「今日 N 笔待完善」（金底 pill，0 笔不渲染；watchTodayDraftCount 流驱动）
+  - 回顾页 ReviewPage：watchDrafts 按天分组（手动中文周几格式化，弃用 intl zh_CN — 未初始化 locale 会炸）、批量补类别 Dropdown + 确认 N 笔、超 7 天灰显（Opacity 0.45 + 超 7 天 标签，不删）
+  - repository 增补：watchDrafts / watchTodayDraftCount / confirmedExpenseCentsInRange（T-03 统计口径用例）/ updateFields / watchRecent / distinctMerchants / merchantCategory
+- 键盘物理键支持（0-9/小键盘/Backspace/Esc/Enter）— Windows 实跑可键盘驱动，移动端不受影响
+- 测试：新增 6 条 A1 前导点用例 + 4 条 T-03 统计口径用例（draft 不进当日合计/确认后进、今日 draft 计数口径、超 7 天 draft 保留、收入不预填）+ integration_test 全链路（键盘→确认→角标→回顾→勾选→补类→确认→DB 流 12→13→12 断言）
+
+### 关键决策
+- intl zh_CN 陷阱定位：DateFormat 中文 locale 在未 initializeDateFormatting 平台抛异常，导致回顾页 _DayHeader 渲染崩溃、draft 列表静默消失（integration test 首轮 Multiple exceptions 线索）。改手动字符串格式化，移除 intl 依赖点
+- integration test 用 UncontrolledProviderScope + repo 流断言替代 UI 像素断言（ListView 懒构建导致 find.byType(Checkbox) 只数到视口内 9/12，流断言才可靠）
+- 回顾页空态文案「没有待完善的记录」；确认转正式后流自动刷新（drift watch 全自动）
+- widget_test fake 补齐 4 个新 repo 方法签名
+
+### 遗留问题
+- integration_test 目录的测试不进 flutter test 常规跑批（Windows 需 -d windows 单跑）；管理层验收可用 flutter test integration_test/t03_flow_test.dart -d windows
+- DB 现存 12 条历史 draft（各轮实跑产物）不影响验收；正式使用可在回顾页批量确认
+- flutter_test 的 fake-async 与 integration_test 的真实时钟互斥，两套测试并存正常
+
+### 下一步
+- T-04 资产档案页（A1+B8）：列表 + 净值看板 + 录入（照片压缩+hash）+ CPD + 变现复盘
+
+### DoD 证据
+- flutter analyze → No issues found
+- flutter test → All tests passed (63)
+- integration test → 00:14 +1: All tests passed（全链路含 DB 流断言）
+- Windows 实跑：.t03_final_home.png 显示「今日 10 笔待完善」角标 + 混合输入框 + 支出/收入切换 + 高频餐饮 chip + 12 键键盘
+- DB 验证：4 条历史 draft 已转正式（category=餐饮 9698ccb7…）证明 draft→正式管线真实生效
+- Android release APK：app-release.apk (54.7MB) 构建成功
+
+---
 
 ## 2026-09-08（管理层记录：收入功能补票）
 - 用户在 T-02 验收后指出关键空白：M1.0 工单从未要求「进账」输入入口——数据层 type=income 地基在（T-01 起就有），但功能层没有任何入口，统计也只围绕支出设计。管理层工单设计漏项，与执行层无关

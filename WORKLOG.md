@@ -3,6 +3,41 @@
 > 执行层（Codex）每次收工在顶部追加一段：做了什么 / 关键决策 / 遗留问题 / 下一步。管理层（Hermes）通过本文件验收进度。
 > ⚠️ 并发写入约定：追加前先重新读取文件最新版，在头部插入自己的段落，不要重建文件横幅；管理层 patch 前同样先重读。
 
+## 2026-09-09（管理层验收记录：T-06b ✅ 通过，D2 关闭）
+- **五层验收**：
+  1. 记录核对：commit `9a094ef` 12 文件对版；**返工三要求全项完成**（onClick 覆写 + 退后台实证 + 失效原因如实记录「前台残留假阳性」）——上次警告被正确吸收
+  2. 独立复验：flutter analyze → No issues found；flutter test → **All tests passed (85)**；release APK 时间线核实（16:47 构建，早于收工 16:53，确为新代码，管理层最初疑虑排除）
+  3. 源码级审查：`RecordTileService.kt` 修复教科书级——`getLaunchIntentForPackage` + `FLAG_ACTIVITY_NEW_TASK` + API 34（UPSIDE_DOWN_CAKE）PendingIntent 分支 + 低版本 suppress，全英文注释 ✓；快捷方式部分未动 ✓
+  4. **独立复跑严格实验（管理层亲测，决定性证据）**：release APK 安装 → app 前台确认 → **HOME 退后台（focus=launcher、app 进 mLastPausedActivity 实证）** → QS 面板展开 → uiautomator 定位 tile bounds=[42,525][529,735] → 点按 → **focus=MainActivity 且 launcher 成为 mLastPausedActivity**——tile 把 app 从后台真实拉起，与 T-06 时代同条件 no-op 形成直接对照。**D2 修复确认，D2 关闭**
+  5. 证据文件审查：dump 文本（02/04 focus 前后对照）完整自洽 ✓；md5 清单与文件实际 md5 全部一致 ✓；**备忘 E1**：`_02/_04` 两帧扩展名 .png 实为 PowerShell UTF-16 编码产物（magic bytes `FFFEFDFF`，PNG 高位字节被吞不可逆损坏），`_01/_03` 为正常 PNG——截图管线仍有编码器混用问题，语义证据不受影响（dump 文本完好），E1 记 M1.x 与证据管线统一修复
+- **结论：T-06b 验收通过 ✅，D2 关闭**。T-06 整体（shortcut ✓ + tile ✓）至此完整合格。下一票 T-07 收尾整合；M1.x 清单：D1 净成本口径、删除 UI 入口、N1 死代码、E1 证据管线编码统一
+
+## 2026-09-09 16:53（T-06b 执行层施工记录）
+
+### 修复内容
+- `RecordTileService.kt` 覆写 `onClick()`：解析 launcher intent 后按 API 版本启动 MainActivity；Android 14（API 34）及以上走 `startActivityAndCollapse(PendingIntent)`，低版本保留 intent 版本并显式抑制 deprecation。Kotlin 源码与注释全英文
+- 长按快捷方式部分未改动
+
+### 此前 T-06 QS 证据失效原因
+- 测试时 app 残留前台：点 tile 的实际效果只是收起 QS 面板并露出已有 MainActivity，`mCurrentFocus=MainActivity` 不是 tile 启动的结果，构成前台残留假阳性
+- 本次重新按「先退后台」流程取证：Home 后 `mCurrentFocus=NexusLauncherActivity`，且 launcher 成为 `mLastPausedActivity`，目标 app 未在前台；随后展开 QS、定位并点按 tile
+
+### 新证据（AVD test_api35 / emulator-5554 / API 35）
+- release APK 安装 Success；tile 注册：`sysui_qs_tiles` 首位 = `custom(dev.jharayden.gringotts/.RecordTileService)`，query-services 命中 `RecordTileService` 且 label=记一笔
+- `flutter analyze` → No issues found；`flutter test` → All tests passed (85)；`flutter build apk --release` → app-release.apk 60.5MB
+- 严格点按链路四帧（`evidence/t06b/`，md5 全唯一）：
+  - `.t06b_01_app_foreground_before_home.png`（64c0ba7b3ca6e3ea5494c6473a9efc3b）— 初始化前台 MainActivity
+  - `.t06b_02_home_focus_launcher.png`（2f659142656404b2ac4e8b3d73b7d02a）— Home 后 launcher；dump：`mCurrentFocus=NexusLauncherActivity`、`mLastPausedActivity=NexusLauncherActivity`
+  - `.t06b_03_qs_tile_visible.png`（6df0d56f26f7b7d4bb6f34826ec1330b）— QS 面板展开；uiautomator 定位「记一笔」Button，bounds=[42,525][529,735]
+  - `.t06b_04_after_tile_tap.png`（7c8283f6425abcd7fb82a9b3c8d8ed97）— 点按后；dump：`mCurrentFocus=dev.jharayden.gringotts/dev.jharayden.gringotts.MainActivity`
+- 明细：`.t06b_02_lastpaused_dump.txt`、`.t06b_02_home_focus_dump.txt`、`.t06b_03_tile_bounds.txt`、`.t06b_04_focus_dump.txt`、`.t06b_frame_md5.txt`
+
+### 遗留问题
+- 无本票阻塞问题。tile 状态语义仍维持 M1.0 默认（未实现 active 回调，此前已登记）
+
+### 下一步
+- 等管理层按同一严格流程复核 T-06b；未派工前不做 T-07/T-08
+
 ## 2026-09-09（管理层验收记录：T-06 ❌ 不通过 → 返工票 T-06b，缺陷 D2）
 - **五层验收**：
   1. 记录核对：commit `f30b0db` 9 文件对版；模拟器环境从零搭建属实（AVD test_api35 可复用，已验收）

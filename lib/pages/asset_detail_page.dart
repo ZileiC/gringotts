@@ -9,6 +9,7 @@ import '../data/repositories/asset_photo_repository.dart';
 import '../data/repositories/repositories.dart';
 import '../domain/models.dart';
 import '../services/cpd_calculator.dart';
+import '../ui/motion.dart';
 import '../ui/tokens.dart';
 
 /// Asset detail page (T-09B, DESIGN_T09 section 6).
@@ -78,6 +79,7 @@ class _AssetDetailPageState extends ConsumerState<AssetDetailPage> {
             key: ValueKey('detail_${asset.id}'),
             asset: asset,
             photoRepo: _photoRepo,
+            onEdit: () => _openEditSheet(context, current),
             onSell: () {
               final current = asset;
               if (current != null) _openSellDialog(context, current);
@@ -89,6 +91,78 @@ class _AssetDetailPageState extends ConsumerState<AssetDetailPage> {
             },
           );
         },
+      ),
+    );
+  }
+
+  void _openEditSheet(BuildContext context, Asset asset) {
+    final nameCtrl = TextEditingController(text: asset.name);
+    final valueCtrl = TextEditingController(
+      text: (asset.valueCents / 100).toStringAsFixed(2),
+    );
+    var category = asset.category;
+    var purchasedAt = asset.purchasedAt;
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) => Padding(
+        padding: EdgeInsets.only(
+          left: AppSpacing.l,
+          right: AppSpacing.l,
+          top: AppSpacing.l,
+          bottom: MediaQuery.of(sheetContext).viewInsets.bottom + AppSpacing.l,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('编辑资产', style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: AppSpacing.m),
+            TextField(
+              controller: nameCtrl,
+              decoration: const InputDecoration(labelText: '名称'),
+            ),
+            const SizedBox(height: AppSpacing.m),
+            TextField(
+              controller: valueCtrl,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(labelText: '价值（元）'),
+            ),
+            const SizedBox(height: AppSpacing.m),
+            SegmentedButton<AssetCategory>(
+              segments: const [
+                ButtonSegment(
+                    value: AssetCategory.hardCurrency, label: Text('硬通货')),
+                ButtonSegment(
+                    value: AssetCategory.digital, label: Text('数码')),
+                ButtonSegment(
+                    value: AssetCategory.nonStandard, label: Text('非标品')),
+                ButtonSegment(
+                    value: AssetCategory.ordinary, label: Text('普通')),
+              ],
+              selected: {category},
+              onSelectionChanged: (s) => category = s.first,
+            ),
+            const SizedBox(height: AppSpacing.m),
+            FilledButton(
+              onPressed: () {
+                final yuan = double.tryParse(valueCtrl.text.trim());
+                if (yuan == null || yuan <= 0) return;
+                _repo.updateAsset(
+                  id: asset.id,
+                  name: nameCtrl.text.trim(),
+                  category: category,
+                  valueCents: (yuan * 100).round(),
+                  purchasedAt: purchasedAt,
+                );
+                Navigator.of(sheetContext).pop();
+              },
+              child: const Text('保存修改'),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -137,6 +211,7 @@ class _DetailBody extends StatelessWidget {
     super.key,
     required this.asset,
     required this.photoRepo,
+    required this.onEdit,
     required this.onSell,
     required this.onRetire,
     required this.onDelete,
@@ -144,6 +219,7 @@ class _DetailBody extends StatelessWidget {
 
   final Asset asset;
   final AssetPhotoRepository photoRepo;
+  final VoidCallback onEdit;
   final VoidCallback onSell;
   final VoidCallback onRetire;
   final VoidCallback onDelete;
@@ -277,6 +353,17 @@ class _DetailBody extends StatelessWidget {
           children: [
             Expanded(
               child: OutlinedButton(
+                onPressed: onEdit,
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: AppColors.hairline),
+                  foregroundColor: AppColors.ink,
+                ),
+                child: const Text('编辑'),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.s),
+            Expanded(
+              child: OutlinedButton(
                 onPressed: onSell,
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: AppColors.goldAccent),
@@ -343,7 +430,7 @@ class _DetailBody extends StatelessWidget {
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.m),
-            child: dataArea,
+            child: StaggerIn(children: [dataArea]),
           ),
         ),
       ],

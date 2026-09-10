@@ -13,6 +13,7 @@ import '../domain/models.dart';
 import '../pages/asset_detail_page.dart';
 import '../services/cpd_calculator.dart';
 import '../services/photo_service.dart';
+import '../ui/motion.dart';
 import '../ui/tokens.dart';
 
 /// Asset portfolio page: net-value dashboard, list with CPD badges, add
@@ -25,7 +26,15 @@ class AssetsPage extends ConsumerStatefulWidget {
 }
 
 class _AssetsPageState extends ConsumerState<AssetsPage> {
+  final ScrollController _scroll = ScrollController();
+
   AssetRepository get _repo => ref.read(assetRepositoryProvider);
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,26 +57,41 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
               assets.where((a) => a.status == AssetStatus.retired).toList();
 
           return ListView(
+            controller: _scroll,
+            physics: const InertialScrollPhysics(),
             padding: const EdgeInsets.all(AppSpacing.m),
             children: [
-              _NetValueCard(portfolio: portfolio),
+              // Net-value dashboard sinks away on scroll (DESIGN_T09 5B).
+              SinkAwayHeader(
+                controller: _scroll,
+                child: _NetValueCard(portfolio: portfolio),
+              ),
               const SizedBox(height: AppSpacing.l),
               if (inService.isNotEmpty) ...[
                 Text('服役中', style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: AppSpacing.s),
-                ...inService.map((a) => _AssetTile(asset: a, repo: _repo)),
+                StaggerIn(
+                  children: inService
+                      .map((a) => _AssetTile(asset: a, repo: _repo))
+                      .toList(),
+                ),
               ],
               if (retired.isNotEmpty) ...[
                 const SizedBox(height: AppSpacing.m),
                 Text('已退役', style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: AppSpacing.s),
-                ...retired.map((a) => _AssetTile(asset: a, repo: _repo)),
+                StaggerIn(
+                  children:
+                      retired.map((a) => _AssetTile(asset: a, repo: _repo)).toList(),
+                ),
               ],
               if (sold.isNotEmpty) ...[
                 const SizedBox(height: AppSpacing.m),
                 Text('已卖出', style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: AppSpacing.s),
-                ...sold.map((a) => _SoldTile(asset: a)),
+                StaggerIn(
+                  children: sold.map((a) => _SoldTile(asset: a)).toList(),
+                ),
               ],
               if (assets.isEmpty)
                 const Center(
@@ -191,13 +215,15 @@ class _AssetTile extends StatelessWidget {
     // Service progress: 1 year reference bar (365 days).
     final progress = (days / 365).clamp(0.0, 1.0);
 
-    return Hero(
+    return TouchedScale(
+      pressedScale: 0.98,
+      child: Hero(
       tag: 'asset_photo_${asset.id}_0',
       child: Card(
         margin: const EdgeInsets.only(bottom: AppSpacing.s),
         child: InkWell(
           onTap: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(
+            HeroRelayRoute<void>(
               builder: (_) => AssetDetailPage(assetId: asset.id),
             ),
           ),
@@ -280,6 +306,7 @@ class _AssetTile extends StatelessWidget {
       ),
         ),
       ),
+    ),
     );
   }
 
@@ -345,13 +372,15 @@ class _SoldTile extends StatelessWidget {
         ? '¥${cents ~/ 100}'
         : '¥${(cents / 100).toStringAsFixed(2)}';
 
-    return Hero(
+    return TouchedScale(
+      pressedScale: 0.98,
+      child: Hero(
       tag: 'asset_photo_${asset.id}_0',
       child: Card(
         margin: const EdgeInsets.only(bottom: AppSpacing.s),
         child: InkWell(
           onTap: () => Navigator.of(context).push(
-            MaterialPageRoute<void>(
+            HeroRelayRoute<void>(
               builder: (_) => AssetDetailPage(assetId: asset.id),
             ),
           ),
@@ -385,6 +414,7 @@ class _SoldTile extends StatelessWidget {
       ),
         ),
       ),
+    ),
     );
   }
 }

@@ -3,6 +3,57 @@
 > 执行层（Codex）每次收工在顶部追加一段：做了什么 / 关键决策 / 遗留问题 / 下一步。管理层（Hermes）通过本文件验收进度。
 > ⚠️ 并发写入约定：追加前先重新读取文件最新版，在头部插入自己的段落，不要重建文件横幅；管理层 patch 前同样先重读。
 
+## 2026-09-11（T-09C 执行层施工记录：高级动效层落地 + 收尾）
+
+### 反浪费铁律首次生效（用户 2026-09-11 指令，已落 AGENTS.md standing rule）
+- 本轮**没有任何盲目重跑**：动效语义全部改用确定性单测定位（下详），像素帧只在代码改动后各跑一次 integration（共 3 次，每次都由新事实驱动：run#1 取基线、run#2 修 bug 后取帧、run#3 补数值断言）
+
+### 做了什么
+- **新增 `lib/ui/motion.dart`**（动效层唯一出处，全部走 Transform/Opacity，零重布局）：
+  - `InertialScrollPhysics`：BouncingScrollPhysics 派生（spring mass 0.55 / stiffness 220 / ratio 1.05，minFling 90）——滚动「配重 + 停止余韵」
+  - `TouchedScale`：pointer-down 即时缩放（tile 0.98 / 键盘 0.97 120ms / 确认键 0.96），reverse easeOutBack 回弹，触感经 `MediaQuery.disableAnimationsOf` 判定的同时保留触感
+  - `StaggerIn`：成组入场 60ms stagger + fade + 上移 12px（280ms easeOutCubic），成组而非逐个
+  - `SinkAwayHeader`：滚动驱动 0.85x 位移 + scale 1.0→0.98 + opacity 1.0→0.6，**48px 硬顶**
+  - `HeroRelayRoute`：Material 路由时长 350ms（§5E Hero 接力节拍），保留平台原生过渡形态
+- **挂载落点**：回顾页（physics + draft 按日分组 stagger + draft tile 按压）；资产页（physics + 净值看板沉入 + tile 按压 + 三组列表 stagger + 详情 Hero 接力 350ms 路由 ×2）；统计页（physics + 净结余卡沉入）；资产详情页（T-09B 已落 0.5x hero 视差，本轮补内容成组入场）
+- **T-09B 遗留编辑入口落地**（§6 操作区「编辑」）：详情底部 sheet 复用（名称 / 价值 / 类别），新增 `AssetRepository.updateAsset`（只改四字段 + updated_at，购买日与照片不动）
+- **新增确定性动效单测 `test/motion_layer_test.dart`（9 条）**：按压值 0.96/0.97 与回弹 1.0、stagger 三档阶梯（步进 pump 采样单调递减 + 落定归零）、沉入 20.4/40.8px + 0.99/0.98 + 0.8/0.6、48px 封顶（滚到 600px 位移不回涨）、reduce-motion 全退化（无 ScaleTransition/Opacity/Transform 且点击仍生效）、physics 参数、路由 350ms
+- **integration 脚本升级**：`snapSink` 直接从 widget 树读回沉入数值并断言（不再靠肉眼看帧）
+
+### 收尾中发现并修掉的两个真 bug（均为既有实现缺陷）
+1. **TouchedScale 静息态反了**：`AnimationController(value: 1)` 使 Tween(begin 1 → end pressedScale) 静息即停在 pressedScale —— 全 app 可点部件长期缩在 0.96/0.97，**按下零反馈**，抬起反而「弹回」1.0。修法：控制器回 0（静息 1.0 → 按下 pressedScale → 抬起回弹）。**这正是上一轮 integration「home idle」与「CTA pressed」两帧字节完全相同（md5 均 01EEE3BD / 31798B）的根因**——不是抓帧时机问题，是代码问题
+2. **统计页 SinkAwayHeader 未接控制器**：ListView 未挂 `_scroll` → `hasClients == false` → 沉入效果**完全不生效**（首轮集成帧 md5 与改动前相同即此症）。修法：ListView 补 `controller: _scroll` 并统一挂 `InertialScrollPhysics`
+- 两个 bug 都是**确定性单测/数值读回**抓出来的，没有靠重跑碰运气——反浪费铁律的直接收益
+
+### 关键决策
+- 证据策略改档：**像素帧只作视觉记录，语义一律用数值锁定**。帧会被环境与时机影响（pressed 帧曾整帧相同、run#2 沉入帧实际只滚了 1px 全靠 md5 看不出来），数值断言不会；integration 只在代码改动后跑一次
+- 工单 A–E 逐条对照 §5 落地：A 三页 physics 统一 / B 详情 hero 0.5x + 看板沉入 / C 全 app 复用 TouchedScale / D 列表成组 stagger / E Hero 接力 350ms；幅度铁律保持 48px，未做整屏视差
+- 编辑入口按「sheet 复用」最小实现（名称/价值/类别），未扩到全字段编辑，避免自创交互形态
+
+### 遗留问题（非阻塞，交管理层裁决）
+- **§4 基础动效不在 T-09C 工单清单内，本轮未做**：数字 count-up spring 400ms（净值/净结余）、确认键 sheen 600ms 一次性、chip 选中 AnimatedContainer 150ms —— 建议并入 T-09D 或单开票，请裁决
+- Hero 飞行曲线：路由时长已按 §5E 改 350ms，但 Hero 飞行仍跟随路由的线性动画（Material 原生过渡曲线保留）；严格 easeOutCubic 需自定义转场，属观感级差异，请裁决是否需要
+- FPS：integration 抓帧循环实测 avg 28.1ms/样本（12 次 drag+16ms pump），是 **debug 构建 + 帧内 drag 派发成本**，不等于真机 60fps；真机帧率需 T-09D 补测
+- 编辑 sheet 未含「购买日期」与照片编辑（最小实现），如需请示下
+
+### 下一步
+- 管理层验收 T-09C；验收后 T-09D（品牌资产 / 启动画面 / Android 自适应图标 + Windows ico / 全量回归 / release APK 重建 / 完工报告）
+
+### DoD 证据
+- `flutter analyze` → No issues found（含新文件、新测试、integration 脚本，干净复跑确认）
+- `flutter test` → All tests passed (**98**)，89 → +9 动效单测
+- integration（Windows 实跑，代码改动后 3 次，逐次新事实驱动）→ All tests passed；8 帧全 Dart PNG（magic 89 50 4E 47 逐帧核验）+ **md5 全唯一（8/8）**：
+  - 01_home_idle cfc2f80af751 ｜ 02_home_cta_pressed 17737815ec29（**已目检：确认键按下明显内缩，与 01 帧不再相同 = bug#1 修复生效**）
+  - 03_assets_stagger_mid 531090f67543 ｜ 04_assets_settled 2fcf907c66f0
+  - 05_assets_scrolled_sink 6308128037cd（**已目检：净值看板在位沉入，与列表滚动不同步**）
+  - 06_stats_idle 7eba1527d386 ｜ 07_stats_scrolled e459bb9b4495（**已目检：净结余卡沉入** = bug#2 修复生效）
+  - 08_review 49813232a889
+- **沉入数值实证（integration 直接读回，非目测）**：
+  - `T09C_SINK name=05_assets_scrolled_sink scroll_px=80.0 rise=40.8 opacity=0.600`
+  - `T09C_SINK name=07_stats_scrolled scroll_px=80.0 rise=40.8 opacity=0.600`
+  - 即：80px 滚动 → 位移 40.8px（= 48px 顶 × 0.85）且 opacity 0.600（= 顶值），48px 硬顶与终点值均与设计一致
+- 运行日志留档：`evidence/t09c/.t09c_run_log.txt`（逐帧 md5 + SINK 数值 + FPS 采样）
+
 ## 2026-09-10（管理层验收记录：T-09B ✅ 通过，D1 正式关闭）
 - **五层验收**：
   1. 记录核对：commit `bd74f6e` 对版；**P3 已清**（unused_import 删除，干净工作区复跑申报——上票提醒被正确执行）；drift textEnum clientDefault 崩溃真 bug 由单测暴露并修复（`.name` 替代 `as String` 强转）

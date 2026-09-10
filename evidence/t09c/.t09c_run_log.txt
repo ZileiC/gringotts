@@ -1,0 +1,19 @@
+T-09C integration run log - captured stdout, Windows desktop Debug build, run #3 (final)
+2026-09-11, script: integration_test/t09c_motion_test.dart
+
+T09C_SNAP name=01_home_idle md5=cfc2f80af751
+T09C_SNAP name=02_home_cta_pressed md5=17737815ec29
+T09C_SNAP name=03_assets_stagger_mid md5=531090f67543
+T09C_SNAP name=04_assets_settled md5=2fcf907c66f0
+T09C_SINK name=05_assets_scrolled_sink scroll_px=80.0 rise=40.8 opacity=0.600
+T09C_SNAP name=05_assets_scrolled_sink md5=6308128037cd
+T09C_FPS scroll_drag avg_frame_ms=28.083333333333332 samples=12 budget=16.7
+T09C_SNAP name=06_stats_idle md5=7eba1527d386
+T09C_SINK name=07_stats_scrolled scroll_px=80.0 rise=40.8 opacity=0.600
+T09C_SNAP name=07_stats_scrolled md5=e459bb9b4495
+T09C_SNAP name=08_review md5=49813232a889
+All tests passed (1 test, 21s)
+
+frames: evidence/t09c/.t09c_<name>.png - Dart PNG, md5 unique 8/8
+run #1 (pre-fix) and run #2 (pre-assertion script) are superseded; the
+byte-identical 01/02 pair of run #1 exposed the TouchedScale rest-state bug.

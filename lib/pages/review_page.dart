@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../app/app.dart';
 import '../data/app_database.dart';
 import '../data/repositories/repositories.dart';
+import '../ui/motion.dart';
 import '../ui/tokens.dart';
 
 /// Day-grouped draft review page: backfill category/merchant/note, then
@@ -18,10 +19,17 @@ class ReviewPage extends ConsumerStatefulWidget {
 }
 
 class _ReviewPageState extends ConsumerState<ReviewPage> {
+  final ScrollController _scroll = ScrollController();
   final Set<String> _selected = <String>{};
   String? _bulkCategoryId;
 
   TransactionRepository get _txRepo => ref.read(transactionRepositoryProvider);
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
   CategoryRepository get _categoryRepo =>
       ref.read(categoryRepositoryProvider);
 
@@ -83,22 +91,30 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
               ),
               Expanded(
                 child: ListView(
+                  controller: _scroll,
+                  physics: const InertialScrollPhysics(),
                   children: [
                     for (final entry in grouped.entries) ...[
                       _DayHeader(day: entry.key, count: entry.value.length),
-                      for (final draft in entry.value)
-                        _DraftTile(
-                          draft: draft,
-                          stale: _isStale(draft.occurredAt),
-                          selected: _selected.contains(draft.id),
-                          onToggle: () => setState(() {
-                            if (_selected.contains(draft.id)) {
-                              _selected.remove(draft.id);
-                            } else {
-                              _selected.add(draft.id);
-                            }
-                          }),
-                        ),
+                      StaggerIn(
+                        children: entry.value
+                            .map((draft) => TouchedScale(
+                                  pressedScale: 0.98,
+                                  child: _DraftTile(
+                                  draft: draft,
+                                  stale: _isStale(draft.occurredAt),
+                                  selected: _selected.contains(draft.id),
+                                  onToggle: () => setState(() {
+                                    if (_selected.contains(draft.id)) {
+                                      _selected.remove(draft.id);
+                                    } else {
+                                      _selected.add(draft.id);
+                                    }
+                                  }),
+                                  ),
+                                ))
+                            .toList(),
+                      ),
                     ],
                   ],
                 ),

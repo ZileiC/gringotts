@@ -244,6 +244,26 @@ class AssetRepository {
         );
   }
 
+  /// Updates mutable asset fields (T-09C edit entry).
+  Future<int> updateAsset({
+    required String id,
+    required String name,
+    required AssetCategory category,
+    required int valueCents,
+    required DateTime purchasedAt,
+  }) {
+    final now = DateTime.now().toUtc();
+    return (_db.update(_db.assets)..where((a) => a.id.equals(id))).write(
+      AssetsCompanion(
+        name: Value(name),
+        category: Value(category),
+        valueCents: Value(valueCents),
+        purchasedAt: Value(purchasedAt),
+        updatedAt: Value(now),
+      ),
+    );
+  }
+
   /// Marks an asset as sold with the realized price.
   Future<int> markSold({
     required String id,

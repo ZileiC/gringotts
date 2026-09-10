@@ -12,6 +12,7 @@ import '../pages/stats_page.dart';
 import '../pages/review_page.dart';
 import '../services/smart_parser.dart';
 import '../services/smart_prefill.dart';
+import '../ui/motion.dart';
 import '../ui/tokens.dart';
 
 /// Speed-entry home page: numeric keypad + mixed input, no navigation layer.
@@ -315,7 +316,10 @@ class _QuickEntryPageState extends ConsumerState<QuickEntryPage> {
               child: SizedBox(
                 width: double.infinity,
                 height: 56,
-                child: DecoratedBox(
+                child: TouchedScale(
+                  pressedScale: 0.96,
+                  onPressHaptic: () => HapticFeedback.mediumImpact(),
+                  child: DecoratedBox(
                   decoration: const BoxDecoration(
                     borderRadius: BorderRadius.all(Radius.circular(AppRadius.m)),
                     gradient: LinearGradient(
@@ -335,6 +339,7 @@ class _QuickEntryPageState extends ConsumerState<QuickEntryPage> {
                     ),
                     child: const Text('记一笔'),
                   ),
+                ),
                 ),
               ),
             ),
@@ -577,11 +582,13 @@ class _KeyCap extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.surfaceElevated,
-      borderRadius: BorderRadius.circular(AppRadius.m),
-      child: InkWell(
-        onTap: onTap,
+    return TouchedScale(
+      onTap: onTap,
+      pressedScale: 0.97,
+      pressDuration: const Duration(milliseconds: 120),
+      onPressHaptic: () => HapticFeedback.selectionClick(),
+      child: Material(
+        color: AppColors.surfaceElevated,
         borderRadius: BorderRadius.circular(AppRadius.m),
         child: Center(
           child: Text(

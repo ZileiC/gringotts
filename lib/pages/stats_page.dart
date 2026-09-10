@@ -9,6 +9,7 @@ import '../data/app_database.dart';
 import '../data/repositories/repositories.dart';
 import '../services/export_service.dart';
 import '../services/statistics_service.dart';
+import '../ui/motion.dart';
 import '../ui/tokens.dart';
 
 enum StatsRange { daily, monthly, yearly }
@@ -22,10 +23,18 @@ class StatsPage extends ConsumerStatefulWidget {
   ConsumerState<StatsPage> createState() => _StatsPageState();
 }
 
-class _StatsPageState extends ConsumerState<StatsPage> {
+class _StatsPageState extends ConsumerState<StatsPage>
+    with SingleTickerProviderStateMixin {
   StatsRange _range = StatsRange.daily;
+  final ScrollController _scroll = ScrollController();
 
   TransactionRepository get _txRepo => ref.read(transactionRepositoryProvider);
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
   CategoryRepository get _categoryRepo =>
       ref.read(categoryRepositoryProvider);
 
@@ -75,6 +84,8 @@ class _StatsPageState extends ConsumerState<StatsPage> {
           final totals = StatisticsService.totals(transactions);
 
           return ListView(
+            controller: _scroll,
+            physics: const InertialScrollPhysics(),
             padding: const EdgeInsets.all(AppSpacing.m),
             children: [
               // Range switch.
@@ -88,8 +99,10 @@ class _StatsPageState extends ConsumerState<StatsPage> {
                 onSelectionChanged: (s) => setState(() => _range = s.first),
               ),
               const SizedBox(height: AppSpacing.m),
-              // Net balance card.
-              Card(
+              // Net balance card (sinks away on scroll).
+              SinkAwayHeader(
+                controller: _scroll,
+                child: Card(
                 child: Padding(
                   padding: const EdgeInsets.all(AppSpacing.l),
                   child: Column(
@@ -113,6 +126,7 @@ class _StatsPageState extends ConsumerState<StatsPage> {
                     ],
                   ),
                 ),
+              ),
               ),
               const SizedBox(height: AppSpacing.l),
               // Trend dual-line chart.

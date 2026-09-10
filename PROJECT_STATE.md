@@ -69,6 +69,7 @@
 | 2026-09-10 | **T-07b 验收：通过 ✅，事故闭环** | 新 APK md5 `c2800e64…` 与申报一致（16:00:04 构建）；**APK 解剖实证**：classes.dex 含 startActivityAndCollapse/getLaunchIntentForPackage/PendingIntent 引用 = 修复编译进包，交付物不含 D2；M1.0 进度 T-01~T-07 全绿，剩 T-08 收官 |
 | 2026-09-10 | **T-09 发布** | 设计细则 DESIGN_T09.md（用户三裁决+Leclerc 动效转译）+ 工单 T-09A 换肤/T-09B 详情页多照片 D1/T-09C 动效层/T-09D 收尾；原 T-08 票号退役并入 T-09A |
 | 2026-09-10 | **T-09A 验收：通过 ✅（色值级核对）** | tokens 16 色值 vs spec 零偏差；金渐变=2 处全消费 AppColors；tokens 外硬编码 0；三帧 Dart PNG md5 唯一 + 亲跑 integration 通过；UI 目检三屏全部符合 §8（wordmark 金衬线/暖黑底/确认键金渐变/tabular 净值/hairline 无投影）；P3=integration 文件 2 个 unused_import（申报与实测不符，随 T-09B 清） |
+| 2026-09-10 | **T-09B 验收：通过 ✅，D1 正式关闭** | 89 单测全绿 + 亲跑 integration 五帧全链路（多照片创建→Hero 进详情→翻页→返回→卖出复盘）；V1→V2 迁移语义单测锁定；净成本 ¥2.57/天 数学精确吻合；P3 已清（analyze 恢复零问题）；编辑入口归 T-09C |
 
 ## 下次 Session 开场
 1. 读本文件 + WORKLOG.md

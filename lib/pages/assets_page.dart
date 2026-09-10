@@ -7,8 +7,10 @@ import 'package:path_provider/path_provider.dart';
 
 import '../app/app.dart';
 import '../data/app_database.dart';
+import '../data/repositories/asset_photo_repository.dart';
 import '../data/repositories/repositories.dart';
 import '../domain/models.dart';
+import '../pages/asset_detail_page.dart';
 import '../services/cpd_calculator.dart';
 import '../services/photo_service.dart';
 import '../ui/tokens.dart';
@@ -189,9 +191,17 @@ class _AssetTile extends StatelessWidget {
     // Service progress: 1 year reference bar (365 days).
     final progress = (days / 365).clamp(0.0, 1.0);
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: AppSpacing.s),
-      child: Padding(
+    return Hero(
+      tag: 'asset_photo_${asset.id}_0',
+      child: Card(
+        margin: const EdgeInsets.only(bottom: AppSpacing.s),
+        child: InkWell(
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => AssetDetailPage(assetId: asset.id),
+            ),
+          ),
+          child: Padding(
         padding: const EdgeInsets.all(AppSpacing.m),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -268,6 +278,8 @@ class _AssetTile extends StatelessWidget {
           ],
         ),
       ),
+        ),
+      ),
     );
   }
 
@@ -326,18 +338,24 @@ class _SoldTile extends StatelessWidget {
       asOf: DateTime.now(),
       soldAt: asset.soldAt,
     );
-    final totalCpd = CpdCalculator.cpdCents(
-      valueCents: asset.soldPriceCents ?? 0,
-      heldDays: days,
-    );
+    // D1 ruling: net cost per day = (buy - sell) / held days.
+    final netCostCpd = CpdCalculator.netCostCentsForAsset(asset);
 
     String yuan(int cents) => cents % 100 == 0
         ? '¥${cents ~/ 100}'
         : '¥${(cents / 100).toStringAsFixed(2)}';
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: AppSpacing.s),
-      child: Padding(
+    return Hero(
+      tag: 'asset_photo_${asset.id}_0',
+      child: Card(
+        margin: const EdgeInsets.only(bottom: AppSpacing.s),
+        child: InkWell(
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => AssetDetailPage(assetId: asset.id),
+            ),
+          ),
+          child: Padding(
         padding: const EdgeInsets.all(AppSpacing.m),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -359,10 +377,12 @@ class _SoldTile extends StatelessWidget {
             Text(
               '买入 ${yuan(asset.valueCents)} → 卖出 ${yuan(asset.soldPriceCents ?? 0)}'
               ' · 保值率 ${(retention / 10).toStringAsFixed(1)}%'
-              ' · 总成本 ${yuan(totalCpd)}/天 · 持有 $days 天',
+              ' · 净成本 ${yuan(netCostCpd)}/天 · 持有 $days 天',
               style: theme.textTheme.bodySmall,
             ),
           ],
+        ),
+      ),
         ),
       ),
     );
@@ -382,10 +402,11 @@ class _AddAssetSheetState extends ConsumerState<_AddAssetSheet> {
   final _valueController = TextEditingController();
   AssetCategory _category = AssetCategory.ordinary;
   DateTime _purchasedAt = DateTime.now();
-  String? _photoPath;
+  final List<String> _photoPaths = <String>[];
   bool _saving = false;
 
   AssetRepository get _repo => ref.read(assetRepositoryProvider);
+  AssetPhotoRepository get _photoRepo => ref.read(assetPhotoRepositoryProvider);
 
   @override
   void dispose() {
@@ -394,15 +415,28 @@ class _AddAssetSheetState extends ConsumerState<_AddAssetSheet> {
     super.dispose();
   }
 
-  Future<void> _pickPhoto(ImageSource source) async {
+  Future<void> _pickPhotos(ImageSource source) async {
     final picker = ImagePicker();
-    final picked = await picker.pickImage(source: source, imageQuality: 95);
-    if (picked == null) return;
     final dir = await getApplicationSupportDirectory();
     final photosDir = '${dir.path}${Platform.pathSeparator}photos';
-    final bytes = await picked.readAsBytes();
-    final saved = await PhotoService.saveCompressed(bytes, directory: photosDir);
-    setState(() => _photoPath = saved);
+    if (source == ImageSource.camera) {
+      final picked = await picker.pickImage(source: source, imageQuality: 95);
+      if (picked == null) return;
+      final bytes = await picked.readAsBytes();
+      final saved =
+          await PhotoService.saveCompressed(bytes, directory: photosDir);
+      setState(() => _photoPaths.add(saved));
+      return;
+    }
+    final picked = await picker.pickMultiImage(imageQuality: 95);
+    if (picked.isEmpty) return;
+    for (final x in picked) {
+      final bytes = await x.readAsBytes();
+      final saved =
+          await PhotoService.saveCompressed(bytes, directory: photosDir);
+      _photoPaths.add(saved);
+    }
+    setState(() {});
   }
 
   Future<void> _save() async {
@@ -410,13 +444,16 @@ class _AddAssetSheetState extends ConsumerState<_AddAssetSheet> {
     final yuan = double.tryParse(_valueController.text.trim());
     if (name.isEmpty || yuan == null || yuan <= 0 || _saving) return;
     setState(() => _saving = true);
-    await _repo.create(
+    final asset = await _repo.create(
       name: name,
       category: _category,
       valueCents: (yuan * 100).round(),
       purchasedAt: _purchasedAt,
-      photoPath: _photoPath,
+      photoPath: _photoPaths.isEmpty ? null : _photoPaths.first,
     );
+    if (_photoPaths.isNotEmpty) {
+      await _photoRepo.createAll(asset.id, _photoPaths);
+    }
     if (mounted) Navigator.of(context).pop();
   }
 
@@ -476,39 +513,53 @@ class _AddAssetSheetState extends ConsumerState<_AddAssetSheet> {
               ),
               const Spacer(),
               TextButton.icon(
-                onPressed: () => _pickPhoto(ImageSource.gallery),
+                onPressed: () => _pickPhotos(ImageSource.gallery),
                 icon: const Icon(Icons.photo_library),
                 label: const Text('相册'),
               ),
               TextButton.icon(
-                onPressed: () => _pickPhoto(ImageSource.camera),
+                onPressed: () => _pickPhotos(ImageSource.camera),
                 icon: const Icon(Icons.camera_alt),
                 label: const Text('拍照'),
               ),
             ],
           ),
-          if (_photoPath != null)
+          if (_photoPaths.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: AppSpacing.s),
-              child: Row(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(AppRadius.s),
-                    child: Image.file(
-                      File(_photoPath!),
-                      width: 64,
-                      height: 64,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.m),
-                  Expanded(
-                    child: Text(
-                      '已压缩保存（hash 命名）',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ),
-                ],
+              child: SizedBox(
+                height: 72,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _photoPaths.length,
+                  separatorBuilder: (_, _) =>
+                      const SizedBox(width: AppSpacing.s),
+                  itemBuilder: (context, index) {
+                    return Stack(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(AppRadius.s),
+                          child: Image.file(
+                            File(_photoPaths[index]),
+                            width: 64,
+                            height: 64,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                        Positioned(
+                          top: 0,
+                          right: 0,
+                          child: GestureDetector(
+                            onTap: () =>
+                                setState(() => _photoPaths.removeAt(index)),
+                            child: const Icon(Icons.cancel,
+                                size: 20, color: AppColors.inkSecondary),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
               ),
             ),
           const SizedBox(height: AppSpacing.l),

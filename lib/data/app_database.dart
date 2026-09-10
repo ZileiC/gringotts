@@ -48,7 +48,7 @@ class Transactions extends Table {
 
   /// manual (M1.0) / screenshot / voice (reserved).
   TextColumn get source =>
-      textEnum<TransactionSource>().clientDefault(() => TransactionSource.manual as String)();
+      textEnum<TransactionSource>().clientDefault(() => TransactionSource.manual.name)();
 
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
@@ -102,7 +102,7 @@ class Assets extends Table {
 
   /// inService / retired / sold.
   TextColumn get status =>
-      textEnum<AssetStatus>().clientDefault(() => AssetStatus.inService as String)();
+      textEnum<AssetStatus>().clientDefault(() => AssetStatus.inService.name)();
 
   IntColumn get soldPriceCents => integer().nullable()();
   DateTimeColumn get soldAt => dateTime().nullable()();
@@ -119,12 +119,38 @@ class Assets extends Table {
 // Database
 // ---------------------------------------------------------------------------
 
-@DriftDatabase(tables: [Transactions, Categories, Assets])
+/// Asset photos (T-09B): multiple photos per asset, first by sort = cover.
+///
+/// Tombstone pattern: removals mark [deletedAt], rows are never deleted.
+class AssetPhotos extends Table {
+  @override
+  String get tableName => 'asset_photos';
+
+  TextColumn get id => text().clientDefault(_newUuid)();
+
+  /// Owning asset (FK to assets.id).
+  TextColumn get assetId => text().references(Assets, #id)();
+
+  /// Absolute file path; files are content-hash named by PhotoService.
+  TextColumn get path => text()();
+
+  /// Display order; the lowest sort is the cover (main) photo.
+  IntColumn get sort => integer()();
+
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DriftDatabase(tables: [Transactions, Categories, Assets, AssetPhotos])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -133,8 +159,27 @@ class AppDatabase extends _$AppDatabase {
           await _seedCategories();
         },
         onUpgrade: (m, from, to) async {
-          // V1 is the first schema version; future upgrades go here.
-          assert(false, 'Unhandled upgrade from v$from to v$to');
+          if (from < 2) {
+            // V1 -> V2: introduce asset_photos. Legacy single-photo assets
+            // migrate their photoPath into the new table as sort 0 (cover).
+            await m.createTable(assetPhotos);
+            final legacy = await select(assets).get();
+            final rows = <AssetPhotosCompanion>[];
+            for (final asset in legacy) {
+              final path = asset.photoPath;
+              if (path == null || path.isEmpty) continue;
+              rows.add(
+                AssetPhotosCompanion.insert(
+                  assetId: asset.id,
+                  path: path,
+                  sort: 0,
+                ),
+              );
+            }
+            if (rows.isNotEmpty) {
+              await batch((b) => b.insertAll(assetPhotos, rows));
+            }
+          }
         },
       );
 

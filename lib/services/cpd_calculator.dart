@@ -55,7 +55,22 @@ class CpdCalculator {
     return (asset.soldPriceCents ?? 0) - asset.valueCents;
   }
 
-  /// Value retention rate in thousandths (permille, integer).
+  /// Net cost per day for a sold asset (D1 ruling, T-09B).
+  ///
+  /// (buy - sell) / held days: what the item truly cost per day after
+  /// recovering money at sale time.
+  static int netCostCentsForAsset(Asset asset) {
+    assert(asset.status == AssetStatus.sold);
+    final days = heldDays(
+      purchasedAt: asset.purchasedAt,
+      asOf: DateTime.now(),
+      soldAt: asset.soldAt,
+    );
+    final net = asset.valueCents - (asset.soldPriceCents ?? 0);
+    return cpdCents(valueCents: net, heldDays: days);
+  }
+
+  /// Value retention rate in thousandths (permille, integer)."
   /// 8799/9999 buy-sell example: sold 8000 => 909 permille (90.9%).
   static int retentionPermille(Asset asset) {
     assert(asset.status == AssetStatus.sold);

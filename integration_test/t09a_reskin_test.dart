@@ -8,8 +8,6 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gringotts/app/app.dart';
-import 'package:gringotts/pages/assets_page.dart';
-import 'package:gringotts/pages/stats_page.dart';
 import 'package:integration_test/integration_test.dart';
 
 Future<void> snap(

@@ -610,7 +610,7 @@ class $TransactionsTable extends Transactions
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    clientDefault: () => TransactionSource.manual as String,
+    clientDefault: () => TransactionSource.manual.name,
   ).withConverter<TransactionSource>($TransactionsTable.$convertersource);
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
@@ -1314,7 +1314,7 @@ class $AssetsTable extends Assets with TableInfo<$AssetsTable, Asset> {
         false,
         type: DriftSqlType.string,
         requiredDuringInsert: false,
-        clientDefault: () => AssetStatus.inService as String,
+        clientDefault: () => AssetStatus.inService.name,
       ).withConverter<AssetStatus>($AssetsTable.$converterstatus);
   static const VerificationMeta _soldPriceCentsMeta = const VerificationMeta(
     'soldPriceCents',
@@ -1968,12 +1968,470 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
   }
 }
 
+class $AssetPhotosTable extends AssetPhotos
+    with TableInfo<$AssetPhotosTable, AssetPhoto> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AssetPhotosTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    clientDefault: _newUuid,
+  );
+  static const VerificationMeta _assetIdMeta = const VerificationMeta(
+    'assetId',
+  );
+  @override
+  late final GeneratedColumn<String> assetId = GeneratedColumn<String>(
+    'asset_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES assets (id)',
+    ),
+  );
+  static const VerificationMeta _pathMeta = const VerificationMeta('path');
+  @override
+  late final GeneratedColumn<String> path = GeneratedColumn<String>(
+    'path',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sortMeta = const VerificationMeta('sort');
+  @override
+  late final GeneratedColumn<int> sort = GeneratedColumn<int>(
+    'sort',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    assetId,
+    path,
+    sort,
+    createdAt,
+    updatedAt,
+    deletedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'asset_photos';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<AssetPhoto> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('asset_id')) {
+      context.handle(
+        _assetIdMeta,
+        assetId.isAcceptableOrUnknown(data['asset_id']!, _assetIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_assetIdMeta);
+    }
+    if (data.containsKey('path')) {
+      context.handle(
+        _pathMeta,
+        path.isAcceptableOrUnknown(data['path']!, _pathMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_pathMeta);
+    }
+    if (data.containsKey('sort')) {
+      context.handle(
+        _sortMeta,
+        sort.isAcceptableOrUnknown(data['sort']!, _sortMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sortMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  AssetPhoto map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AssetPhoto(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      assetId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}asset_id'],
+      )!,
+      path: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}path'],
+      )!,
+      sort: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+    );
+  }
+
+  @override
+  $AssetPhotosTable createAlias(String alias) {
+    return $AssetPhotosTable(attachedDatabase, alias);
+  }
+}
+
+class AssetPhoto extends DataClass implements Insertable<AssetPhoto> {
+  final String id;
+
+  /// Owning asset (FK to assets.id).
+  final String assetId;
+
+  /// Absolute file path; files are content-hash named by PhotoService.
+  final String path;
+
+  /// Display order; the lowest sort is the cover (main) photo.
+  final int sort;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final DateTime? deletedAt;
+  const AssetPhoto({
+    required this.id,
+    required this.assetId,
+    required this.path,
+    required this.sort,
+    required this.createdAt,
+    required this.updatedAt,
+    this.deletedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['asset_id'] = Variable<String>(assetId);
+    map['path'] = Variable<String>(path);
+    map['sort'] = Variable<int>(sort);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    return map;
+  }
+
+  AssetPhotosCompanion toCompanion(bool nullToAbsent) {
+    return AssetPhotosCompanion(
+      id: Value(id),
+      assetId: Value(assetId),
+      path: Value(path),
+      sort: Value(sort),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+    );
+  }
+
+  factory AssetPhoto.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AssetPhoto(
+      id: serializer.fromJson<String>(json['id']),
+      assetId: serializer.fromJson<String>(json['assetId']),
+      path: serializer.fromJson<String>(json['path']),
+      sort: serializer.fromJson<int>(json['sort']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'assetId': serializer.toJson<String>(assetId),
+      'path': serializer.toJson<String>(path),
+      'sort': serializer.toJson<int>(sort),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+    };
+  }
+
+  AssetPhoto copyWith({
+    String? id,
+    String? assetId,
+    String? path,
+    int? sort,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    Value<DateTime?> deletedAt = const Value.absent(),
+  }) => AssetPhoto(
+    id: id ?? this.id,
+    assetId: assetId ?? this.assetId,
+    path: path ?? this.path,
+    sort: sort ?? this.sort,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+  );
+  AssetPhoto copyWithCompanion(AssetPhotosCompanion data) {
+    return AssetPhoto(
+      id: data.id.present ? data.id.value : this.id,
+      assetId: data.assetId.present ? data.assetId.value : this.assetId,
+      path: data.path.present ? data.path.value : this.path,
+      sort: data.sort.present ? data.sort.value : this.sort,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AssetPhoto(')
+          ..write('id: $id, ')
+          ..write('assetId: $assetId, ')
+          ..write('path: $path, ')
+          ..write('sort: $sort, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, assetId, path, sort, createdAt, updatedAt, deletedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AssetPhoto &&
+          other.id == this.id &&
+          other.assetId == this.assetId &&
+          other.path == this.path &&
+          other.sort == this.sort &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt);
+}
+
+class AssetPhotosCompanion extends UpdateCompanion<AssetPhoto> {
+  final Value<String> id;
+  final Value<String> assetId;
+  final Value<String> path;
+  final Value<int> sort;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<int> rowid;
+  const AssetPhotosCompanion({
+    this.id = const Value.absent(),
+    this.assetId = const Value.absent(),
+    this.path = const Value.absent(),
+    this.sort = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  AssetPhotosCompanion.insert({
+    this.id = const Value.absent(),
+    required String assetId,
+    required String path,
+    required int sort,
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : assetId = Value(assetId),
+       path = Value(path),
+       sort = Value(sort);
+  static Insertable<AssetPhoto> custom({
+    Expression<String>? id,
+    Expression<String>? assetId,
+    Expression<String>? path,
+    Expression<int>? sort,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (assetId != null) 'asset_id': assetId,
+      if (path != null) 'path': path,
+      if (sort != null) 'sort': sort,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  AssetPhotosCompanion copyWith({
+    Value<String>? id,
+    Value<String>? assetId,
+    Value<String>? path,
+    Value<int>? sort,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<DateTime?>? deletedAt,
+    Value<int>? rowid,
+  }) {
+    return AssetPhotosCompanion(
+      id: id ?? this.id,
+      assetId: assetId ?? this.assetId,
+      path: path ?? this.path,
+      sort: sort ?? this.sort,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (assetId.present) {
+      map['asset_id'] = Variable<String>(assetId.value);
+    }
+    if (path.present) {
+      map['path'] = Variable<String>(path.value);
+    }
+    if (sort.present) {
+      map['sort'] = Variable<int>(sort.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AssetPhotosCompanion(')
+          ..write('id: $id, ')
+          ..write('assetId: $assetId, ')
+          ..write('path: $path, ')
+          ..write('sort: $sort, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $CategoriesTable categories = $CategoriesTable(this);
   late final $TransactionsTable transactions = $TransactionsTable(this);
   late final $AssetsTable assets = $AssetsTable(this);
+  late final $AssetPhotosTable assetPhotos = $AssetPhotosTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1982,6 +2440,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     categories,
     transactions,
     assets,
+    assetPhotos,
   ];
 }
 
@@ -2826,6 +3285,29 @@ typedef $$AssetsTableUpdateCompanionBuilder = AssetsCompanion Function({
   Value<int> rowid,
 });
 
+final class $$AssetsTableReferences
+    extends BaseReferences<_$AppDatabase, $AssetsTable, Asset> {
+  $$AssetsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$AssetPhotosTable, List<AssetPhoto>>
+  _assetPhotosRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.assetPhotos,
+    aliasName: 'assets__id__asset_photos__asset_id',
+  );
+
+  $$AssetPhotosTableProcessedTableManager get assetPhotosRefs {
+    final manager = $$AssetPhotosTableTableManager(
+      $_db,
+      $_db.assetPhotos,
+    ).filter((f) => f.assetId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_assetPhotosRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
 class $$AssetsTableFilterComposer
     extends Composer<_$AppDatabase, $AssetsTable> {
   $$AssetsTableFilterComposer({
@@ -2896,6 +3378,31 @@ class $$AssetsTableFilterComposer
     column: $table.deletedAt,
     builder: (column) => ColumnFilters(column),
   );
+
+  Expression<bool> assetPhotosRefs(
+    Expression<bool> Function($$AssetPhotosTableFilterComposer f) f,
+  ) {
+    final $$AssetPhotosTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.assetPhotos,
+      getReferencedColumn: (t) => t.assetId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AssetPhotosTableFilterComposer(
+            $db: $db,
+            $table: $db.assetPhotos,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$AssetsTableOrderingComposer
@@ -3018,6 +3525,31 @@ class $$AssetsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get deletedAt =>
       $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  Expression<T> assetPhotosRefs<T extends Object>(
+    Expression<T> Function($$AssetPhotosTableAnnotationComposer a) f,
+  ) {
+    final $$AssetPhotosTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.assetPhotos,
+      getReferencedColumn: (t) => t.assetId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AssetPhotosTableAnnotationComposer(
+            $db: $db,
+            $table: $db.assetPhotos,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$AssetsTableTableManager
@@ -3031,9 +3563,9 @@ class $$AssetsTableTableManager
           $$AssetsTableAnnotationComposer,
           $$AssetsTableCreateCompanionBuilder,
           $$AssetsTableUpdateCompanionBuilder,
-          (Asset, BaseReferences<_$AppDatabase, $AssetsTable, Asset>),
+          (Asset, $$AssetsTableReferences),
           Asset,
-          PrefetchHooks Function()
+          PrefetchHooks Function({bool assetPhotosRefs})
         > {
   $$AssetsTableTableManager(_$AppDatabase db, $AssetsTable table)
     : super(
@@ -3110,15 +3642,35 @@ class $$AssetsTableTableManager
               .map(
                 (e) => (
                   e.readTable<$AssetsTable, Asset>(table),
-                  BaseReferences<_$AppDatabase, $AssetsTable, Asset>(
-                    db,
-                    table,
-                    e,
-                  ),
+                  $$AssetsTableReferences(db, table, e),
                 ),
               )
               .toList(),
-          prefetchHooksCallback: null,
+          prefetchHooksCallback: ({assetPhotosRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [if (assetPhotosRefs) db.assetPhotos],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (assetPhotosRefs)
+                    await $_getPrefetchedData<Asset, $AssetsTable, AssetPhoto>(
+                      currentTable: table,
+                      referencedTable: $$AssetsTableReferences
+                          ._assetPhotosRefsTable(db),
+                      managerFromTypedResult: (p0) => $$AssetsTableReferences(
+                        db,
+                        table,
+                        p0,
+                      ).assetPhotosRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.assetId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
         ),
       );
 }
@@ -3133,9 +3685,362 @@ typedef $$AssetsTableProcessedTableManager =
       $$AssetsTableAnnotationComposer,
       $$AssetsTableCreateCompanionBuilder,
       $$AssetsTableUpdateCompanionBuilder,
-      (Asset, BaseReferences<_$AppDatabase, $AssetsTable, Asset>),
+      (Asset, $$AssetsTableReferences),
       Asset,
-      PrefetchHooks Function()
+      PrefetchHooks Function({bool assetPhotosRefs})
+    >;
+typedef $$AssetPhotosTableCreateCompanionBuilder =
+    AssetPhotosCompanion Function({
+      Value<String> id,
+      required String assetId,
+      required String path,
+      required int sort,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<int> rowid,
+    });
+typedef $$AssetPhotosTableUpdateCompanionBuilder =
+    AssetPhotosCompanion Function({
+      Value<String> id,
+      Value<String> assetId,
+      Value<String> path,
+      Value<int> sort,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<int> rowid,
+    });
+
+final class $$AssetPhotosTableReferences
+    extends BaseReferences<_$AppDatabase, $AssetPhotosTable, AssetPhoto> {
+  $$AssetPhotosTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $AssetsTable _assetIdTable(_$AppDatabase db) =>
+      db.assets.createAlias('asset_photos__asset_id__assets__id');
+
+  $$AssetsTableProcessedTableManager get assetId {
+    final $_column = $_itemColumn<String>('asset_id')!;
+
+    final manager = $$AssetsTableTableManager(
+      $_db,
+      $_db.assets,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_assetIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$AssetPhotosTableFilterComposer
+    extends Composer<_$AppDatabase, $AssetPhotosTable> {
+  $$AssetPhotosTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get path => $composableBuilder(
+    column: $table.path,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sort => $composableBuilder(
+    column: $table.sort,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$AssetsTableFilterComposer get assetId {
+    final $$AssetsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.assetId,
+      referencedTable: $db.assets,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AssetsTableFilterComposer(
+            $db: $db,
+            $table: $db.assets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$AssetPhotosTableOrderingComposer
+    extends Composer<_$AppDatabase, $AssetPhotosTable> {
+  $$AssetPhotosTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get path => $composableBuilder(
+    column: $table.path,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sort => $composableBuilder(
+    column: $table.sort,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$AssetsTableOrderingComposer get assetId {
+    final $$AssetsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.assetId,
+      referencedTable: $db.assets,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AssetsTableOrderingComposer(
+            $db: $db,
+            $table: $db.assets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$AssetPhotosTableAnnotationComposer
+    extends Composer<_$AppDatabase, $AssetPhotosTable> {
+  $$AssetPhotosTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get path =>
+      $composableBuilder(column: $table.path, builder: (column) => column);
+
+  GeneratedColumn<int> get sort =>
+      $composableBuilder(column: $table.sort, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  $$AssetsTableAnnotationComposer get assetId {
+    final $$AssetsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.assetId,
+      referencedTable: $db.assets,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$AssetsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.assets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$AssetPhotosTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $AssetPhotosTable,
+          AssetPhoto,
+          $$AssetPhotosTableFilterComposer,
+          $$AssetPhotosTableOrderingComposer,
+          $$AssetPhotosTableAnnotationComposer,
+          $$AssetPhotosTableCreateCompanionBuilder,
+          $$AssetPhotosTableUpdateCompanionBuilder,
+          (AssetPhoto, $$AssetPhotosTableReferences),
+          AssetPhoto,
+          PrefetchHooks Function({bool assetId})
+        > {
+  $$AssetPhotosTableTableManager(_$AppDatabase db, $AssetPhotosTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AssetPhotosTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$AssetPhotosTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$AssetPhotosTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> assetId = const Value.absent(),
+                Value<String> path = const Value.absent(),
+                Value<int> sort = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => AssetPhotosCompanion(
+                id: id,
+                assetId: assetId,
+                path: path,
+                sort: sort,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                required String assetId,
+                required String path,
+                required int sort,
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => AssetPhotosCompanion.insert(
+                id: id,
+                assetId: assetId,
+                path: path,
+                sort: sort,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$AssetPhotosTable, AssetPhoto>(table),
+                  $$AssetPhotosTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({assetId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (assetId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.assetId,
+                        referencedTable: $$AssetPhotosTableReferences
+                            ._assetIdTable(db),
+                        referencedColumn: $$AssetPhotosTableReferences
+                            ._assetIdTable(db)
+                            .id,
+                      ) as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$AssetPhotosTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $AssetPhotosTable,
+      AssetPhoto,
+      $$AssetPhotosTableFilterComposer,
+      $$AssetPhotosTableOrderingComposer,
+      $$AssetPhotosTableAnnotationComposer,
+      $$AssetPhotosTableCreateCompanionBuilder,
+      $$AssetPhotosTableUpdateCompanionBuilder,
+      (AssetPhoto, $$AssetPhotosTableReferences),
+      AssetPhoto,
+      PrefetchHooks Function({bool assetId})
     >;
 
 class $AppDatabaseManager {
@@ -3147,4 +4052,6 @@ class $AppDatabaseManager {
       $$TransactionsTableTableManager(_db, _db.transactions);
   $$AssetsTableTableManager get assets =>
       $$AssetsTableTableManager(_db, _db.assets);
+  $$AssetPhotosTableTableManager get assetPhotos =>
+      $$AssetPhotosTableTableManager(_db, _db.assetPhotos);
 }

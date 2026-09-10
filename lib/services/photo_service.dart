@@ -62,4 +62,33 @@ class PhotoService {
     await File(filePath).writeAsBytes(encoded, flush: true);
     return filePath;
   }
-}
+  /// Test-only bridge: raw RGB bytes -> encode -> hash-named file. Keeps the
+  /// compression/hash pipeline exercised by integration tests without needing
+  /// a real image file on disk.
+  static Future<String> saveCompressedBridge(
+    List<int> rawRgb, {
+    required String directory,
+  }) async {
+    const side = 64;
+    final image = img.Image(width: side, height: side);
+    var i = 0;
+    for (final y in List<int>.generate(side, (y) => y)) {
+      for (final x in List<int>.generate(side, (x) => x)) {
+        image.setPixelRgba(
+          x,
+          y,
+          rawRgb[i] & 0xff,
+          rawRgb[i + 1] & 0xff,
+          rawRgb[i + 2] & 0xff,
+          255,
+        );
+        i += 3;
+      }
+    }
+    final encoded = img.encodeJpg(image, quality: jpegQuality);
+    final hash = sha256.convert(encoded).toString();
+    await Directory(directory).create(recursive: true);
+    final filePath = p.join(directory, '$hash.jpg');
+    await File(filePath).writeAsBytes(encoded, flush: true);
+    return filePath;
+  }}

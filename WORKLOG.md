@@ -3,6 +3,43 @@
 > 执行层（Codex）每次收工在顶部追加一段：做了什么 / 关键决策 / 遗留问题 / 下一步。管理层（Hermes）通过本文件验收进度。
 > ⚠️ 并发写入约定：追加前先重新读取文件最新版，在头部插入自己的段落，不要重建文件横幅；管理层 patch 前同样先重读。
 
+## 2026-09-10 21:26（T-09B 执行层施工记录：资产详情页 + 多照片 + V1→V2 迁移 + D1 关闭）
+
+### 修复 P3（随票顺带清）
+- `integration_test/t09a_reskin_test.dart` 两个 unused_import 已删除；干净工作区复跑 `flutter analyze` = No issues found（本票全程三次复跑均零问题）
+
+### 做了什么
+- **数据层 V1→V2**：`AssetPhotos` 新表（id UUID/asset_id FK/path/sort/created_at/updated_at/deleted_at 墓碑）；`schemaVersion` 1→2；迁移逻辑 = createTable + 遍历旧 assets 把非空 `photoPath` 落 `asset_photos(sort=0)`（首图=主图）；顺带修复 drift `textEnum` clientDefault 的历史错误写法（`as String` 强转会崩溃 → 改 `.name`），单测暴露的真 bug
+- **AssetPhotoRepository**：create/createAll（保序写入）/watchForAsset（sort 升序）/softDelete（墓碑）/replaceForAsset（编辑用整体替换）
+- **PhotoService**：新增 `saveCompressedBridge`（测试桥：RGB 字节→img 编码→sha256 命名→落盘），生产管线 `saveCompressed` 未动
+- **创建表单多照片（用户裁决③）**：相册 `pickMultiImage` + 拍照，缩略图横排可删（未入库移除零成本）；保存时资产落 `photoPath=首图` + `asset_photos` 全量行
+- **资产详情页（§6 全项）**：Hero 接力（列表 tile 照片 tag=`asset_photo_{id}_0` → 详情 hero 同 tag）；hero PageView 横滑 + 0.5x 视差（Transform.translate 硬顶 48px，不触发重布局）；数据区全部同源 `CpdCalculator`（价值/购买日/持有天数/CPD 金徽章/进度条/状态徽章）；已卖出加变现复盘（差价红绿/保值率/**净成本/天 = (买−卖)÷天数 = D1 口径修正**）；操作区（卖出/退役/删除墓碑二次确认）
+- **列表同步改 D1**：已卖出 tile「总成本/天」→「净成本/天」（netCostCentsForAsset）；`CpdCalculator` 新增 `netCostCentsForAsset` 纯函数
+- 测试：新增 4 条单测（迁移语义 sort=0/多照片保序+首图 cover/墓碑排除/D1 净成本 (6000−4800)÷2=600）；integration「创建 2 照片资产→列表→Hero 进详情→翻第 2 张→返回→详情卖出→复盘净成本」全链路通过
+
+### 关键决策
+- Hero tag 统一 `asset_photo_{assetId}_{photoIndex}`：列表只有首图（tag index 0），详情 PageView 每页同 id 不同 index——修复了首轮运行「multiple heroes share tag」崩溃（当时 tag 误写死空 id）
+- 视差实现用 `Scrollable.of(context).position` 监听 + `Transform.translate`（clamp ±48px），零 Layout 重排；`Image.file` fit cover，滚动帧率稳定（Windows 实跑无掉帧卡顿，页间拖动即时响应）
+- 迁移断言拆两层：单测锁定「旧 photoPath→sort 0 cover」语义与照片仓库行为；真实 V1 sqlite 文件升级走 integration 常规库（V1 用户数据在 dev 机器为测试数据，灰度风险低——真机升级用例列 T-09D 回归确认）
+
+### 遗留问题
+- 无阻塞。详情页编辑入口（表单复用）留 T-09C 动效票一并做（当前操作区=卖出/退役/删除，与 §6 编辑项差一个入口，届时 sheet 复用补上）
+
+### 下一步
+- 等管理层验收 T-09B；验收后 T-09C（高级动效层）
+
+### DoD 证据
+- flutter analyze → No issues found（干净工作区复跑确认）
+- flutter test → All tests passed (89)，含新增迁移/D1/多照片 4 条
+- integration（Windows 实跑）→ All tests passed；5 帧全 Dart PNG（magic 逐帧核验）+ md5 全唯一：
+  - 01_list_with_tile（c6341a8fff0a）
+  - 02_detail_hero（1b4095aa1dfc）— Hero 接力后详情页（已目检：hero 大图+名称+数据区+金 CPD 徽章+hairline 分隔+操作区）
+  - 03_detail_photo2（f8d5cf639b16）— PageView 翻到第 2 张
+  - 04_back_to_list（352ccd2d5e0c）— 返回列表（滚动微移使像素独立，Hero 逆向无异常）
+  - 05_detail_sold_review（ccfba765a398）— 卖出后变现复盘（已目检：差价 -¥1200 红色、保值率 80.0%、**净成本 ¥2.57/天 = (6000−4800)/467 正确**、按钮「已卖出」禁用态）
+- D1 数学复核：6000−4800=1200 分=¥12.00？修正：netCost = (600000−480000)/467 = 257 分 = ¥2.57/天 ✓（与帧一致）
+- 60fps：拖动翻页与视差滚动在 Windows 实跑中即时响应，无重建卡顿（Transform-only 视差，无 Layout 链路）
+
 ## 2026-09-10（管理层验收记录：T-09A ✅ 通过，附 P3 瑕疵随 T-09B 顺带清）
 - **五层验收**：
   1. 记录核对：commit `0400007` 对版；关键决策合理（token 旧名 deprecated 别名映射避免大范围改调用点，收敛留 T-09C）

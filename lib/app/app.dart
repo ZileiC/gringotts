@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/app_database.dart';
+import '../data/repositories/asset_photo_repository.dart';
 import '../data/repositories/repositories.dart';
 import '../pages/quick_entry_page.dart';
 import '../ui/tokens.dart';
@@ -29,6 +30,12 @@ final Provider<CategoryRepository> categoryRepositoryProvider =
 final Provider<AssetRepository> assetRepositoryProvider =
     Provider<AssetRepository>((ref) {
   return AssetRepository(ref.watch(databaseProvider));
+});
+
+/// Asset photo repository (T-09B multi-photo support).
+final Provider<AssetPhotoRepository> assetPhotoRepositoryProvider =
+    Provider<AssetPhotoRepository>((ref) {
+  return AssetPhotoRepository(ref.watch(databaseProvider));
 });
 
 /// Root widget of the app. Theme setup only; M1.0 skeleton page.

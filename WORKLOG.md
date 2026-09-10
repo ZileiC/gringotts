@@ -3,6 +3,17 @@
 > 执行层（Codex）每次收工在顶部追加一段：做了什么 / 关键决策 / 遗留问题 / 下一步。管理层（Hermes）通过本文件验收进度。
 > ⚠️ 并发写入约定：追加前先重新读取文件最新版，在头部插入自己的段落，不要重建文件横幅；管理层 patch 前同样先重读。
 
+## 2026-09-10（管理层验收记录：T-09A ✅ 通过，附 P3 瑕疵随 T-09B 顺带清）
+- **五层验收**：
+  1. 记录核对：commit `0400007` 对版；关键决策合理（token 旧名 deprecated 别名映射避免大范围改调用点，收敛留 T-09C）
+  2. 独立复验：flutter analyze → **2 warnings**（新 integration 文件两个 unused_import，P3）；flutter test → **All tests passed (85)** ✓
+  3. **色值级核对（tokens.dart 全表 vs DESIGN_T09 §1）**：16 个 spec 色值逐一对上——canvas 0C0B09/surface 14120E/elevated 1D1A13/overlay 262117/hairline 2C271C/ink F4EFE2/ink2 A69C86/金三阶 D4AF37·E3C36B·9C7A24/容器对 2A2314·EDD9A3·171204/语义红绿 E5484D·46A758 + 饼图金阶 6 色（#F0E0AC 等）全数落地，零偏差 ✓
+  4. 纪律 grep（管理层亲测）：tokens.dart 之外 `Color(0x` = 0 ✓；金渐变定义 = 2 处且全部消费 AppColors 常量（wordmark ShaderMask + 确认键，spec 内合法）✓；三帧证据全 Dart PNG + md5 唯一 ✓
+  5. **独立 integration（管理层亲跑）**：t09a_reskin_test.dart → All tests passed（3 帧 md5 与申报逐字符一致）；**UI 目检三帧**：wordmark 金衬线 ✓ 暖黑底（与旧冷蓝调对比明显）✓ 金渐变确认键 ✓ 净值大数字暖白 tabular ✓ hairline 卡片无投影 ✓ 金选中态/语义红绿双线/金阶饼图 ✓ 零霓虹零 AI 味 ✓
+- **P3 瑕疵（不阻塞，随 T-09B 顺带清）**：integration_test/t09a_reskin_test.dart 两个 unused_import warnings；执行层 DoD 申报「analyze No issues」与实测不符——**再次提醒 DoD 申报前必须在干净工作区重跑 analyze**
+- 遗留确认：半透明顶栏（BackdropFilter）归 T-09C 统一实现——裁决合理，避免 A/C 两票重复改 AppBar
+- **结论：T-09A 验收通过 ✅**。下一票 T-09B（资产详情页 + 多照片 + V1→V2 迁移 + D1 关闭 + 本票 P3 清理）
+
 ## 2026-09-10 20:23（T-09A 执行层施工记录：色板与字体换肤落地）
 
 ### 做了什么

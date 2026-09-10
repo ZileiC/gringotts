@@ -67,6 +67,8 @@
 | 2026-09-09 | **T-06b 验收：通过 ✅，D2 关闭** | onClick 覆写（API34 PendingIntent 分支）+ 管理层亲跑严格实验复现「后台→点 tile→focus=MainActivity」（与 T-06 no-op 直接对照）；备忘 E1=两帧证据 PNG 被 UTF-16 编码损坏（dump 文本完好，语义证据成立）；M1.x：D1/删除UI/N1/E1 证据管线编码统一 |
 | 2026-09-10 | **T-07 验收：通过 ✅（附执行层主动上报的 P0 事故处置）** | 85 单测 + 3 段集成 + 导出 python 复核全绿；**执行层主动上报：管理层 Round 7 误 reset 丢弃 T-06b 修复 `9a094ef`，导致验收记录与主线代码矛盾**——管理层全责，已恢复（byte-identical，diff=0）；T-07 的 APK 证据作废重出；新铁律：破坏性 git 操作前核对+备案、验收结论必须标注 commit hash、git 历史修复须经用户知情 |
 | 2026-09-10 | **T-07b 验收：通过 ✅，事故闭环** | 新 APK md5 `c2800e64…` 与申报一致（16:00:04 构建）；**APK 解剖实证**：classes.dex 含 startActivityAndCollapse/getLaunchIntentForPackage/PendingIntent 引用 = 修复编译进包，交付物不含 D2；M1.0 进度 T-01~T-07 全绿，剩 T-08 收官 |
+| 2026-09-10 | **T-09 发布** | 设计细则 DESIGN_T09.md（用户三裁决+Leclerc 动效转译）+ 工单 T-09A 换肤/T-09B 详情页多照片 D1/T-09C 动效层/T-09D 收尾；原 T-08 票号退役并入 T-09A |
+| 2026-09-10 | **T-09A 验收：通过 ✅（色值级核对）** | tokens 16 色值 vs spec 零偏差；金渐变=2 处全消费 AppColors；tokens 外硬编码 0；三帧 Dart PNG md5 唯一 + 亲跑 integration 通过；UI 目检三屏全部符合 §8（wordmark 金衬线/暖黑底/确认键金渐变/tabular 净值/hairline 无投影）；P3=integration 文件 2 个 unused_import（申报与实测不符，随 T-09B 清） |
 
 ## 下次 Session 开场
 1. 读本文件 + WORKLOG.md

@@ -1,96 +1,51 @@
-# TICKETS_M1.md — M1.0 派工工单（管理层发布）
+# TICKETS_M1.md — T-09 派工工单（管理层发布）
 
 > 执行层（Codex）按序施工。每张票完成即在 WORKLOG 记录并 commit（票号进 commit message）。
 > 工单语义不得收窄或改写；有异议记 WORKLOG 等管理层确认。
-> 完工定义（DoD）：`flutter analyze` 零错误 + `flutter test` 全绿 + Windows 桌面实跑截图/描述留 WORKLOG + Android APK 构建成功。
+> **Design token 铁律**：所有颜色/字体/间距一律经 `lib/ui/tokens.dart`，组件内禁止硬编码色值/字号。
+> 完工定义（DoD）：`flutter analyze` 零错误 + `flutter test` 全绿 + Windows 实跑证据（截图/录屏帧 md5 唯一、全 Dart PNG）+ Android release APK 构建成功。
 
 ## 全局约定
-- 版本目标 = M1.0；过程中修补记 M1.x
-- 技术栈/数据铁律/UI 铁律/代码语言铁律见 AGENTS.md，全部适用
-- **Design token 铁律（自 T-02 起）**：所有颜色/字体/间距一律经 `lib/ui/tokens.dart`（ThemeExtension 或常量表），组件内禁止硬编码色值/字号——为 T-08 整体换肤铺路
+- 版本目标 = **T-09（M1.0 品牌收官 + 用户增补三裁决）**；过程修补记 M1.x
+- **设计细则唯一真相源 = DESIGN_T09.md**（用户已确认基调）：色板 tokens 全表 / 字阶 / 动效规格 / 高级动效层 / 资产详情页 / 金色章程 / 逐页要点——施工前通读，数值一律照抄 tokens 表
 - 类别体系（v1 固定 seed，允许后补自定义）：餐饮 / 交通 / 购物 / 居住 / 娱乐 / 学习 / 医疗 / 人情 / 其他
 - 资产分类体系（对标有数）：硬通货 / 数码 / 非标品 / 普通物品
 
 ---
 
-## T-01 项目骨架与数据层
-- `flutter create`（org 随意，app 名 gringotts）；接入 Drift + Riverpod + fl_chart
-- Drift 表（全部：UUID text 主键 / created_at / updated_at / deleted_at 墓碑）：
-  - `transactions`：id, amount_cents(int, 必填), type(收入/支出/转账占位)， category_id, merchant, note, occurred_at, is_draft(bool), source(manual 预留 future: screenshot/voice)
-  - `categories`：id, name, icon, sort, is_custom(bool)；预置上面九类 seed
-  - `assets`：id, name, category(硬通货/数码/非标品/普通物品), value_cents, purchased_at, photo_path, status(服役中/已退役/已卖出), sold_price_cents(可空), sold_at(可空)
-- Drift 迁移文件从 V1 开始规范编号；金额列一律 int 存分
-- 验收：`flutter analyze` 过；`flutter test` 覆盖「插入→墓碑→查询不含墓碑」与「金额分转换」两条用例
+## T-09A 色板与字体换肤（tokens 落地）
+- tokens.dart 全表替换为 DESIGN_T09.md §1 数值：暖调黑金体系（canvas/surface/elevated/overlay/hairline/ink/ink2/金三阶/金容器对/语义红绿）
+- 字阶按 §2（Perfect Fourth）+ tabular figures 金额铁律 + **金额数字保持现状无衬线（用户裁决①）** + Playfair Display 仅品牌 wordmark/启动画面
+- buildAppTheme() 全量对齐；全库 grep 硬编码色值清零（唯一例外 tokens.dart）
+- 验收：analyze/test 全绿；Windows 实跑截图 3 张（速记/资产/统计）对照 DESIGN_T09 §8 逐页要点；截图 Dart PNG + md5 唯一
 
-## T-02 智能速记核心（产品灵魂，最高优先级）
-- 首页 = 速记页：打开 app 直接是数字键盘，无导航层；深色 M3 风格
-- 金额 = 唯一必填；大确认键入库（draft 状态）
-- 一行混合解析器（本地，离线）：`瑞幸 15` / `15 瑞幸` / `15.5 午餐` → 商户/金额/类别建议；regex + 内置词典 + 历史 merchant 联想；解析纯函数 + 单测全覆盖
-- 时段默认类别：7:00–9:00 早餐(餐饮) / 11:30–13:30 午餐 / 17:00–19:00 晚餐 / 22:30+ 夜宵娱乐；其余时段不预填
-- 高频类别 chip 条：金额输入后横向一排（近 14 天高频优先）；点选换类，不点则用预填
-- 模式识别：工作日午间 ¥15±2（可配置容差）弹不弹窗都禁止——用内联提示「这是午餐吗？」一键确认，绝不打断
-- 解析失败不阻塞：任何输入至少金额可存
-- 验收：解析器单测 ≥ 20 条（含乱序/小数/纯金额/未知商户）；速记页 Windows 实跑通过
+## T-09B 资产详情页 + 多照片（用户裁决②③）
+- **asset_photos 新表**（id UUID/asset_id FK/path/sort/三时间戳/deleted_at 墓碑）；schemaVersion V1→V2 规范迁移，旧单张照片自动落 sort=0（迁移单测）
+- PhotoService 扩展：多选（multiImage）+ 拍照 → 压缩 + sha256 命名 + 幂等去重（沿用现有管线）；首图 = 主图（列表缩略图）
+- 创建/编辑表单：照片区多选 + 拍照 + 缩略图横排可删（未入库移除零成本）
+- **详情页**（§6 全项）：Hero 接力进页；hero 照片 PageView 横滑 + 页点 + 0.5x 视差；数据区（价值/购买日/持有天数/CPD 徽章/进度条；已卖出加差价红绿/保值率/**净成本/天 = D1 口径修正**）；操作区（编辑/卖出/退役/删除墓碑二次确认）
+- 详情页数字与列表同源（CpdCalculator），单测锁定；**D1 缺陷随本票关闭**（列表已卖出 tile 同步改净成本口径 + 单测更新）
+- 验收：迁移/同源/D1 单测；integration 补「创建多照片资产→列表→点入详情→翻照片→返回 Hero 逆向」链路；Windows 实跑
 
-## T-03 先记后补机制
-- draft 记录首页角标「今日 N 笔待完善」；当日回顾页：按天分组列出 draft，批量补类别/商户/备注后转正式
-- 7 天前仍未补的 draft 在回顾页降级灰显（不删）
-- 验收：draft→正式→统计只计正式（用例：draft 不进当日合计，确认后进）
+## T-09C 高级动效层（用户裁决④，参照 DESIGN_T09 §5）
+- **A 惯性滚动**：自定义 ScrollPhysics（spring 高 stiffness + 摩擦余韵），资产/统计/回顾三页统一
+- **B 视差**：详情页 hero 照片 0.5x（≤48px 铁律）；净值看板滚动「沉入」（0.85x + scale 0.98 + opacity 0.6）
+- **C 微缩放**：TouchedScale 统一组件——可点 tile 0.98 回弹 spring 240ms / 键盘 0.97 / 确认键 0.96 + 触感，全 app 复用
+- **D 成组入场**：列表 60ms stagger fade+12px 上移 280ms easeOutCubic，成组不逐个
+- **E 共享元素**：列表照片缩略 → 详情 hero 大图 Hero 接力 350ms easeOutCubic，返回逆向
+- 性能红线：全 Transform/Opacity 不触发重布局；ListView.builder 懒构建；60fps（WORKLOG 留滚动帧率描述）
+- 无障碍：disableAnimations 全退化（§4/§5）；触感保留
+- 验收：动效逐项截图/录屏帧（md5 唯一 + Dart PNG）；既有 85+ 单测全绿不回退
 
-### T-03 强制增补（2026-09-08 T-02 验收裁决）
-- **一行混合输入 UI 入口必须在 T-03 落地**（采纳执行层提案并升格为强制）：速记页或回顾页提供混合输入框接 SmartParser——解析器已是验收过的资产，缺的只是输入面板
-- **必须处理管理层审计发现 A1**：前导小数点输入 `.5` 当前被解析为 ¥5.00 且商户残留 `.`；混合输入框须按 ¥0.50 解析（或明确拦截），禁止脏商户字符入库
-- 挂账不阻塞（M2.0 AI 解析增强统一处理）：千分位逗号金额、全角数字、词典大小写敏感
-- **收入模式（2026-09-08 用户确认补票）**：速记页加「支出/收入」模式切换，默认支出（主流程 3 秒一笔零摩擦不变）；收入模式 = 金额 + 可选来源备注，确认键按当前模式写 type（income）；收入模式不套用时段预填/高频 chip/午餐识别（收入无此类场景）
-
-## T-04 资产档案页（A1+B8）
-- 资产列表 + 总资产净值看板（服役中资产现值合计；已卖出按卖出价计已实现）
-- 资产录入：名称/分类/价值/购买日期/照片（拍照或相册；图片压缩 + hash 文件名，DB 存路径）
-- CPD 日均成本：现值÷持有天数 持续计算；列表显示「¥8.8/天」式标签 + 服役进度条
-- 变现复盘：填卖出价 → 自动算 买卖差价、总成本/天、保值率；卖出后进「已卖出」分区
-- 验收：CPD 计算单测（跨天/当天/已卖出三种）；照片流程 Windows 实跑通过
-
-## T-05 统计图表与导出
-- 本地聚合统计页：日/月/年三档 + 类别占比（fl_chart 饼图）+ 趋势（折线）；只算非 draft
-- **收支对称（2026-09-08 用户确认补票）**：趋势图支出/收入双线 + 净结余展示；口径 = 收入合计 − 支出合计（income/expense 各自聚合，transfer 占位不计）；这是 M2.0 AI「财政平衡/存了多少」分析的数据基础
-- 设置页：CSV / JSON 全量导出（Win 端存文档目录，Android 端存 Download）
-- 验收：聚合口径与「draft 不计入」单测；导出文件可用 Excel 打开（CSV 带 BOM 防 Excel 中文乱码）；**收支双线与净结余有独立单测**
-
-## T-06 直达入口（B10 前半）
-- 长按桌面图标快捷方式「记一笔」（Android shortcuts + Windows 可忽略）
-- 通知栏 Quick Settings tile「记一笔」（Android）
-- 验收：真机或模拟器点按直达速记页（WORKLOG 留证据描述）
-
-### ❌ T-06 验收裁决（2026-09-09）：**不通过** → 返工票 T-06b
-- **D2 缺陷（P0，功能失效 + 申报不实）**：QS tile 点按无任何动作。根因：`RecordTileService.kt` 裸类未覆写 `onClick()`，Android 默认 no-op。管理层在严格条件下复现（模拟器 Pixel 6 API 35、app 先退后台 focus=launcher、QS 面板展开、uiautomator 定位 tile 点按）→ focus 停在 NotificationShade、app 仍 mLastPausedActivity。执行层原证据为假阳性（测时 app 已在前台，点 tile 收面板露出 app 造成「直达」错觉）
-- 长按快捷方式部分**验证通过**（管理层复现：后台状态点快捷项 → focus=MainActivity，dumpsys 注册正确）
-- **T-06b 返工要求**：
-  1. `RecordTileService.kt` 覆写 `onClick()`：`startActivityAndCollapse` 启动 MainActivity（API 34+ 需 PendingIntent 版本分支），Kotlin 源码注释英文
-  2. 重做 tile 点按实证：**必须先 Home 退后台**（focus=launcher 截图）→ 展开 QS → 点 tile → focus=MainActivity 证据，附逐帧 md5（沿用 assert-first 管线）
-  3. WORKLOG 如实记录此前证据为何失效（前台残留）；管理层将复核
-- 验收命令参考：`adb shell input keyevent KEYCODE_HOME` → `dumpsys window | grep mCurrentFocus` → `cmd statusbar expand-settings` → uiautomator 定位 → `input tap` → 再验 focus
-
-## T-07 M1.0 收尾整合
-- 全量回归：速记→draft→补全→统计→资产→导出 全链路 Windows 实跑
-- Android release APK 构建成功（`flutter build apk --release`）
-- WORKLOG 写 M1.0 完工报告：功能清单 vs 工单逐条对照
-- **不包含**：AI 任何能力、预算、周期账单、Widget、加密、截屏解析、账户、多币种
+## T-09D 收尾整合与品牌资产
+- 启动画面（canvas + 徽标 38% + Playfair wordmark）+ Android 自适应图标（G 龙 66% 安全区）+ Windows ico 多尺寸——源文件 brand/gringotts-logo.png
+- 全量回归：速记→draft→补全→统计→资产→详情→导出 全链路 Windows 实跑（三段 integration 单跑拼合）
+- release APK 重建 + WORKLOG 写 T-09 完工报告（DESIGN_T09 §8 逐页对照 + 动效清单对照）
+- 不包含：AI 能力、预算、周期账单、加密、截屏解析、账户、多币种（负范围不变）
+- 验收：回归证据 + 全部测试绿 + APK + **用户目测通过（最终拍板在用户）**
 
 ---
 
-## 施工顺序与里程碑
-T-01 → T-02 → T-03 → T-04 → T-05 → T-06 → T-07 → T-08（T-02 最重，允许在 T-01 后并行 T-04；T-08 为 M1.0 收官票）
-每票一 commit：`T-0x: <summary>`；发现工单缺口 → WORKLOG 登记，不得自行改需求
-
----
-
-## T-08 品牌 UI 重构（黑金体系，M1.0 收官票）
-- **硬前提**：T-01~T-07 全部验收通过、全功能可用——功能不绿不换肤
-- 品牌资产：`brand/gringotts-logo.png`（用户定版黑金 G 龙徽标，2026-09-08）
-- 设计语言（管理层从徽标定调）：
-  - 深黑层底（近 #0A0A0A，按层级微调明度，保持对比度）+ 香槟金 accent（从徽标取色；金色渐变允许但克制）
-  - 品牌衬线字仅用于品牌时刻（app 名、总资产净值大数字等），数据与正文用高可读无衬线
-  - 动画讲究有重量感（页面入口/微交互），干净有重量感为纲；**严禁深底霓虹渐变 AI 味**
-- 范围：tokens 全量换肤 + 全部页面（速记/回顾/统计/资产/设置）+ 图标体系（金色单色系）+ Android 自适应图标与 Windows 图标（从徽标生成）+ 启动画面
-- 硬约束：重构后全量回归——T-01~T-07 全部测试保持绿、关键流程 Windows 实跑证据入 WORKLOG、release APK 重新构建成功
-- 验收：回归证据 + 无硬编码色值残留（管理层 grep 抽查）+ 用户目测通过
+## 施工顺序
+T-09A → T-09B → T-09C → T-09D（A 是 B/C/D 的地基；B 与 C 可在 A 后并行；D 收尾）
+每票一 commit：`T-09x: <summary>`；发现缺口 → WORKLOG 登记，不得自行改需求

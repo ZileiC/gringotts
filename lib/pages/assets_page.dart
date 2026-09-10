@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -348,7 +348,9 @@ class _SoldTile extends StatelessWidget {
                 Text(
                   profit >= 0 ? '+${yuan(profit)}' : yuan(profit),
                   style: theme.textTheme.titleLarge?.copyWith(
-                    color: profit >= 0 ? Colors.greenAccent : Colors.redAccent,
+                    color: profit >= 0
+                      ? AppColors.semanticIncome
+                      : AppColors.semanticExpense,
                   ),
                 ),
               ],

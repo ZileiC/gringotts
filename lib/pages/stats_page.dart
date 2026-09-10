@@ -210,7 +210,7 @@ class _TrendChart extends StatelessWidget {
                 FlSpot(i.toDouble(), points[i].expenseCents.toDouble()),
             ],
             isCurved: true,
-            color: Colors.redAccent,
+            color: AppColors.semanticExpense,
             barWidth: 2,
             dotData: const FlDotData(show: false),
           ),
@@ -220,7 +220,7 @@ class _TrendChart extends StatelessWidget {
                 FlSpot(i.toDouble(), points[i].incomeCents.toDouble()),
             ],
             isCurved: true,
-            color: Colors.greenAccent,
+            color: AppColors.semanticIncome,
             barWidth: 2,
             dotData: const FlDotData(show: false),
           ),
@@ -275,16 +275,10 @@ class _CategoryPieCard extends ConsumerWidget {
           return '未分类';
         }
 
+        // Gold scale first (chart-only gold exemption), neutral grays after.
         final colors = <Color>[
-          Colors.redAccent,
-          Colors.orangeAccent,
-          Colors.amberAccent,
-          Colors.lightGreenAccent,
-          Colors.tealAccent,
-          Colors.lightBlueAccent,
-          Colors.deepPurpleAccent,
-          Colors.pinkAccent,
-          Colors.blueGrey,
+          ...AppColors.goldChartScale,
+          ...AppColors.neutralChartScale,
         ];
 
         return Card(
@@ -302,9 +296,9 @@ class _CategoryPieCard extends ConsumerWidget {
                             value: totals[i].cents.toDouble(),
                             title:
                                 '${(totals[i].cents * 100 ~/ grand)}%',
-                            titleStyle: const TextStyle(
+                            titleStyle: TextStyle(
                               fontSize: 11,
-                              color: Colors.black,
+                              color: AppColors.chartSliceLabel(i),
                             ),
                             color: colors[i % colors.length],
                             radius: 70,

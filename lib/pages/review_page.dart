@@ -192,7 +192,14 @@ class _DayHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Text(label, style: Theme.of(context).textTheme.titleLarge),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              fontSize: AppFont.bodySm,
+              color: AppColors.inkSecondary,
+              letterSpacing: 1.6,
+            ),
+          ),
           const SizedBox(width: AppSpacing.s),
           Text('$count 笔', style: Theme.of(context).textTheme.bodySmall),
         ],

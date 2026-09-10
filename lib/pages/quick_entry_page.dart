@@ -236,6 +236,23 @@ class _QuickEntryPageState extends ConsumerState<QuickEntryPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Brand wordmark: the only serif moment on this page.
+                  ShaderMask(
+                    shaderCallback: (bounds) => const LinearGradient(
+                      colors: [AppColors.goldAccent, AppColors.goldDeep],
+                    ).createShader(bounds),
+                    child: const Text(
+                      'GRINGOTTS',
+                      style: TextStyle(
+                        fontFamily: 'PlayfairDisplay',
+                        fontWeight: FontWeight.w600,
+                        fontSize: AppFont.caption + 2,
+                        letterSpacing: 1.6,
+                        color: AppColors.goldAccent,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.s),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
@@ -298,15 +315,26 @@ class _QuickEntryPageState extends ConsumerState<QuickEntryPage> {
               child: SizedBox(
                 width: double.infinity,
                 height: 56,
-                child: FilledButton(
-                  onPressed: amount == null || amount <= 0 ? null : _confirm,
-                  style: FilledButton.styleFrom(
-                    textStyle: TextStyle(
-                      fontSize: AppFont.title,
-                      fontWeight: FontWeight.w600,
+                child: DecoratedBox(
+                  decoration: const BoxDecoration(
+                    borderRadius: BorderRadius.all(Radius.circular(AppRadius.m)),
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [AppColors.goldAccent, AppColors.goldDeep],
                     ),
                   ),
-                  child: const Text('记一笔'),
+                  child: TextButton(
+                    onPressed: amount == null || amount <= 0 ? null : _confirm,
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.onGold,
+                      textStyle: TextStyle(
+                        fontSize: AppFont.title,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    child: const Text('记一笔'),
+                  ),
                 ),
               ),
             ),

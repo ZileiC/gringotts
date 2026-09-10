@@ -3,6 +3,37 @@
 > 执行层（Codex）每次收工在顶部追加一段：做了什么 / 关键决策 / 遗留问题 / 下一步。管理层（Hermes）通过本文件验收进度。
 > ⚠️ 并发写入约定：追加前先重新读取文件最新版，在头部插入自己的段落，不要重建文件横幅；管理层 patch 前同样先重读。
 
+## 2026-09-10 20:23（T-09A 执行层施工记录：色板与字体换肤落地）
+
+### 做了什么
+- `tokens.dart` 全表替换为 DESIGN_T09 §1 暖调黑金体系：canvas/surface/elevated/overlay 四层 + hairline 描边 + ink/inkSecondary 暖白文字 + 金三阶（brand/accent/deep）+ 金容器对（onGoldContainer/onGold）+ 语义红绿；旧 token 名以别名保留，页面零破坏切换
+- 字阶按 §2 Perfect Fourth 落地（12/14/16/21/28/38/50 + 速记 56）；displayLarge/H3/H4 与净值/速记金额统一 `FontFeature.tabularFigures`（用户裁决①：数字保持无衬线 tabular，未动衬线数字）
+- Playfair Display 仅品牌时刻：600/700 静态字体（从 google/fonts 变量字体实例化）入 `fonts/`，pubspec 注册；速记页顶栏新增 `GRINGOTTS` wordmark（衬线 600 + 金渐变 ShaderMask + 1.6px 字距）
+- buildAppTheme() 全量对齐：卡片/对话框 1px hairline、输入框 elevated 填充 + hairline 边、聚焦金 accent、snackbar 金容器底、divider hairline；金渐变仅确认键一处落地（§3 纪律：全库渐变定义处 = 2，含饼图金阶定义）
+- 页面散落色值清零：趋势双线/盈亏红绿改 `semanticExpense/Income`，饼图改金阶 6 色 + 中性灰兜底（§7 唯一豁免），饼图标签深浅自适应（金阶 onGold/灰阶 ink），tooltip 数值 goldAccent
+- 回顾页日期头改 eyebrow 规格（inkSecondary + 1.6px 字距）
+- 证据：`flutter analyze` 零错误；`flutter test` 85/85 全绿；Windows 实跑 integration 三帧（速记/资产/统计）全为 Dart PNG（magic 89 50 4E 47 逐帧核验）且 md5 唯一，已目检对照 §8 逐页要点
+
+### 关键决策
+- 金渐变确认键用 ShaderMask 文字色保持 onGold（禁纯白/纯黑），渐变定义仅 tokens 消费处 1 处 + 图表定义处 1 处，符合 ≤2 纪律
+- 全库 `Color(0x` grep：tokens.dart 之外为 0（含 fl_chart 色值全部走 tokens 常量表）
+- token 旧名（surfaceBlack/surfaceDark/surfaceElevated/textPrimary/textSecondary）以 deprecated 语义别名映射新值，避免本票大范围改页面调用点；T-09C 动效票再统一收敛命名
+
+### 遗留问题
+- 无阻塞。半透明顶栏（BackdropFilter blur）按 DESIGN_T09 §3 属页级材质升级，与 §8 逐页要点不冲突，归入 T-09C 动效票统一实现，避免本票与动效层重复改 AppBar
+
+### 下一步
+- 等管理层验收 T-09A；验收后 T-09B（资产详情页 + 多照片 + V1→V2 迁移 + D1 关闭）
+
+### DoD 证据
+- flutter analyze → No issues found
+- flutter test → All tests passed (85)
+- integration（Windows 实跑）→ All tests passed，3 帧全 Dart PNG + md5 唯一：
+  - .t09a_01_quick_entry.png（f74455d50edf）：Playfair 金 wordmark + 金渐变确认键 + 暖黑键盘
+  - .t09a_02_assets.png（720498cd473d）：暖黑卡 + hairline + 金 CPD 徽章 + 金阶进度条
+  - .t09a_03_stats.png（cc66fe17c31a）：金选中态 + 语义红绿双线 + 饼图金阶
+- 金渐变定义处 grep = 2（≤2 达标）；tokens.dart 外硬编码色值 grep = 0
+
 ## 2026-09-10（管理层记录：T-09 发布——设计细则 + 用户三裁决入票）
 - **用户裁决（2026-09-10）**：①金额数字字体保持现状 tabular 无衬线（速记/资产数字均被用户认可，禁换衬线数字）②新增资产详情页（每资产可点入）③资产创建支持多张照片上传 ④动画全面升级：视差滚动 + 微缩放反馈，参照 charlesleclerc.com
 - **动效参照系调研**：charlesleclerc.com（Apart Collective，米兰）= Lenis 惯性平滑滚动 + scroll-driven 多层视差 + 编辑式成组 reveal + 双模式叙事转场；已转译为 Flutter 可实现规格（DESIGN_T09.md §5：自定义 ScrollPhysics / ScrollController 速度插值视差 ≤48px / TouchedScale 统一微缩放组件 / 60ms stagger 成组入场 / Hero 接力转场），不引 web 技术

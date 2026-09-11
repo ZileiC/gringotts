@@ -80,6 +80,8 @@
 - 用户目测拍板（M1.0 最终验收权在用户）：实机装 release APK 看 3 件事——① 桌面图标（自适应 + 圆形蒙版是否吃边）② 冷启动品牌帧观感 ③ 滚动/键盘实感帧率
 - 验收通过后：管理层做 WORKLOG 归档整理（备忘录已记）+ M1.1 候选（D1 已关；剩 dev 照片文件 GC、编辑 sheet 状态字段、真机帧率）
 
+> 本票 2 个 commit：`a8e9cbc`（主体：splash + 图标 + 回归 + 清理 + 报告）+ `5e3be39`（后补的品牌资产审阅图 `tool/brand_preview.py` / `evidence/t09e/brand_assets_preview.png`，供用户目测）。APK 已复制到桌面 `gringotts-T09E-release.apk` 便于实机安装（仓库外，不入 git）。
+
 ## 2026-09-11（管理层验收记录：T-09D ✅ 通过，附 2 项观察）
 - **五层验收**：
   1. 记录核对：commit `8008d60` 对版，已 push；工作区干净

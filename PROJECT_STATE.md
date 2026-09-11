@@ -72,6 +72,7 @@
 | 2026-09-10 | **T-09B 验收：通过 ✅，D1 正式关闭** | 89 单测全绿 + 亲跑 integration 五帧全链路（多照片创建→Hero 进详情→翻页→返回→卖出复盘）；V1→V2 迁移语义单测锁定；净成本 ¥2.57/天 数学精确吻合；P3 已清（analyze 恢复零问题）；编辑入口归 T-09C |
 | 2026-09-11 | **T-09C 验收：通过 ✅（管理层亲跑，数值逐位复现）** | 98 单测全绿；下沉数值 rise=40.8/opacity=0.600 复现一致；8 帧 md5 唯一；**执行层修掉两个真 bug**（TouchedScale 静息态反转 = 上轮两帧字节相同的真凶；stats 沉入未接控制器）；**P4 新偏差**：reduce-motion 下触感丢失（与 spec「触感保留」及提交声明不符）→ 随 T-09C2 修；**裁决**：§4 基础动效单开 T-09C2、Hero easeOutCubic 批准带回退、真机帧率归 T-09E+用户实感、编辑补全（购买日期+照片管理）单开 T-09D；**AGENTS.md 反浪费铁律追认生效**；票务重排 T-09C2→T-09D→T-09E |
 | 2026-09-11 | **T-09C2 验收：通过 ✅（P4 关闭）** | 108 单测全绿；管理层亲跑 integration 确定性数值逐位一致（settled=13089900/haptics=3 confirm_haptic=ok/Hero curve=easeOutCubic）；P4 触感解耦核实为真；↑§4 三项动效落地（count-up spring/一次性 sheen/150ms chip）；**证据脚本前提声明规则**入档（ensureVisible+DB 状态先行）；裁决：snackbar 改 floating 不遮 sheen（落 T-09D 顺带）、t09b 二处验证与 dev 库清理归 T-09E |
+| 2026-09-11 | **T-09D 验收：通过 ✅（逼出 2 个既有真 bug 并修复）** | 113 单测全绿；管理层亲跑 integration 数值逐位一致（CPD 459 天/1590 分、墓碑 raw 留存、snackbar 零重叠）；**新增照片不显示 + 设封面列表无效**两个既有 bug 统一到 `displayPaths()` 单一真相源修复；AGENTS.md 证据条款落档；转 T-09E：dev 库清理 + AGENTS.md 过时表述订正 |
 
 ## 下次 Session 开场
 1. 读本文件 + WORKLOG.md

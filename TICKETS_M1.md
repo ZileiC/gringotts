@@ -56,7 +56,8 @@
 ## T-09E 品牌收尾（原 T-09D 顺延）
 - 启动画面（canvas 纯色 + 徽标 38% + Playfair wordmark「Gringotts」）+ Android 自适应图标（前景 G 龙 66% 安全区 / canvas 背景）+ Windows ico 多尺寸——源文件 brand/gringotts-logo.png
 - 全量回归：速记→draft→补全→统计→资产→详情→编辑→导出 全链路 Windows 实跑（三段 integration 单跑拼合）；**含 t09b 第二处 ensureVisible 段的复跑验证**（T-09C2 遗留）
-- **dev 库清理**：多轮证据脚本遗留的测试草稿/资产走墓碑清理（纯开发数据）
+- **dev 库清理**：多轮证据脚本遗留的测试草稿/资产走墓碑清理（纯开发数据；截至 T-09D 复跑 raw_rows 已累积 34 行）
+- **文档订正**：AGENTS.md「UI 铁律」中「T-08 将整体换肤」为过时表述（换肤已在 T-09A 完成）——订正为 T-09A/T-09 系列已完成，避免后人误读
 - **profile 模式帧率采样**（debug 帧耗时不再作证据，只作 debug 成本标注；真机 60fps 判定权归用户实装 APK 实感）
 - release APK 重建 + WORKLOG 写 T-09 完工报告（DESIGN_T09 §8 逐页对照 + 动效清单对照）
 - 不包含：AI 能力、预算、周期账单、加密、截屏解析、账户、多币种（负范围不变）

@@ -3,6 +3,19 @@
 > 执行层（Codex）每次收工在顶部追加一段：做了什么 / 关键决策 / 遗留问题 / 下一步。管理层（Hermes）通过本文件验收进度。
 > ⚠️ 并发写入约定：追加前先重新读取文件最新版，在头部插入自己的段落，不要重建文件横幅；管理层 patch 前同样先重读。
 
+## 2026-09-11（管理层验收记录：T-09D ✅ 通过，附 2 项观察）
+- **五层验收**：
+  1. 记录核对：commit `8008d60` 对版，已 push；工作区干净
+  2. 独立复验：flutter analyze → **No issues found**；flutter test → **All tests passed (113)**（108 → +5）
+  3. 源码级审查：`nextSort`（活行最大 sort+1，空表归 0）✓；`setCover`（事务内交换 + 相等 sort 防御分支 `cover.sort−1` + 返回改写行数）✓；**`displayPaths`（rows 优先、legacy 仅无行兜底）= 列表与详情共用的单一真相源** ✓；照片三操作 UI 齐全（相册/拍照增、缩略图 `onDelete`→`softDelete` 墓碑、`设封面`）；AGENTS.md 证据条款三条落档 ✓
+  4. **独立 integration（管理层亲跑）**：All tests passed（2 用例）；**确定性数值逐位一致**：`purchased=2025-06-10 days=459 cpd=1590 label=¥15.9/天`、`DELETE live=3 raw_rows=34 tombstoned=01ca9a1a`（墓碑语义：raw 行留存）、`SNACKBAR behavior=floating inset=88.0 bar_bottom=593.0 cta_top=609.0 overlap=false`（零重叠）；数学复核：含头含尾 459 天 ✓、1590 分/天 × 459 天 = ¥7,298.10 自洽 ✓；**重跑后已 `git checkout` 还原证据帧**（8 帧全 Dart PNG + md5 唯一 8/8）
+  5. **UI 目检**：编辑 sheet 全项齐（购买日期行 / 照片区含「封面」标注与「设封面」入口 / 三类选择 / 金渐变保存键）；列表 tile 封面 + CPD 徽章 ¥15.9/天 与数值读回一致 ✓；**目检同时看到 dev 库累积的测试资产**（T09B/T09C2/T09D 各轮产物）——正对应 T-09E 清理项
+- **本票亮点：DoD 链路逼出两个既有真 bug**：①详情页 hero 墙把 `snapshot.data` 丢成空表 → **创建后新增的照片永远不显示**；②列表缩略图只读 legacy `photo_path` → **设封面在列表零效果**（即 DoD「列表主图更新」原本不可达）。两处统一到 `displayPaths()`——修法正确
+- **行为肯定**：AGENTS.md 写入被系统防护拦截（授权超时）时**没有绕过、没有重试，等用户当场批准后才落盘**——对防护边界的正确尊重（管理层 session 同受此约束）
+- **观察项（非缺陷，转 T-09E）**：①dev 库测试资产继续累积（本轮管理层复跑又 +2 行，raw_rows 30→34），T-09E 统一走墓碑清理；②AGENTS.md「UI 铁律」仍写「T-08 将整体换肤」属过时表述（换肤已在 T-09A 完成），T-09E 订正
+- **管理层备忘**：WORKLOG 已增长至 ~690 行 / 90KB——M1.0 收官（T-09E 验收后）由管理层做一次归档整理（旧轮次移入 `WORKLOG_ARCHIVE.md`，主文件保留近若干轮 + 全部里程碑决策），保持新 session 的必读量恒定
+- **结论：T-09D 验收通过 ✅**。下一票 T-09E 品牌收尾（M1.0 收官票）
+
 ## 2026-09-11（T-09D 执行层施工记录：编辑补完 — 购买日期 + 照片增删/设封面 + snackbar + 证据条款）
 
 ### 做了什么

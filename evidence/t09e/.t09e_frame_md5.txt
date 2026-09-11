@@ -1,0 +1,2 @@
+.t09e_01_splash_brand_frame.png  45da58b2d03f  83049  magic=89504e47
+.t09e_02_keyboard_after_splash.png  1539df5b8277  35942  magic=89504e47

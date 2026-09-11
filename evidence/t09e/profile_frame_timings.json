@@ -1,0 +1,47 @@
+{
+  "mode": "profile",
+  "device": "windows-desktop (debug/rasterizer numbers are not evidence)",
+  "frame_budget_ms": 16.666666666666668,
+  "source_log": "evidence/t09e/.t09e_perf_run_log.txt",
+  "phases": [
+    {
+      "phase": "home_keypad_confirm",
+      "frames": 10,
+      "build_avg_ms": 1.081,
+      "build_p90_ms": 1.759,
+      "build_p99_ms": 2.154,
+      "build_worst_ms": 2.154,
+      "raster_avg_ms": 1.196,
+      "raster_p99_ms": 2.336,
+      "raster_worst_ms": 2.336,
+      "missed_frame_build_budget_count": 0,
+      "missed_frame_rasterizer_budget_count": 0
+    },
+    {
+      "phase": "assets_scroll",
+      "frames": 21,
+      "build_avg_ms": 0.952,
+      "build_p90_ms": 1.803,
+      "build_p99_ms": 8.815,
+      "build_worst_ms": 8.815,
+      "raster_avg_ms": 1.111,
+      "raster_p99_ms": 2.83,
+      "raster_worst_ms": 2.83,
+      "missed_frame_build_budget_count": 0,
+      "missed_frame_rasterizer_budget_count": 0
+    },
+    {
+      "phase": "detail_hero",
+      "frames": 15,
+      "build_avg_ms": 1.117,
+      "build_p90_ms": 2.617,
+      "build_p99_ms": 4.679,
+      "build_worst_ms": 4.679,
+      "raster_avg_ms": 0.955,
+      "raster_p99_ms": 2.739,
+      "raster_worst_ms": 2.739,
+      "missed_frame_build_budget_count": 0,
+      "missed_frame_rasterizer_budget_count": 0
+    }
+  ]
+}

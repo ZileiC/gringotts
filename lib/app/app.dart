@@ -5,6 +5,7 @@ import '../data/app_database.dart';
 import '../data/repositories/asset_photo_repository.dart';
 import '../data/repositories/repositories.dart';
 import '../pages/quick_entry_page.dart';
+import '../ui/splash.dart';
 import '../ui/tokens.dart';
 
 /// Provides the singleton [AppDatabase] for the whole app.
@@ -48,6 +49,11 @@ class GringottsApp extends ConsumerWidget {
     return MaterialApp(
       title: 'Gringotts',
       theme: buildAppTheme(),
+      // T-09E: the brand splash wraps the navigator (canvas + logo 38% +
+      // Playfair wordmark). It is a presentation overlay only - the keyboard
+      // home is mounted underneath from the first frame.
+      builder: (context, child) =>
+          SplashGate(child: child ?? const SizedBox.shrink()),
       home: const QuickEntryPage(),
     );
   }

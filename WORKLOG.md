@@ -3,6 +3,83 @@
 > 执行层（Codex）每次收工在顶部追加一段：做了什么 / 关键决策 / 遗留问题 / 下一步。管理层（Hermes）通过本文件验收进度。
 > ⚠️ 并发写入约定：追加前先重新读取文件最新版，在头部插入自己的段落，不要重建文件横幅；管理层 patch 前同样先重读。
 
+## 2026-09-11（T-09E 执行层施工记录：品牌收尾 + 全量回归 + M1.0 完工报告）
+
+### 做了什么
+1. **启动画面**：新增 `lib/ui/splash.dart`（`SplashGate`）——canvas 纯色 `AppColors.canvas` + 品牌徽标 **38%**（短边）+ Playfair 600 wordmark「Gringotts」（平涂 `goldAccent`，不用渐变，护住金色纪律）；`MaterialApp.builder` 挂载 = **表现层 overlay**：速记键盘从第一帧就在位（首页即键盘、零导航层），品牌帧 700ms 停留 + 400ms easeOut 淡出后**自移除**；reduce-motion 下整帧跳过（§5 退化语义）。Android 原生侧同色兜底：`launch_background.xml`（drawable + drawable-v21，**修掉原 v21 用 `?android:colorBackground` = 白闪**）+ `values/values-night` 的 `NormalTheme.windowBackground` 均改 `@color/ic_launcher_background`（#0C0B09）
+2. **Android 自适应图标 + 遗留图标**：新增 `tool/gen_brand_assets.py`（PIL，可复跑）从 `brand/gringotts-logo.png` 生成 10 张 mipmap——legacy `ic_launcher.png`（48/72/96/144/192，canvas 底板 + 徽标 66%）与自适应前景 `ic_launcher_foreground.png`（108/162/216/324/432 透明底板 + 徽标 **66% 安全区**）；新增 `mipmap-anydpi-v26/ic_launcher.xml`（`<adaptive-icon>`：`@color/ic_launcher_background` + `@mipmap/ic_launcher_foreground`）与 `values/ic_launcher_background.xml`
+3. **Windows ico 多尺寸**：`windows/runner/resources/app_icon.ico` 重生成，**7 帧 16/24/32/48/64/128/256**（ICONDIR 实测 count=7，各帧 32bpp），canvas 底板 + 徽标 82%
+4. **全量回归**：新增 `tool/run_regression.sh`，**9 个 integration 脚本逐个单跑**（t03/t04/t05/t09a/t09b/t09c/t09c2/t09d/t09e）→ **9/9 全绿、failures=0**；t09b **第二处 ensureVisible 段（卖出前回列表再进详情，源码 118 行）复跑通过**（T-09C2 遗留关闭）
+5. **dev 库清理**：新增 `tool/clean_dev_db.py`（先 dry-run 后 `--apply`）——**墓碑** 48 transactions / 21 assets / 39 asset_photos，**categories 9 条 seed 一律不动**（app 数据，非测试数据）；写入前落时间戳备份
+6. **文档订正 + N1**：AGENTS.md「UI 铁律」T-08 过时表述订正为「T-08 已退役并入 T-09A，黑金 tokens 为当前唯一皮肤」；`ExportService.fullJson` 死代码**删除**（grep 全库 0 命中）
+7. **profile 模式帧率采样**：新增 `test_driver/perf_driver.dart` + `integration_test/perf_scan_test.dart` + `tool/perf_report.py`，`flutter drive --profile -d windows` 采三段真实交互（首页键入确认 / 资产列表滚动 / 详情 Hero 翻页）
+8. **release APK 重建** + 本完工报告
+
+### 关键决策
+- **启动画面做成 overlay 而非路由**：不动导航结构（首页即键盘铁律），键盘始终在树内 → 既有 9 个 integration 脚本全部无需改断言即通过；品牌帧结束后节点自移除，不会在返回/换页时重播（单测锁定「每次 App 实例仅一次」）
+- **品牌帧的证据用「同 widget + 延长 hold」采集**：真实时钟下 700ms 停留会被 pumpWidget/资源解码开销吃掉（run#1 实测品牌帧已消失），故帧采集用 `SplashGate(holdDuration: 30s)`（**只改时长**，底板/资源/38% 几何/wordmark 全部生产值），生产时序另用 `GringottsApp` 断言（hold=700ms/fade=400ms/splash_removed）——两段合一才是完整证据
+- **图标按「墨迹」而非「画布」取尺寸**：源 PNG 带大片暗晕（alpha≥40 占 81%，亮金墨迹仅 848×912），若按整张画布缩放会让徽标视觉偏小；脚本按「不透明且亮度≥60」裁出金墨迹再居中缩放到目标比例 → 实测 ink fraction = **0.660**（legacy/自适应）/ **0.820**（ico），符合「66% 安全区」
+- **dev 库清理只墓碑不退物理删除**（AGENTS.md 数据铁律），且只动 transactions/assets/asset_photos——categories 是 app seed，动了会破坏 app
+- **帧率只认 profile**：debug 帧耗时不再作证据（历史 28.1ms/样本 = debug 构建 + 帧内 drag 派发成本）；本票只报 profile 数值，真机 60fps 判定权归用户实装 APK
+
+### 遗留问题（非缺陷，交管理层/用户）
+- **照片文件残留**：dev 库行已墓碑，`.../gringotts/photos/` 仍有 46 个 hash 命名文件成为孤儿（DB 只存路径，无引用即不可见）。未删：AGENTS.md「禁止物理删除」针对数据行，文件清理无工单授权，**交管理层裁决是否随 M1.1 加文件 GC**
+- **证据帧被本轮回归覆盖**：t09a/t09b/t09c/t09c2/t09d 的帧已由本轮回归重跑覆盖，md5 与各轮验收记录中的旧值不同——**原因是 dev 库内容变化（同一脚本渲染的列表/数字不同），不是代码变更**；各票 WORKLOG 旧 md5 记录保留可查
+- **安卓 icon 的圆形蒙版边界**：自适应前景墨迹长边恰好 66%（= 71.3dp），圆形蒙版最极端情况下可能擦到徽标尖端；已按工单数字执行，**实机观感归用户目测**
+- profile 采样为 **Windows 桌面**数值，不是 Android 真机数值（桌面 ≠ 手机 GPU/热态）
+
+### T-09 完工报告（M1.0 品牌收官）
+
+**DESIGN_T09 §8 逐页对照**（证据帧见各票 evidence 目录，本轮全部重跑生成）
+
+| §8 页面 | 规格要点 | 证据 |
+|---|---|---|
+| 1 速记首页 | wordmark 衬线金渐变小字 / 金额 display 56 tabular / 混合输入 elevated / 键盘键按下 0.97 / 确认键金渐变 + sheen | t09a_01、t09c_01/02（按下帧）、t09c2_02（sheen 中帧）、t09e_02 |
+| 2 回顾页 | 日期头 eyebrow / draft 卡 surface / 7 天灰显 / 滚动物理 A | t09c_08 |
+| 3 资产列表页 | 净值看板 tabular + 三 pill / tile 0.98 + Hero 进详情 / CPD 金容器徽章 / 服役进度条 | t09a_02、t09c_03（stagger 中帧）/04/05（看板沉入）、t09d_01→07（封面切换） |
+| 4 资产详情页 | §6 全项 + 视差 B + 成组入场 D | t09b_02/03/05、t09c2_04（Hero 接力）、t09d_06（编辑后） |
+| 5 统计页 | 净结余卡（负值 semanticExpense）/ 双线趋势 + 金阶 donut / 导出 hairline 金描边 outline | t09a_03、t09c_06/07 |
+| 6 启动画面 | canvas 纯色 + 徽标 38% + Playfair 600 wordmark；Android 自适应（前景 66% / canvas 底）+ Windows ico 多尺寸 | **t09e_01（本轮新增）**、brand_assets_manifest.json（11 资产）、APK res 10 PNG 实测 |
+| 7 应用内图标 | 1.8px 描边 24 网格线性单色（未激活 inkSecondary / 激活 goldAccent） | 各帧导航/tab 图标（T-09A 落地，本轮回归帧复核） |
+
+**动效清单对照**（§4 基础 + §5 高级）
+
+| 动效 | 规格 | 证据 |
+|---|---|---|
+| count-up spring 400ms 临界阻尼 | 净值/净结余，进入与数值变化触发 | 单测数值断言（T-09C2：settled=13089900）+ t09c2_03 中帧 |
+| 确认键 sheen 600ms 一次性 | 禁循环，reduce-motion 跳过 | t09c2_02 + 一次性/尺寸三段单测 |
+| chip 选中 150ms | goldContainer/onGoldContainer | t09c2_01 + 时长单测 |
+| A 惯性滚动 physics | 资产/统计/回顾三页统一 | t09c_05/07 |
+| B 视差 0.5x + 看板沉入（≤48px） | 详情 hero + 净值卡 | t09c_05、本轮 perf detail_hero 相位 |
+| C TouchedScale 微缩放 + 触感 | 全 app 复用，reduce-motion 触感保留 | t09c_02、T-09C2 P4 单测 |
+| D 成组入场 60ms stagger | 列表 fade+12px | t09c_03 |
+| E Hero 接力 350ms easeOutCubic | 列表↔详情双向 | t09c2_04、t09b_02/04 |
+| 无障碍 | disableAnimations 全退化 + 触感保留（**含启动画面跳过**） | t09c2_05/06 + 本轮 splash reduce-motion 单测 |
+
+### DoD 证据
+- `flutter analyze` → **No issues found**（最终态，含新文件/integration/perf 脚本）
+- `flutter test` → **All tests passed（116）**，113 → +3（品牌帧生命周期与 38%/Playfair/纯色断言、reduce-motion 跳过、每实例仅一次）
+- **全量回归（Windows 实跑，9 脚本逐个单跑）**：`failures=0 of 9`，明细 `evidence/t09e/regression/.regression_summary.txt`；**32 帧全 Dart PNG + 每票 md5 全唯一**（t09a 3/3、t09b 5/5、t09c 8/8、t09c2 6/6、t09d 8/8、t09e 2/2），帧 md5 汇总 `evidence/t09e/regression/.regression_frames_raw.txt`
+- **启动画面证据（Windows 实跑）**：`T09E_LAUNCH hold=700ms fade=400ms splash_removed=true home=记一笔`；`T09E_BRAND_FRAME canvas=#ff0c0b09 window_shortest=681.0 logo_edge=258.8 fraction=0.380 wordmark=Gringotts font=PlayfairDisplay wordmark_size=28.0 logo_decoded=true`；`T09E_BRAND_ASSET bytes=1581774 magic=89504e47`（= 源文件字节数，证明资产真进 bundle）；品牌帧 md5 **45da58b2d03f**——两次独立运行**逐字节一致**（纯品牌帧不含 DB 内容，可复现）
+- **品牌资产（11 项，可复跑脚本 + manifest）**：`tool/gen_brand_assets.py` + `evidence/t09e/brand_assets_manifest.json`；ink fraction 实测 0.660（legacy 48–192px / 自适应 108–432px）、0.820（ico）；透明度实测 legacy/ico 角像素 = canvas (12,11,9)，自适应前景角像素 alpha=0（蒙版安全）；ico ICONDIR count=7
+- **profile 帧率（`flutter drive --profile -d windows`，`tool/perf_report.py`）**：`evidence/t09e/profile_frame_timings.json`
+
+| 相位 | 帧数 | build 均值 | build p99 | raster 均值 | 超 16.67ms 预算 |
+|---|---|---|---|---|---|
+| home_keypad_confirm | 10 | 1.081ms | 2.154ms | 1.196ms | **0 / 0** |
+| assets_scroll | 21 | 0.952ms | 8.815ms | 1.111ms | **0 / 0** |
+| detail_hero | 15 | 1.117ms | 4.679ms | 0.955ms | **0 / 0** |
+
+  （前提声明：`PERF_PRECONDITION live_assets=21 target=T09D资产802935 photos_at_target=4` —— 选中**有照片**的资产，保证 Hero PageView 相位真实可测）
+- **release APK**：`build/app/outputs/flutter-apk/app-release.apk` **66,073,000 字节（63.0MB）**，md5 `5c26de355ebd265c176f935f704c9879`；包内实测 `res/` 10 个 PNG（= 生成的 10 张图标，资源收缩改名）+ `resources.arsc` + 品牌资产 1,581,774 字节 + Playfair 两字体（**图标 XML/色资源通过 AAPT 校验**，否则 release 构建会失败）
+- **dev 库清理实证**（`evidence/t09e/development_db_cleanup.json`，写入后另开只读连接复验）：transactions 48→**live 0**（48 墓碑）、assets 21→**live 0**（28 总）、asset_photos 39→**live 0**（42 总）、categories **9 live 未动**；备份 `gringotts.sqlite.pre-t09e-20260911-180934.bak`
+- **N1/文档**：`fullJson` grep 0 命中；金色 gradient 实测 3 处 `LinearGradient` = **2 处金**（首页 wordmark ShaderMask + 确认键填充，均消费 `AppColors`）+ 1 处白 alpha sheen（非金）；tokens 外硬编码色值 **0**
+- **执行成本如实记录**：本轮 integration 共跑 **13 次**（品牌 2 + perf 2 + 回归 9）。两次失败均由**脚本假设**驱动、修完即绿：① 品牌帧 run#1「真实时钟下 700ms 停留被启动开销吃掉」→ 改延长 hold 采集 + 生产时序另测；② perf run#1「选中的首个资产无照片 → 详情无 PageView」→ 改「按 DB 前提挑有照片资产」。**零盲目重跑**
+
+### 下一步
+- 用户目测拍板（M1.0 最终验收权在用户）：实机装 release APK 看 3 件事——① 桌面图标（自适应 + 圆形蒙版是否吃边）② 冷启动品牌帧观感 ③ 滚动/键盘实感帧率
+- 验收通过后：管理层做 WORKLOG 归档整理（备忘录已记）+ M1.1 候选（D1 已关；剩 dev 照片文件 GC、编辑 sheet 状态字段、真机帧率）
+
 ## 2026-09-11（管理层验收记录：T-09D ✅ 通过，附 2 项观察）
 - **五层验收**：
   1. 记录核对：commit `8008d60` 对版，已 push；工作区干净

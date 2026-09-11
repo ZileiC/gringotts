@@ -51,31 +51,6 @@ class ExportService {
     return buffer.toString();
   }
 
-  /// Full JSON dump: transactions + categories + assets (tombstones included).
-  static String fullJson(AppDatabase db, List<Transaction> transactions) {
-    // Categories and assets are fetched by the caller through db directly.
-    return jsonEncode(<String, dynamic>{
-      'version': db.schemaVersion,
-      'exported_at': DateTime.now().toUtc().toIso8601String(),
-      'transactions': transactions
-          .map((t) => <String, dynamic>{
-                'id': t.id,
-                'amount_cents': t.amountCents,
-                'type': t.type.name,
-                'category_id': t.categoryId,
-                'merchant': t.merchant,
-                'note': t.note,
-                'occurred_at': t.occurredAt.toIso8601String(),
-                'is_draft': t.isDraft,
-                'source': t.source.name,
-                'created_at': t.createdAt.toIso8601String(),
-                'updated_at': t.updatedAt.toIso8601String(),
-                'deleted_at': t.deletedAt?.toIso8601String(),
-              })
-          .toList(),
-    });
-  }
-
   /// Writes [content] as UTF-8 (CSV adds BOM) into [directory] with a
   /// timestamped name. Returns the absolute file path.
   static Future<String> writeExport({

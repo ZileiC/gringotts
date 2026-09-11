@@ -1,0 +1,40 @@
+Flutter assets will be downloaded from https://storage.flutter-io.cn. Make sure you trust this source!
+Resolving dependencies...
+Downloading packages...
+  cli_util 0.5.2 (0.6.0 available)
+  drift 2.34.4 (2.35.0 available)
+  drift_dev 2.34.6 (2.35.0 available)
+  image_picker_android 0.8.13+22 (0.8.13+23 available)
+  material_color_utilities 0.13.0 (0.13.1 available)
+  quick_actions 1.1.0 (1.1.1 available)
+  test_api 0.7.12 (0.7.14 available)
+  webdriver 3.1.0 (3.2.0 available)
+Got dependencies!
+8 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+Building Windows application...                                    36.4s
+√ Built build\windows\x64\runner\Profile\gringotts.exe
+VMServiceFlutterDriver: Connecting to Flutter application at http://127.0.0.1:1164/8f4Sd3Zv214=/
+VMServiceFlutterDriver: Isolate found with number: 6793727666390311
+VMServiceFlutterDriver: Isolate 6793727666390311 is runnable.
+VMServiceFlutterDriver: Isolate is paused at start.
+VMServiceFlutterDriver: Attempting to resume isolate
+00:00 +0: profile frame sampling: keypad, assets scroll, detail hero
+VMServiceFlutterDriver: Connected to Flutter application.
+PERF_PRECONDITION live_assets=21 target=T09D资产802935 photos_at_target=4
+00:35 +1: (tearDownAll)
+Warning: integration_test plugin was not detected.
+
+If you're running the tests with `flutter drive`, please make sure your tests
+are in the `integration_test/` directory of your package and use
+`flutter test $path_to_test` to run it instead.
+
+If you're running the tests with Android instrumentation or XCTest, this means
+that you are not capturing test results properly! See the following link for
+how to set up the integration_test plugin:
+
+https://docs.flutter.dev/testing/integration-tests
+
+00:35 +2: All tests passed!
+All tests passed.
+PERF_SUMMARY {"home_keypad_confirm":{"average_frame_build_time_millis":1.081,"90th_percentile_frame_build_time_millis":1.759,"99th_percentile_frame_build_time_millis":2.154,"worst_frame_build_time_millis":2.154,"missed_frame_build_budget_count":0,"average_frame_rasterizer_time_millis":1.196,"90th_percentile_frame_rasterizer_time_millis":1.66,"99th_percentile_frame_rasterizer_time_millis":2.336,"worst_frame_rasterizer_time_millis":2.336,"average_layer_cache_count":0.0,"90th_percentile_layer_cache_count":0,"99th_percentile_layer_cache_count":0,"worst_layer_cache_count":0,"average_layer_cache_memory":0.0,"90th_percentile_layer_cache_memory":0.0,"99th_percentile_layer_cache_memory":0.0,"worst_layer_cache_memory":0.0,"average_picture_cache_count":0.0,"90th_percentile_picture_cache_count":0,"99th_percentile_picture_cache_count":0,"worst_picture_cache_count":0,"average_picture_cache_memory":0.0,"90th_percentile_picture_cache_memory":0.0,"99th_percentile_picture_cache_memory":0.0,"worst_picture_cache_memory":0.0,"missed_frame_rasterizer_budget_count":0,"frame_count":10,"frame_build_times":[2154,819,1396,477,1044,772,1463,1759,623,312],"frame_rasterizer_times":[1660,1103,921,874,935,812,2336,955,1365,1008],"new_gen_gc_count":4,"old_gen_gc_count":2},"assets_scroll":{"average_frame_build_time_millis":0.952,"90th_percentile_frame_build_time_millis":1.803,"99th_percentile_frame_build_time_millis":8.815,"worst_frame_build_time_millis":8.815,"missed_frame_build_budget_count":0,"average_frame_rasterizer_time_millis":1.111,"90th_percentile_frame_rasterizer_time_millis":2.038,"99th_percentile_frame_rasterizer_time_millis":2.83,"worst_frame_rasterizer_time_millis":2.83,"average_layer_cache_count":0.0,"90th_percentile_layer_cache_count":0,"99th_percentile_layer_cache_count":0,"worst_layer_cache_count":0,"average_layer_cache_memory":0.0,"90th_percentile_layer_cache_memory":0.0,"99th_percentile_layer_cache_memory":0.0,"worst_layer_cache_memory":0.0,"average_picture_cache_count":0.0,"90th_percentile_picture_cache_count":0,"99th_percentile_picture_cache_count":0,"worst_picture_cache_count":0,"average_picture_cache_memory":0.0,"90th_percentile_picture_cache_memory":0.0,"99th_percentile_picture_cache_memory":0.0,"worst_picture_cache_memory":0.0,"missed_frame_rasterizer_budget_count":0,"frame_count":21,"frame_build_times":[1803,8815,926,1311,271,176,184,312,219,198,463,163,2935,129,221,363,295,206,300,237,467],"frame_rasterizer_times":[2830,1142,621,1421,2038,964,964,808,728,690,788,983,768,696,706,700,2568,875,704,1352,1004],"new_gen_gc_count":4,"old_gen_gc_count":2},"detail_hero":{"average_frame_build_time_millis":1.117,"90th_percentile_frame_build_time_millis":2.617,"99th_percentile_frame_build_time_millis":4.679,"worst_frame_build_time_millis":4.679,"missed_frame_build_budget_count":0,"average_frame_rasterizer_time_millis":0.955,"90th_percentile_frame_rasterizer_time_millis":1.533,"99th_percentile_frame_rasterizer_time_millis":2.739,"worst_frame_rasterizer_time_millis":2.739,"average_layer_cache_count":0.0,"90th_percentile_layer_cache_count":0,"99th_percentile_layer_cache_count":0,"worst_layer_cache_count":0,"average_layer_cache_memory":0.0,"90th_percentile_layer_cache_memory":0.0,"99th_percentile_layer_cache_memory":0.0,"worst_layer_cache_memory":0.0,"average_picture_cache_count":0.0,"90th_percentile_picture_cache_count":0,"99th_percentile_picture_cache_count":0,"worst_picture_cache_count":0,"average_picture_cache_memory":0.0,"90th_percentile_picture_cache_memory":0.0,"99th_percentile_picture_cache_memory":0.0,"worst_picture_cache_memory":0.0,"missed_frame_rasterizer_budget_count":0,"frame_count":15,"frame_build_times":[866,4679,699,620,2531,592,414,656,303,862,2617,545,414,355,610],"frame_rasterizer_times":[412,797,565,918,776,646,1533,937,929,2739,859,570,1455,588,602],"new_gen_gc_count":2,"old_gen_gc_count":2}}

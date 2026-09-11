@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Brand canvas solid (AppColors.canvas = 0xFF0C0B09 in lib/ui/tokens.dart).
+         Single source for the adaptive-icon background, the launch window and
+         the normal window, so the brand never shows a white flash. -->
+    <color name="ic_launcher_background">#0C0B09</color>
+</resources>

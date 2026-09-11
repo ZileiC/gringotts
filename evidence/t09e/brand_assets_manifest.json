@@ -1,0 +1,174 @@
+[
+  {
+    "path": "android/app/src/main/res/mipmap-mdpi/ic_launcher.png",
+    "note": "48x48 plate=canvas",
+    "mode": "RGBA",
+    "size": [
+      48,
+      48
+    ],
+    "embedded_sizes": [],
+    "ink_longest_fraction": 0.6667,
+    "md5": "867057b153424eff6b52732e7e3a20de",
+    "bytes": 3081
+  },
+  {
+    "path": "android/app/src/main/res/mipmap-mdpi/ic_launcher_foreground.png",
+    "note": "108x108 plate=transparent",
+    "mode": "RGBA",
+    "size": [
+      108,
+      108
+    ],
+    "embedded_sizes": [],
+    "ink_longest_fraction": 0.6574,
+    "md5": "4705059dc545cde6b451abc8ac8e0103",
+    "bytes": 11196
+  },
+  {
+    "path": "android/app/src/main/res/mipmap-hdpi/ic_launcher.png",
+    "note": "72x72 plate=canvas",
+    "mode": "RGBA",
+    "size": [
+      72,
+      72
+    ],
+    "embedded_sizes": [],
+    "ink_longest_fraction": 0.6667,
+    "md5": "5cd4ad0c90feb3e4573f6b3b27b613d3",
+    "bytes": 5859
+  },
+  {
+    "path": "android/app/src/main/res/mipmap-hdpi/ic_launcher_foreground.png",
+    "note": "162x162 plate=transparent",
+    "mode": "RGBA",
+    "size": [
+      162,
+      162
+    ],
+    "embedded_sizes": [],
+    "ink_longest_fraction": 0.6605,
+    "md5": "6c965bfceab8e6194a5c3c41d006c796",
+    "bytes": 21064
+  },
+  {
+    "path": "android/app/src/main/res/mipmap-xhdpi/ic_launcher.png",
+    "note": "96x96 plate=canvas",
+    "mode": "RGBA",
+    "size": [
+      96,
+      96
+    ],
+    "embedded_sizes": [],
+    "ink_longest_fraction": 0.6562,
+    "md5": "cff1f30e28ae471692b3091417bfb66a",
+    "bytes": 8993
+  },
+  {
+    "path": "android/app/src/main/res/mipmap-xhdpi/ic_launcher_foreground.png",
+    "note": "216x216 plate=transparent",
+    "mode": "RGBA",
+    "size": [
+      216,
+      216
+    ],
+    "embedded_sizes": [],
+    "ink_longest_fraction": 0.662,
+    "md5": "c42c3cd9c30113865f5415b22079f234",
+    "bytes": 33424
+  },
+  {
+    "path": "android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png",
+    "note": "144x144 plate=canvas",
+    "mode": "RGBA",
+    "size": [
+      144,
+      144
+    ],
+    "embedded_sizes": [],
+    "ink_longest_fraction": 0.6597,
+    "md5": "2a63a8234c429d13e991afb93585830d",
+    "bytes": 17192
+  },
+  {
+    "path": "android/app/src/main/res/mipmap-xxhdpi/ic_launcher_foreground.png",
+    "note": "324x324 plate=transparent",
+    "mode": "RGBA",
+    "size": [
+      324,
+      324
+    ],
+    "embedded_sizes": [],
+    "ink_longest_fraction": 0.6605,
+    "md5": "0acb2fd375afb37e9cb26817441911e7",
+    "bytes": 66059
+  },
+  {
+    "path": "android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png",
+    "note": "192x192 plate=canvas",
+    "mode": "RGBA",
+    "size": [
+      192,
+      192
+    ],
+    "embedded_sizes": [],
+    "ink_longest_fraction": 0.6615,
+    "md5": "24762c8cf2901ce38da4eb9e30e2de17",
+    "bytes": 27492
+  },
+  {
+    "path": "android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png",
+    "note": "432x432 plate=transparent",
+    "mode": "RGBA",
+    "size": [
+      432,
+      432
+    ],
+    "embedded_sizes": [],
+    "ink_longest_fraction": 0.6597,
+    "md5": "10f552b1aba8873c2145c1095f502183",
+    "bytes": 111799
+  },
+  {
+    "path": "windows/runner/resources/app_icon.ico",
+    "note": "sizes=16,24,32,48,64,128,256",
+    "mode": "RGBA",
+    "size": [
+      256,
+      256
+    ],
+    "embedded_sizes": [
+      [
+        16,
+        16
+      ],
+      [
+        24,
+        24
+      ],
+      [
+        32,
+        32
+      ],
+      [
+        48,
+        48
+      ],
+      [
+        64,
+        64
+      ],
+      [
+        128,
+        128
+      ],
+      [
+        256,
+        256
+      ]
+    ],
+    "ink_longest_fraction": 0.8203,
+    "md5": "94012286070c902c0fe900fcd58b024c",
+    "bytes": 100509
+  }
+]

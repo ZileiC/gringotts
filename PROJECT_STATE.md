@@ -5,13 +5,16 @@
 > 命名：Gringotts = 古灵阁，巫师世界唯一银行——「你的钱，存进最懂钱的地方」。
 
 ## 项目状态
-- **阶段**：M1.0 施工中 — T-01 骨架/数据层**验收通过 ✅**（2026-09-08 第 1 轮）；下一票 T-02 智能速记核心（产品灵魂）
-- **技术栈**：Flutter + Drift (SQLite) + Riverpod（已定，理由见 FEATURES.md T1）
-- **主端**：Android 手机核心；Windows = 开发预览 + 后期 AI 分析/备份工作台
-- **仓库**：github.com/jharayden/gringotts（private）
+- **阶段**：**M1.0 功能与品牌全部完成 ✅**（T-01~T-09E 逐票验收通过）——**待用户实机 APK 目测终审**（最终判定权在用户）
+- **技术栈**：Flutter + Drift (SQLite) + Riverpod；schemaVersion = 2（asset_photos 多照片表）
+- **主端**：Android 手机核心（APK 直装）；Windows = 开发预览 + 后期 AI 分析/备份工作台
+- **仓库**：github.com/jharayden/gringotts（private）；本机交付物 `build/app/outputs/flutter-apk/app-release.apk`（66MB，2026-09-11 18:12）
 - **版本语义**：里程碑 M1.0→M4.0，里程碑内修补 M1.1/M1.2…
-- **执行层环境（2026-09-08 验证）**：Flutter 3.47.2 / Dart 3.13.2 ✓ · Codex CLI 0.152.1 已登录并完成施工 ✓ · gh 已认证 (jharayden) ✓
-- **最后更新**：2026-09-08（第 1 轮验收：T-01 通过）
+- **执行层环境**：Flutter 3.47.2 / Dart 3.13.2 / Codex CLI 0.152.1；AVD `test_api35`（Android 35）可复用
+- **质量基线**：116 单测全绿 + 9 个 integration 脚本全绿（t03/t04/t05/t09a~t09e）+ profile 帧率 0 missed frames + 零硬编码色值（tokens.dart 单点）
+- **M1.x 待办**：照片孤儿文件 GC（46 个）+ 证据帧回归不覆盖约定 + 启动画面 wordmark 去重（待用户裁决）+ 自适应图标圆形蒙版边界（待用户实机目测）
+- **M2.0 起点**：AI 接入（BYO provider：baseURL/key/model）+ 周期报表 AI 解读 + 对话窗口 + 预算 + 周期账单 + Widget + 本地加密
+- **最后更新**：2026-09-11（T-09E 验收通过，M1.0 收官）
 
 ## 工作流模式（2026-09-08 用户划定）
 - **本 session（Hermes）= 管理层**：方向把控、brainstorm、任务分派、验收、GitHub 仓库管理；**代码只读不改**
@@ -39,8 +42,9 @@
 ## 文件索引
 - `PROJECT_STATE.md` — 本文件，交接入口（管理层维护）
 - `AGENTS.md` — Codex 开工自动读的工作约定（唯一真相源）
-- `TICKETS_M1.md` — M1.0 派工工单（T-01 ~ T-07，按序施工）
-- `WORKLOG.md` — 施工日志（执行层收工必写）
+- `TICKETS_M1.md` — 当前派工工单（T-09 系列：A/B/C/C2/D/E；历史 T-01~T-08 见归档）
+- `WORKLOG.md` — 施工日志（执行层收工必写；仅保留最近轮次）+ `WORKLOG_ARCHIVE.md` — 历史轮次归档（T-01 ~ T-09C2，内容原样保留）
+- `DESIGN_T09.md` — 品牌 UI 与动效设计细则（tokens/字阶/动效/详情页/金色章程，T-09 系列唯一真相源）
 - `FEATURES.md` — 产品档案：功能地图、brainstorm 裁决区、速记设计、备选池、技术路线、路线图、负范围
 
 ## 决策记录（Decisions Log）
@@ -73,6 +77,8 @@
 | 2026-09-11 | **T-09C 验收：通过 ✅（管理层亲跑，数值逐位复现）** | 98 单测全绿；下沉数值 rise=40.8/opacity=0.600 复现一致；8 帧 md5 唯一；**执行层修掉两个真 bug**（TouchedScale 静息态反转 = 上轮两帧字节相同的真凶；stats 沉入未接控制器）；**P4 新偏差**：reduce-motion 下触感丢失（与 spec「触感保留」及提交声明不符）→ 随 T-09C2 修；**裁决**：§4 基础动效单开 T-09C2、Hero easeOutCubic 批准带回退、真机帧率归 T-09E+用户实感、编辑补全（购买日期+照片管理）单开 T-09D；**AGENTS.md 反浪费铁律追认生效**；票务重排 T-09C2→T-09D→T-09E |
 | 2026-09-11 | **T-09C2 验收：通过 ✅（P4 关闭）** | 108 单测全绿；管理层亲跑 integration 确定性数值逐位一致（settled=13089900/haptics=3 confirm_haptic=ok/Hero curve=easeOutCubic）；P4 触感解耦核实为真；↑§4 三项动效落地（count-up spring/一次性 sheen/150ms chip）；**证据脚本前提声明规则**入档（ensureVisible+DB 状态先行）；裁决：snackbar 改 floating 不遮 sheen（落 T-09D 顺带）、t09b 二处验证与 dev 库清理归 T-09E |
 | 2026-09-11 | **T-09D 验收：通过 ✅（逼出 2 个既有真 bug 并修复）** | 113 单测全绿；管理层亲跑 integration 数值逐位一致（CPD 459 天/1590 分、墓碑 raw 留存、snackbar 零重叠）；**新增照片不显示 + 设封面列表无效**两个既有 bug 统一到 `displayPaths()` 单一真相源修复；AGENTS.md 证据条款落档；转 T-09E：dev 库清理 + AGENTS.md 过时表述订正 |
+| 2026-09-11 | **T-09E 验收：通过 ✅ —— M1.0 收官** | 116 单测全绿 + 9/9 integration 全绿 + profile 帧率 0 missed frames；**APK 内品牌资产 md5 逐字节实证**（ic_launcher/foreground ≡ res 重命名条目）+ 自适应 XML 核实；dev 库墓碑清理（含备份、categories 保留）；N1 死代码已删、AGENTS.md 订正；**启动 wordmark 重复待用户裁决**；M1.x：照片孤儿 GC / 证据帧回归不覆盖约定；**最终判定权移交用户实机目测** |
+| 2026-09-11 | **WORKLOG 归档（管理层）** | 34 段 → 主文件保留最近 4 段（160 行）+ `WORKLOG_ARCHIVE.md` 30 段（647 行）；内容逐字符校验零丢失；目的 = 新 session 必读量恒定 |
 
 ## 下次 Session 开场
 1. 读本文件 + WORKLOG.md

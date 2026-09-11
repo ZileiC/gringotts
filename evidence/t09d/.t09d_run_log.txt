@@ -1,0 +1,33 @@
+Flutter assets will be downloaded from https://storage.flutter-io.cn. Make sure you trust this source!
+Resolving dependencies...
+Downloading packages...
+  cli_util 0.5.2 (0.6.0 available)
+  drift 2.34.4 (2.35.0 available)
+  drift_dev 2.34.6 (2.35.0 available)
+  image_picker_android 0.8.13+22 (0.8.13+23 available)
+  material_color_utilities 0.13.0 (0.13.1 available)
+  quick_actions 1.1.0 (1.1.1 available)
+  test_api 0.7.12 (0.7.14 available)
+  webdriver 3.1.0 (3.2.0 available)
+Got dependencies!
+8 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+00:00 +0: loading C:/Users/JHarayden/Desktop/Gringotts/integration_test/t09d_edit_flow_test.dart
+Building Windows application...                                    24.7s
+√ Built build\windows\x64\runner\Debug\gringotts.exe
+00:00 +0: T-09D: edit asset - date + photos + cover -> list cover updates
+T09D_SNAP name=01_list_cover_before md5=264fb5efe41d
+T09D_SNAP name=02_edit_sheet md5=7bc6afbad34f
+T09D_SNAP name=03_date_picked md5=c52e19e2d866
+T09D_ADD rows=0,1,2,3 seeded=[0:5a7717b6,1:41119c9e] added=[2:b62ae66f,3:8ad4de1d]
+T09D_SNAP name=04_photos_added md5=dcffac475bcc
+T09D_DELETE live=3 raw_rows=30 tombstoned=8ad4de1d
+T09D_SNAP name=05_cover_swapped md5=82660a86e5dd
+T09D_CPD purchased=2025-06-10T00:00:00.000 days=459 cpd=1590 label=¥15.9/天
+T09D_SNAP name=06_detail_after_save md5=4bac9281cc3b
+T09D_SNAP name=07_list_cover_after md5=43abe77d7923
+00:32 +1: T-09D: floating snackbar clears the confirm CTA
+T09D_SNACKBAR behavior=SnackBarBehavior.floating inset=88.0 bar_bottom=593.0 cta_top=609.0 overlap=false
+T09D_SNAP name=08_snackbar_above_cta md5=22c6dfd1679d
+00:37 +2: (tearDownAll)
+00:37 +2: All tests passed!

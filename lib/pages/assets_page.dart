@@ -29,6 +29,7 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
   final ScrollController _scroll = ScrollController();
 
   AssetRepository get _repo => ref.read(assetRepositoryProvider);
+  AssetPhotoRepository get _photoRepo => ref.read(assetPhotoRepositoryProvider);
 
   @override
   void dispose() {
@@ -72,7 +73,8 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                 const SizedBox(height: AppSpacing.s),
                 StaggerIn(
                   children: inService
-                      .map((a) => _AssetTile(asset: a, repo: _repo))
+                      .map((a) =>
+                          _AssetTile(asset: a, repo: _repo, photoRepo: _photoRepo))
                       .toList(),
                 ),
               ],
@@ -81,8 +83,10 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                 Text('已退役', style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: AppSpacing.s),
                 StaggerIn(
-                  children:
-                      retired.map((a) => _AssetTile(asset: a, repo: _repo)).toList(),
+                  children: retired
+                      .map((a) =>
+                          _AssetTile(asset: a, repo: _repo, photoRepo: _photoRepo))
+                      .toList(),
                 ),
               ],
               if (sold.isNotEmpty) ...[
@@ -194,10 +198,15 @@ class _Pill extends StatelessWidget {
 
 /// In-service / retired asset row with CPD badge and service progress bar.
 class _AssetTile extends StatelessWidget {
-  const _AssetTile({required this.asset, required this.repo});
+  const _AssetTile({
+    required this.asset,
+    required this.repo,
+    required this.photoRepo,
+  });
 
   final Asset asset;
   final AssetRepository repo;
+  final AssetPhotoRepository photoRepo;
 
   @override
   Widget build(BuildContext context) {
@@ -239,27 +248,10 @@ class _AssetTile extends StatelessWidget {
           children: [
             Row(
               children: [
-                if (asset.photoPath != null &&
-                    File(asset.photoPath!).existsSync())
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(AppRadius.s),
-                    child: Image.file(
-                      File(asset.photoPath!),
-                      width: 56,
-                      height: 56,
-                      fit: BoxFit.cover,
-                    ),
-                  )
-                else
-                  Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceElevated,
-                      borderRadius: BorderRadius.circular(AppRadius.s),
-                    ),
-                    child: const Icon(Icons.inventory_2),
-                  ),
+                // Cover image = lowest sort in asset_photos (T-09D: the same
+                // source the detail hero wall uses, so a set-cover swap shows
+                // up here immediately).
+                _AssetCover(asset: asset, photoRepo: photoRepo),
                 const SizedBox(width: AppSpacing.m),
                 Expanded(
                   child: Column(
@@ -350,6 +342,56 @@ class _AssetTile extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Cover thumbnail of an asset tile.
+///
+/// Reads asset_photos (cover = lowest sort) through the shared
+/// [AssetPhotoRepository.displayPaths] helper, falling back to the legacy
+/// single `Asset.photoPath`. The detail hero wall uses the same helper, so a
+/// set-cover swap can never diverge between the list and the detail page.
+class _AssetCover extends StatelessWidget {
+  const _AssetCover({required this.asset, required this.photoRepo});
+
+  final Asset asset;
+  final AssetPhotoRepository photoRepo;
+
+  static const double _size = 56;
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<List<AssetPhoto>>(
+      stream: photoRepo.watchForAsset(asset.id).watch(),
+      builder: (context, snapshot) {
+        final paths = AssetPhotoRepository.displayPaths(
+          photos: snapshot.data ?? const <AssetPhoto>[],
+          legacyPath: asset.photoPath,
+        );
+        final cover = paths.isEmpty ? null : paths.first;
+        if (cover == null || !File(cover).existsSync()) {
+          return Container(
+            width: _size,
+            height: _size,
+            decoration: BoxDecoration(
+              color: AppColors.surfaceElevated,
+              borderRadius: BorderRadius.circular(AppRadius.s),
+            ),
+            child: const Icon(Icons.inventory_2),
+          );
+        }
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(AppRadius.s),
+          child: Image.file(
+            File(cover),
+            key: Key('asset_cover_${asset.id}'),
+            width: _size,
+            height: _size,
+            fit: BoxFit.cover,
+          ),
+        );
+      },
     );
   }
 }

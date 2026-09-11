@@ -70,6 +70,81 @@ class AssetPhotoRepository {
     );
   }
 
+  /// Next free display index for [assetId]: one past the highest live sort,
+  /// i.e. the append position at the end of the photo strip (T-09D).
+  Future<int> nextSort(String assetId) async {
+    final maxSort = _db.assetPhotos.sort.max();
+    final row = await (_db.selectOnly(_db.assetPhotos)
+          ..addColumns([maxSort])
+          ..where(_db.assetPhotos.assetId.equals(assetId) &
+              _db.assetPhotos.deletedAt.isNull()))
+        .getSingle();
+    final current = row.read(maxSort);
+    return current == null ? 0 : current + 1;
+  }
+
+  /// Promotes [photoId] to cover by swapping its [sort] with the current
+  /// cover's (T-09D: set-cover = sort swap, no drag reordering).
+  ///
+  /// Returns the number of rows rewritten (0 when nothing had to change).
+  Future<int> setCover({
+    required String assetId,
+    required String photoId,
+  }) {
+    return _db.transaction(() async {
+      final live = await watchForAsset(assetId).get();
+      if (live.isEmpty) return 0;
+      final cover = live.first;
+      if (cover.id == photoId) return 0;
+      AssetPhoto? target;
+      for (final p in live) {
+        if (p.id == photoId) {
+          target = p;
+          break;
+        }
+      }
+      final chosen = target;
+      if (chosen == null) return 0;
+      final now = DateTime.now().toUtc();
+      // Defensive: equal sorts would make the swap a no-op, so push the new
+      // cover strictly below the old one.
+      final coverNewSort = chosen.sort;
+      final chosenNewSort =
+          chosen.sort == cover.sort ? cover.sort - 1 : cover.sort;
+      await (_db.update(_db.assetPhotos)..where((r) => r.id.equals(cover.id)))
+          .write(AssetPhotosCompanion(
+        sort: Value(coverNewSort),
+        updatedAt: Value(now),
+      ));
+      await (_db.update(_db.assetPhotos)
+            ..where((r) => r.id.equals(chosen.id)))
+          .write(AssetPhotosCompanion(
+        sort: Value(chosenNewSort),
+        updatedAt: Value(now),
+      ));
+      return 2;
+    });
+  }
+
+  /// Display source of truth for an asset's photos.
+  ///
+  /// Live rows sorted by [sort] (lowest = cover). Assets without rows fall
+  /// back to the legacy single `Asset.photoPath`. The list tile cover and the
+  /// detail page hero wall both call this, so the cover image can never
+  /// diverge between the two pages.
+  static List<String> displayPaths({
+    required List<AssetPhoto> photos,
+    String? legacyPath,
+  }) {
+    if (photos.isNotEmpty) {
+      return photos.map((p) => p.path).toList(growable: false);
+    }
+    if (legacyPath != null && legacyPath.isNotEmpty) {
+      return <String>[legacyPath];
+    }
+    return const <String>[];
+  }
+
   /// Rewrites the whole photo list for an asset: tombstones all current rows
   /// and inserts the new list. Used by the edit form (cover = first entry).
   Future<void> replaceForAsset(String assetId, List<String> paths) async {

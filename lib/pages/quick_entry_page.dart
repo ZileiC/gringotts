@@ -121,6 +121,15 @@ class _QuickEntryPageState extends ConsumerState<QuickEntryPage> {
         SnackBar(
           content: Text('${_isIncome ? '已入账' : '已记'} ¥$display'),
           duration: const Duration(seconds: 1),
+          // T-09C2 ruling: floating with a bottom inset that lifts the bar
+          // above the confirm CTA, so it never covers the one-shot sheen.
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.fromLTRB(
+            AppSpacing.m,
+            0,
+            AppSpacing.m,
+            AppSpacing.snackBarCtaInset,
+          ),
         ),
       );
     }
@@ -319,6 +328,7 @@ class _QuickEntryPageState extends ConsumerState<QuickEntryPage> {
             Padding(
               padding: const EdgeInsets.all(AppSpacing.m),
               child: SizedBox(
+                key: const Key('confirm_cta'),
                 width: double.infinity,
                 height: 56,
                 child: TouchedScale(

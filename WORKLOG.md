@@ -3,6 +3,50 @@
 > 执行层（Codex）每次收工在顶部追加一段：做了什么 / 关键决策 / 遗留问题 / 下一步。管理层（Hermes）通过本文件验收进度。
 > ⚠️ 并发写入约定：追加前先重新读取文件最新版，在头部插入自己的段落，不要重建文件横幅；管理层 patch 前同样先重读。
 
+## 2026-09-11（T-09D 执行层施工记录：编辑补完 — 购买日期 + 照片增删/设封面 + snackbar + 证据条款）
+
+### 做了什么
+- **购买日期编辑（P1 必做）**：编辑 sheet 重写为 `_EditAssetSheet`（ConsumerStatefulWidget），新增日期行（`Key('edit_date_button')` → Material `showDatePicker`，firstDate 2000 / lastDate 今天）；保存走既有 `AssetRepository.updateAsset`（刷新 `updated_at`），CPD 与持有天数由**同一个 `CpdCalculator`** 派生（无第二套算法），详情页数字随行流即时刷新
+- **照片管理（P2 必做）**：编辑 sheet 照片区 = 相册（`pickMultiImage`）/ 拍照（`pickImage`）+ 缩略图横排；复用 `PhotoService.saveCompressed`（压缩 + sha256 内容命名）与 `asset_photos` 仓储。仓储新增 `nextSort()`（新增 = 末位 sort）与 `setCover()`（设封面 = sort 交换，含「相等 sort」防御分支：新封面压到旧封面之下）；删除沿用既有 `softDelete`（墓碑）。**未做拖拽排序**（工单负范围）
+- **列表主图 = asset_photos 首图**：新增 `AssetPhotoRepository.displayPaths()` 作为唯一真相源 → 列表 tile 新增 `_AssetCover`（StreamBuilder 读 cover）＋详情 hero 墙同源调用；`_AssetTile` 增 `photoRepo` 依赖
+- **顺带项 snackbar（T-09C2 裁决）**：新增 token `AppSpacing.snackBarCtaInset = 88`；速记页 snackbar 显式 `SnackBarBehavior.floating` + 底部 margin（位于确认键上方）；CTA 加 `Key('confirm_cta')` 供几何断言。采用**首选方案**（floating + margin），未启用备选（延迟 250ms）——理由见「关键决策」
+- **顺带项 AGENTS.md**：「证据脚本先声明前提」条款落档（元素可见性 ensureVisible / DB 状态前置断言 / 语义优先单测）。该写入先被系统防护拦截（等待授权超时），**经用户当场批准后落盘**（未绕过、未重试）
+- 新增 `test/asset_edit_test.dart`（5 条）+ `integration_test/t09d_edit_flow_test.dart`（2 用例）；`pubspec.yaml` dev_dependencies 增 `image_picker_platform_interface: ^2.11.1`（测试用 fake picker；transitive → dev，版本零漂移）
+
+### 收尾中发现并修掉的真 bug（既有实现缺陷，由本票 DoD 链路暴露）
+1. **详情页 hero 墙丢弃照片流**：`_DetailBody.build` 的 `StreamBuilder` 把 `snapshot.data` 丢成 `const <AssetPhoto>[]` → 详情 hero 只显示 legacy `assets.photo_path` 单张，**创建后新增的第 2..n 张照片永远不显示**。修法：喂真实 snapshot，统一走 `displayPaths`
+2. **「首图 = 主图」未落到列表**：列表缩略图只读 legacy `photo_path` → **设封面在列表零可见效果**，DoD「列表主图更新」本不可达。修法：`_AssetCover` 读 asset_photos（sort 最小），legacy 仅在**无行**时兜底
+- 两处均为 T-09D 工单语义（照片增删/设封面 + 列表主图更新）的必要前置 → 属修 bug，不属扩范围
+
+### 关键决策
+- 照片操作**即时落库**（增/删/设封面各自立刻走仓储），不做「暂存 → 保存时统一提交」：工单明写「删除 = 墓碑 / 设封面 = sort 交换」，即时语义与仓储动作一一对应，sheet 内 StreamBuilder 直接反映真实 DB
+- 列表主图与详情 hero 墙**共用一个 `displayPaths()`**：两处永不发散；legacy photoPath 仅作无行兜底（顺带消除 T-09B 遗留的「同图重复两次」路径）
+- snackbar 选首选方案而非备选：`floating` 是全 app 一致的（tokens 主题层），仅**下边距**按页不同（只有速记页有底部 CTA）——不构成「与其它页一致性冲突」，故不触发备选（延迟 250ms）
+- 假 picker 走官方注入点 `ImagePickerPlatform.instance`：integration 里真的跑「字节 → 压缩 → sha256 命名 → 入库」全管线，不 mock 自己的业务代码
+
+### 遗留问题（非阻塞，交管理层裁决）
+- **证据脚本观察（非缺陷，记录在案）**：PhotoService 的 sha256 去重只对「同一份输入字节」成立。假 picker 交出的文件本身已是压缩产物（jpg），再压一次 = 二次编码 → 新 hash。真实链路（相册原图 → 压缩一次）不受影响；但**把本 app 导出的照片再导入会产生第二份文件**（语义可接受，未改代码）
+- dev 库残留：本轮两次运行播种的 `T09D资产*`（1 个 abort 运行未清理）+ 速记 draft，归 T-09E 清理
+- 编辑 sheet 未含「状态」编辑（退役/卖出仍走操作区按钮）——工单未要求，未自作主张扩范围
+
+### 下一步
+- 等管理层验收 T-09D；验收后 T-09E（品牌收尾 + 全量回归）
+
+### DoD 证据
+- `flutter analyze` → **No issues found**
+- `flutter test` → **All tests passed（113）**，108 → +5（购买日期 → CPD/持有天数重算 + `updated_at` 刷新；照片新增落末位；删除墓碑语义（raw 行留存）；设封面 sort 交换精确值；displayPaths 兜底）
+- integration（Windows 实跑，`flutter test integration_test/t09d_edit_flow_test.dart -d windows`）→ **All tests passed**（2 用例）；**8 帧全 Dart PNG（magic 89 50 4E 47 逐帧核验）+ md5 全唯一（8/8）**，清单见 `evidence/t09d/.t09d_frame_md5.txt`：
+  - 01_list_cover_before 264fb5efe41d ｜ 02_edit_sheet 7bc6afbad34f ｜ 03_date_picked c52e19e2d866 ｜ 04_photos_added dcffac475bcc ｜ 05_cover_swapped 82660a86e5dd ｜ 06_detail_after_save 4bac9281cc3b ｜ 07_list_cover_after 43abe77d7923 ｜ 08_snackbar_above_cta 22c6dfd1679d
+- **链路断言（工单要求：改日期 + 加照片 + 删照片 + 设封面 → 列表主图更新）**，均为 UI 操作后从 DB 读回：
+  - 改日期：`T09D_CPD purchased=2025-06-10 days=459 cpd=1590 label=¥15.9/天`（730000/459 = 1590.4 → 1590，同源 CpdCalculator）且 `updated_at` 断言刷新
+  - 加照片：`T09D_ADD rows=0,1,2,3 seeded=[0:5a7717b6,1:41119c9e] added=[2:b62ae66f,3:8ad4de1d]`（新增落末位，前两位原地不动）
+  - 删照片：`T09D_DELETE live=3 raw_rows=30 tombstoned=8ad4de1d`（live 排除、raw 行仍在且 `deleted_at` 非空 = 墓碑语义）
+  - 设封面：sort 表 `{photoB:0, photoA:1, added:2}`（精确互换，未整体重排）
+  - **列表主图更新**：返回列表后 `asset_cover_<id>` 的 `FileImage` 路径 before=seedA → after=seedB（列表缩略图跟随新封面，且 legacy photoPath 不干扰）
+- **snackbar 非遮挡（几何实证）**：`T09D_SNACKBAR behavior=SnackBarBehavior.floating inset=88.0 bar_bottom=593.0 cta_top=609.0 overlap=false`（snackbar 下沿 593 < 确认键上沿 609 = 零重叠，sheen 不被遮）；同时断言 `margin` 等于 token（非魔法数字）
+- **执行成本如实记录**：本票 integration 共跑 **2 次**。run#1 失败由「新增照片路径断言过严」驱动（假 picker 二次编码 → 新 hash，属**断言假设错误**而非代码缺陷），run#2 修断言后全绿——**零盲目重跑**（期间无代码改动即重跑的行为）
+- 证据脚本前提声明（AGENTS.md 新条款本票首次生效）：全程 tap 前 `ensureVisible`；播种行/照片读回断言后才交互；脚本收尾墓碑清理自己播种的资产
+
 ## 2026-09-11（管理层验收记录：T-09C2 ✅ 通过，附 3 项裁决）
 - **五层验收**：
   1. 记录核对：commit `ffa15f2` 对版，**已 push**（上轮「commit 未 push」提醒生效）；工作区干净

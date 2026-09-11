@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../app/app.dart';
 import '../data/app_database.dart';
@@ -9,6 +11,7 @@ import '../data/repositories/asset_photo_repository.dart';
 import '../data/repositories/repositories.dart';
 import '../domain/models.dart';
 import '../services/cpd_calculator.dart';
+import '../services/photo_service.dart';
 import '../ui/motion.dart';
 import '../ui/tokens.dart';
 
@@ -96,74 +99,10 @@ class _AssetDetailPageState extends ConsumerState<AssetDetailPage> {
   }
 
   void _openEditSheet(BuildContext context, Asset asset) {
-    final nameCtrl = TextEditingController(text: asset.name);
-    final valueCtrl = TextEditingController(
-      text: (asset.valueCents / 100).toStringAsFixed(2),
-    );
-    var category = asset.category;
-    var purchasedAt = asset.purchasedAt;
-
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      builder: (sheetContext) => Padding(
-        padding: EdgeInsets.only(
-          left: AppSpacing.l,
-          right: AppSpacing.l,
-          top: AppSpacing.l,
-          bottom: MediaQuery.of(sheetContext).viewInsets.bottom + AppSpacing.l,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text('编辑资产', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: AppSpacing.m),
-            TextField(
-              controller: nameCtrl,
-              decoration: const InputDecoration(labelText: '名称'),
-            ),
-            const SizedBox(height: AppSpacing.m),
-            TextField(
-              controller: valueCtrl,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(labelText: '价值（元）'),
-            ),
-            const SizedBox(height: AppSpacing.m),
-            SegmentedButton<AssetCategory>(
-              segments: const [
-                ButtonSegment(
-                    value: AssetCategory.hardCurrency, label: Text('硬通货')),
-                ButtonSegment(
-                    value: AssetCategory.digital, label: Text('数码')),
-                ButtonSegment(
-                    value: AssetCategory.nonStandard, label: Text('非标品')),
-                ButtonSegment(
-                    value: AssetCategory.ordinary, label: Text('普通')),
-              ],
-              selected: {category},
-              onSelectionChanged: (s) => category = s.first,
-            ),
-            const SizedBox(height: AppSpacing.m),
-            FilledButton(
-              onPressed: () {
-                final yuan = double.tryParse(valueCtrl.text.trim());
-                if (yuan == null || yuan <= 0) return;
-                _repo.updateAsset(
-                  id: asset.id,
-                  name: nameCtrl.text.trim(),
-                  category: category,
-                  valueCents: (yuan * 100).round(),
-                  purchasedAt: purchasedAt,
-                );
-                Navigator.of(sheetContext).pop();
-              },
-              child: const Text('保存修改'),
-            ),
-          ],
-        ),
-      ),
+      builder: (_) => _EditAssetSheet(asset: asset),
     );
   }
 
@@ -353,6 +292,7 @@ class _DetailBody extends StatelessWidget {
           children: [
             Expanded(
               child: OutlinedButton(
+                key: const Key('detail_edit_button'),
                 onPressed: onEdit,
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: AppColors.hairline),
@@ -402,7 +342,14 @@ class _DetailBody extends StatelessWidget {
     return StreamBuilder<List<AssetPhoto>>(
       stream: photoRepo.watchForAsset(asset.id).watch(),
       builder: (context, snapshot) {
-        return _build(context, const <AssetPhoto>[], dataArea, theme);
+        // T-09D: live rows are the hero wall source. They used to be dropped
+        // here, so a photo added after creation never reached the wall.
+        return _build(
+          context,
+          snapshot.data ?? const <AssetPhoto>[],
+          dataArea,
+          theme,
+        );
       },
     );
   }
@@ -447,10 +394,12 @@ class _HeroWall extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final paths = <String>[
-      if (asset.photoPath != null) asset.photoPath!,
-      ...photos.map((p) => p.path),
-    ];
+    // Same source as the list tile cover (T-09D): live asset_photos rows,
+    // legacy single photoPath only as a fallback when no rows exist.
+    final paths = AssetPhotoRepository.displayPaths(
+      photos: photos,
+      legacyPath: asset.photoPath,
+    );
     if (paths.isEmpty) {
       return Container(
         color: AppColors.surface,
@@ -567,6 +516,308 @@ class _SoldReview extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Edit sheet (T-09D): name / value / category / purchase date + photos.
+///
+/// The purchase date feeds [CpdCalculator] and the holding-day count directly,
+/// so saving it recomputes both from the same source the list page uses (never
+/// a second algorithm). Photo actions are applied straight through
+/// [AssetPhotoRepository] - add = append at the end (next sort), delete =
+/// tombstone, set cover = sort swap. Drag reordering is deliberately out of
+/// scope (T-09D).
+class _EditAssetSheet extends ConsumerStatefulWidget {
+  const _EditAssetSheet({required this.asset});
+
+  final Asset asset;
+
+  @override
+  ConsumerState<_EditAssetSheet> createState() => _EditAssetSheetState();
+}
+
+class _EditAssetSheetState extends ConsumerState<_EditAssetSheet> {
+  late final TextEditingController _nameController;
+  late final TextEditingController _valueController;
+  late AssetCategory _category;
+  late DateTime _purchasedAt;
+  bool _busy = false;
+
+  AssetRepository get _repo => ref.read(assetRepositoryProvider);
+  AssetPhotoRepository get _photoRepo => ref.read(assetPhotoRepositoryProvider);
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.asset.name);
+    _valueController = TextEditingController(
+      text: (widget.asset.valueCents / 100).toStringAsFixed(2),
+    );
+    _category = widget.asset.category;
+    _purchasedAt = widget.asset.purchasedAt;
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _valueController.dispose();
+    super.dispose();
+  }
+
+  static String _formatDate(DateTime date) => '${date.year}-'
+      '${date.month.toString().padLeft(2, '0')}-'
+      '${date.day.toString().padLeft(2, '0')}';
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _purchasedAt,
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null && mounted) {
+      setState(() => _purchasedAt = picked);
+    }
+  }
+
+  /// Adds photos through the shared pipeline: picker -> PhotoService (compress
+  /// + sha256 name) -> asset_photos row at the end of the strip.
+  Future<void> _addPhotos(ImageSource source) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      final picker = ImagePicker();
+      final dir = await getApplicationSupportDirectory();
+      final photosDir = '${dir.path}${Platform.pathSeparator}photos';
+      final List<XFile?> picked;
+      if (source == ImageSource.camera) {
+        picked = <XFile?>[await picker.pickImage(source: source, imageQuality: 95)];
+      } else {
+        picked = (await picker.pickMultiImage(imageQuality: 95))
+            .map<XFile?>((x) => x)
+            .toList();
+      }
+      for (final x in picked) {
+        if (x == null) continue;
+        final bytes = await x.readAsBytes();
+        final saved =
+            await PhotoService.saveCompressed(bytes, directory: photosDir);
+        final sort = await _photoRepo.nextSort(widget.asset.id);
+        await _photoRepo.create(
+          assetId: widget.asset.id,
+          path: saved,
+          sort: sort,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  /// Removes a photo: tombstone only, the row is never physically deleted.
+  Future<void> _removePhoto(AssetPhoto photo) async {
+    await _photoRepo.softDelete(photo.id);
+    if (mounted) setState(() {});
+  }
+
+  /// Promotes a photo to cover by swapping its sort with the current cover.
+  Future<void> _setCover(AssetPhoto photo) async {
+    await _photoRepo.setCover(assetId: widget.asset.id, photoId: photo.id);
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _save() async {
+    final name = _nameController.text.trim();
+    final yuan = double.tryParse(_valueController.text.trim());
+    if (name.isEmpty || yuan == null || yuan <= 0) return;
+    // updateAsset refreshes updated_at; CPD / holding days recompute from
+    // purchasedAt through CpdCalculator (same source as the list page).
+    await _repo.updateAsset(
+      id: widget.asset.id,
+      name: name,
+      category: _category,
+      valueCents: (yuan * 100).round(),
+      purchasedAt: _purchasedAt,
+    );
+    if (mounted) Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return SingleChildScrollView(
+      padding: EdgeInsets.only(
+        left: AppSpacing.l,
+        right: AppSpacing.l,
+        top: AppSpacing.l,
+        bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.l,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('编辑资产', style: theme.textTheme.titleLarge),
+          const SizedBox(height: AppSpacing.m),
+          TextField(
+            controller: _nameController,
+            decoration: const InputDecoration(labelText: '名称'),
+          ),
+          const SizedBox(height: AppSpacing.m),
+          TextField(
+            controller: _valueController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            decoration: const InputDecoration(labelText: '价值（元）'),
+          ),
+          const SizedBox(height: AppSpacing.m),
+          SegmentedButton<AssetCategory>(
+            segments: const [
+              ButtonSegment(
+                  value: AssetCategory.hardCurrency, label: Text('硬通货')),
+              ButtonSegment(value: AssetCategory.digital, label: Text('数码')),
+              ButtonSegment(
+                  value: AssetCategory.nonStandard, label: Text('非标品')),
+              ButtonSegment(value: AssetCategory.ordinary, label: Text('普通')),
+            ],
+            selected: {_category},
+            onSelectionChanged: (s) => setState(() => _category = s.first),
+          ),
+          const SizedBox(height: AppSpacing.s),
+          Row(
+            children: [
+              TextButton.icon(
+                key: const Key('edit_date_button'),
+                onPressed: _pickDate,
+                icon: const Icon(Icons.calendar_today),
+                label: Text('购买日期 ${_formatDate(_purchasedAt)}'),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.s),
+          Row(
+            children: [
+              Text('照片', style: theme.textTheme.titleMedium),
+              const Spacer(),
+              TextButton.icon(
+                key: const Key('edit_photo_add_gallery'),
+                onPressed: _busy ? null : () => _addPhotos(ImageSource.gallery),
+                icon: const Icon(Icons.photo_library),
+                label: const Text('相册'),
+              ),
+              TextButton.icon(
+                key: const Key('edit_photo_add_camera'),
+                onPressed: _busy ? null : () => _addPhotos(ImageSource.camera),
+                icon: const Icon(Icons.camera_alt),
+                label: const Text('拍照'),
+              ),
+            ],
+          ),
+          StreamBuilder<List<AssetPhoto>>(
+            stream: _photoRepo.watchForAsset(widget.asset.id).watch(),
+            builder: (context, snapshot) {
+              final photos = snapshot.data ?? const <AssetPhoto>[];
+              if (photos.isEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.s),
+                  child: Text('还没有照片', style: theme.textTheme.bodySmall),
+                );
+              }
+              return SizedBox(
+                height: 116,
+                child: ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: photos.length,
+                  separatorBuilder: (_, _) =>
+                      const SizedBox(width: AppSpacing.s),
+                  itemBuilder: (context, index) => _EditPhotoThumb(
+                    photo: photos[index],
+                    index: index,
+                    isCover: index == 0,
+                    onDelete: () => _removePhoto(photos[index]),
+                    onSetCover: () => _setCover(photos[index]),
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: AppSpacing.l),
+          FilledButton(
+            key: const Key('edit_save'),
+            onPressed: _save,
+            child: const Text('保存修改'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One thumbnail in the edit sheet photo strip: delete (tombstone) + set cover.
+class _EditPhotoThumb extends StatelessWidget {
+  const _EditPhotoThumb({
+    required this.photo,
+    required this.index,
+    required this.isCover,
+    required this.onDelete,
+    required this.onSetCover,
+  });
+
+  final AssetPhoto photo;
+  final int index;
+  final bool isCover;
+  final VoidCallback onDelete;
+  final VoidCallback onSetCover;
+
+  static const double _size = 72;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Stack(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(AppRadius.s),
+              child: Image.file(
+                File(photo.path),
+                key: Key('edit_photo_$index'),
+                width: _size,
+                height: _size,
+                fit: BoxFit.cover,
+              ),
+            ),
+            Positioned(
+              top: 0,
+              right: 0,
+              child: GestureDetector(
+                key: Key('edit_photo_delete_$index'),
+                onTap: onDelete,
+                child: const Icon(
+                  Icons.cancel,
+                  size: 20,
+                  color: AppColors.inkSecondary,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        if (isCover)
+          Text('封面', style: theme.textTheme.bodySmall)
+        else
+          TextButton(
+            key: Key('edit_photo_cover_$index'),
+            onPressed: onSetCover,
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.zero,
+              minimumSize: const Size(56, 28),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: const Text('设封面'),
+          ),
+      ],
     );
   }
 }

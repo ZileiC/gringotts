@@ -112,6 +112,11 @@ abstract final class AppSpacing {
   static const double l = 24;
   static const double xl = 32;
   static const double xxl = 48;
+
+  /// Bottom inset for a floating snackbar on pages that own a bottom CTA:
+  /// clears the 56 pt confirm button (plus its 16 pt padding) so the snackbar
+  /// never covers the one-shot sheen (T-09C2 ruling, landed in T-09D).
+  static const double snackBarCtaInset = 88;
 }
 
 /// Corner radius scale.

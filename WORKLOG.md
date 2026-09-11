@@ -3,7 +3,21 @@
 > 执行层（Codex）每次收工在顶部追加一段：做了什么 / 关键决策 / 遗留问题 / 下一步。管理层（Hermes）通过本文件验收进度。
 > ⚠️ 并发写入约定：追加前先重新读取文件最新版，在头部插入自己的段落，不要重建文件横幅；管理层 patch 前同样先重读。
 
-## 2026-09-11（T-09C2 执行层施工记录：§4 基础动效三项 + P4 触感修复 + Hero easeOutCubic）
+## 2026-09-11（管理层验收记录：T-09C2 ✅ 通过，附 3 项裁决）
+- **五层验收**：
+  1. 记录核对：commit `ffa15f2` 对版，**已 push**（上轮「commit 未 push」提醒生效）；工作区干净
+  2. 独立复验：flutter analyze → **No issues found**；flutter test → **All tests passed (108)**（98 → +10）
+  3. 源码级审查（motion.dart 553 行 + motion_base_test.dart 366 行）：`CountUpNumber`（spring mass 1/stiffness 260/ratio 1.0 临界阻尼 + 落定精确吸附 `_controller.value=1`，注释含 omega 推导）✓；`SheenSweep`（trigger 计数驱动单次、非动画期直接返回 child＝扫完移除覆盖层、`StackFit.passthrough` 修缩宽）✓；`MotionChip`（150ms，reduce-motion 时 `Duration.zero`）✓；**P4 修复核实为真**——触感移出 `_down()`、`onPointerDown` 无条件触发 haptic 而缩放受门控 ✓；Hero 两端 `curve: Curves.easeOutCubic` 挂载（列表 tile + 详情 hero wall）且未覆盖 `route.animation`（平台转场形态保留）✓；金色梯度仍为 2 处（sheen 用 `0x38FFFFFF` 白 alpha，非金）
+  4. **独立 integration（管理层亲跑一次）**：All tests passed（2 用例）；**确定性数值与执行层逐位一致**：`settled=13089900`、reduce-motion `countup_instant=12489900`、`haptics=3 confirm_haptic=ok`、`list_heroes=8 curve=easeOutCubic`（中间帧采样差异属时刻抖动，正常）；6 帧全 Dart PNG + md5 唯一；**管理层重跑后已 `git checkout` 还原执行层提交的证据帧**
+  5. **UI 目检 + 报告亮点核实**：执行层「数值断言全绿、目检帧抓出 CTA 缩宽真 bug」属实——`motion_base_test.dart` 的尺寸回归测试扫光**前/中/后**三段断言 `Size(320,56)`，护栏到位；一次性语义测试确认 settle 后 `isSweeping=false`、覆盖层消失、再等 3 秒不复扫 ✓
+- **成本报告追认**：本票 integration 共 10 次，逐次由已诊断缺陷驱动（脚本视口/DB 前提、FAB 内置 Hero 干扰、脚本自身滚动致 tap 失效、CTA 布局真 bug、t09b 卖出段出视口）——**符合反浪费铁律精神**（无盲目重跑）。沉淀为规则：**证据脚本必须先声明「元素可见性 + DB 状态」前提（ensureVisible 等）**，语义优先单测锁定——管理层追认，写入 AGENTS.md 证据条款
+- **管理层裁决（回应 3 项待决）**：
+  1. **sheen 与 snackbar 叠加** → **snackbar 改 `SnackBarBehavior.floating` + 底部 margin，使其位于确认键上方不遮挡 sheen**；sheen 保持「确认时」触发（语义＝成功仪式感，spec §4 不变）；若 floating 与其它页 snackbar 一致性冲突，备选＝snackbar 延迟 250ms 出现（记录在案）→ 落 T-09D 顺带项
+  2. **t09b 第二处 ensureVisible 未复跑验证** → 归 **T-09E 全量回归**验证（该段与 Hero 曲线无关、本轮代码未改），已在工单登记
+  3. **dev 库遗留资产清理 + FPS/真机帧率** → 归 **T-09E**（清理走墓碑；profile 模式采样；真机 60fps 判定权归用户）
+- **结论：T-09C2 验收通过 ✅**。下一票 T-09D 编辑补完
+
+## 2026-09-11（T-09C2 执行层施工记录：§4 基础动效 + P4 + Hero 曲线）
 
 ### 做了什么
 - **§4 基础动效三项**（`lib/ui/motion.dart` 新增三组件 + 页面挂载）：

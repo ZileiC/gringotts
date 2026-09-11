@@ -49,11 +49,14 @@
 ## T-09D 编辑补完（管理层裁决追加票，2026-09-11）
 - **购买日期编辑（P1 必做）**：编辑 sheet 增加购买日期选择——直接喂 CPD 与持有天数，填错即算错钱；改动后 `updated_at` 刷新，CPD 即时重算（同源 CpdCalculator）
 - **照片管理（P2 必做）**：编辑 sheet 支持照片**增/删/设封面**（复用 multi-picker + PhotoService 压缩 hash 管线 + asset_photos 仓储：新增 sort 末位、删除=墓碑、设封面=sort 交换）；**不做拖拽排序**（防范围蔓延）
+- **顺带项（T-09C2 裁决）**：snackbar 改 `SnackBarBehavior.floating` + 底部 margin（位于确认键上方，不遮挡确认键 sheen）；若与其它页一致性冲突，备选＝延迟 250ms 出现——一行配置 + 截图验证
+- **顺带项**：把「证据脚本先声明前提（元素可见性 + DB 状态，ensureVisible 等）」写入 AGENTS.md 证据条款（反浪费铁律配套）
 - 验收：购买日期改动→CPD 重算单测；照片增删/设封面单测 + 墓碑语义；integration 补「编辑资产：改日期 + 加照片 + 删照片 + 设封面 → 列表主图更新」链路；Windows 实跑
 
 ## T-09E 品牌收尾（原 T-09D 顺延）
 - 启动画面（canvas 纯色 + 徽标 38% + Playfair wordmark「Gringotts」）+ Android 自适应图标（前景 G 龙 66% 安全区 / canvas 背景）+ Windows ico 多尺寸——源文件 brand/gringotts-logo.png
-- 全量回归：速记→draft→补全→统计→资产→详情→编辑→导出 全链路 Windows 实跑（三段 integration 单跑拼合）
+- 全量回归：速记→draft→补全→统计→资产→详情→编辑→导出 全链路 Windows 实跑（三段 integration 单跑拼合）；**含 t09b 第二处 ensureVisible 段的复跑验证**（T-09C2 遗留）
+- **dev 库清理**：多轮证据脚本遗留的测试草稿/资产走墓碑清理（纯开发数据）
 - **profile 模式帧率采样**（debug 帧耗时不再作证据，只作 debug 成本标注；真机 60fps 判定权归用户实装 APK 实感）
 - release APK 重建 + WORKLOG 写 T-09 完工报告（DESIGN_T09 §8 逐页对照 + 动效清单对照）
 - 不包含：AI 能力、预算、周期账单、加密、截屏解析、账户、多币种（负范围不变）

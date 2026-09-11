@@ -83,6 +83,10 @@ void main() {
     await tester.pumpAndSettle(const Duration(seconds: 2));
     expect(find.text(assetName), findsOneWidget);
     await snap(tester, '01_list_with_tile', [find.text(assetName)]);
+    // The dev DB accumulates assets, so the fresh tile may sit below the
+    // fold: bring it into view before tapping (evidence-script fix).
+    await tester.ensureVisible(find.text(assetName));
+    await tester.pumpAndSettle(const Duration(milliseconds: 300));
     await tester.tap(find.text(assetName));
     await tester.pumpAndSettle(const Duration(seconds: 2));
     expect(find.text('变现复盘'), findsNothing); // not sold yet
@@ -109,6 +113,10 @@ void main() {
     await snap(tester, '04_back_to_list', [find.text(assetName)]);
 
     // 4. Sell flow via detail (also covers D1 review in detail).
+    // The step above scrolled the list, so bring the tile back into view
+    // (dev DB accumulates assets; evidence-script robustness fix).
+    await tester.ensureVisible(find.text(assetName));
+    await tester.pumpAndSettle(const Duration(milliseconds: 300));
     await tester.tap(find.text(assetName));
     await tester.pumpAndSettle(const Duration(seconds: 1));
     await tester.tap(find.text('卖出'));

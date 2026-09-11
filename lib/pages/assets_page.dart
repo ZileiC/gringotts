@@ -141,10 +141,13 @@ class _NetValueCard extends StatelessWidget {
           children: [
             Text('总资产净值', style: theme.textTheme.bodySmall),
             const SizedBox(height: AppSpacing.xs),
-            Text(
-              _yuan(portfolio.netCents),
-              style: theme.textTheme.displayLarge?.copyWith(
-                fontSize: AppFont.display - 8,
+            CountUpNumber(
+              valueCents: portfolio.netCents,
+              builder: (context, cents) => Text(
+                _yuan(cents),
+                style: theme.textTheme.displayLarge?.copyWith(
+                  fontSize: AppFont.display - 8,
+                ),
               ),
             ),
             const SizedBox(height: AppSpacing.m),
@@ -219,6 +222,8 @@ class _AssetTile extends StatelessWidget {
       pressedScale: 0.98,
       child: Hero(
       tag: 'asset_photo_${asset.id}_0',
+      // Hero flight curve per DESIGN_T09 section 5E.
+      curve: Curves.easeOutCubic,
       child: Card(
         margin: const EdgeInsets.only(bottom: AppSpacing.s),
         child: InkWell(
@@ -376,6 +381,8 @@ class _SoldTile extends StatelessWidget {
       pressedScale: 0.98,
       child: Hero(
       tag: 'asset_photo_${asset.id}_0',
+      // Hero flight curve per DESIGN_T09 section 5E.
+      curve: Curves.easeOutCubic,
       child: Card(
         margin: const EdgeInsets.only(bottom: AppSpacing.s),
         child: InkWell(

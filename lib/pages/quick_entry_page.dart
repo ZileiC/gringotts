@@ -31,6 +31,8 @@ class _QuickEntryPageState extends ConsumerState<QuickEntryPage> {
   String? _timeDefaultCategoryId;
   bool _lunchHintVisible = false;
   bool _isIncome = false;
+  /// Bumped on every confirm so the CTA sheen sweeps exactly once per record.
+  int _sheenTick = 0;
   final FocusNode _focusNode = FocusNode();
 
   TransactionRepository get _txRepo => ref.read(transactionRepositoryProvider);
@@ -91,6 +93,9 @@ class _QuickEntryPageState extends ConsumerState<QuickEntryPage> {
   Future<void> _confirm() async {
     final amount = _amountCents;
     if (amount == null || amount <= 0) return;
+
+    // One-shot sheen sweep on the confirm CTA (DESIGN_T09 section 4).
+    setState(() => _sheenTick++);
 
     final parse = _mixedParse;
     // Income mode: no time-of-day prefill, no lunch pattern (management
@@ -319,7 +324,9 @@ class _QuickEntryPageState extends ConsumerState<QuickEntryPage> {
                 child: TouchedScale(
                   pressedScale: 0.96,
                   onPressHaptic: () => HapticFeedback.mediumImpact(),
-                  child: DecoratedBox(
+                  child: SheenSweep(
+                    trigger: _sheenTick,
+                    child: DecoratedBox(
                   decoration: const BoxDecoration(
                     borderRadius: BorderRadius.all(Radius.circular(AppRadius.m)),
                     gradient: LinearGradient(
@@ -340,6 +347,7 @@ class _QuickEntryPageState extends ConsumerState<QuickEntryPage> {
                     child: const Text('记一笔'),
                   ),
                 ),
+                  ),
                 ),
               ),
             ),
@@ -414,16 +422,15 @@ class _CategoryPrefillRow extends ConsumerWidget {
           runSpacing: AppSpacing.xs,
           children: [
             if (effective != null)
-              InputChip(
-                label: Text(effective.name),
+              MotionChip(
+                label: effective.name,
                 selected: true,
-                onSelected: (_) => onCategorySelected(null),
+                onTap: () => onCategorySelected(null),
               )
             else
-              const InputChip(
-                label: Text('未选类别'),
+              MotionChip(
+                label: '未选类别',
                 selected: false,
-                onSelected: null,
               ),
           ],
         );
@@ -512,10 +519,10 @@ class _HighFrequencyChipBar extends ConsumerWidget {
                     }
                   }
                   if (cat == null) return const SizedBox.shrink();
-                  return FilterChip(
-                    label: Text(cat.name),
+                  return MotionChip(
+                    label: cat.name,
                     selected: selectedCategoryId == id,
-                    onSelected: (_) => onSelected(id),
+                    onTap: () => onSelected(id),
                   );
                 },
               ),

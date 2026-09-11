@@ -111,12 +111,15 @@ class _StatsPageState extends ConsumerState<StatsPage>
                       Text('净结余（收入 − 支出）',
                           style: Theme.of(context).textTheme.bodySmall),
                       const SizedBox(height: AppSpacing.xs),
-                      Text(
-                        _yuan(totals.netCents),
-                        style: Theme.of(context)
-                            .textTheme
-                            .displayLarge
-                            ?.copyWith(fontSize: AppFont.display - 12),
+                      CountUpNumber(
+                        valueCents: totals.netCents,
+                        builder: (context, cents) => Text(
+                          _yuan(cents),
+                          style: Theme.of(context)
+                              .textTheme
+                              .displayLarge
+                              ?.copyWith(fontSize: AppFont.display - 12),
+                        ),
                       ),
                       const SizedBox(height: AppSpacing.s),
                       Text(

@@ -465,6 +465,8 @@ class _HeroWall extends StatelessWidget {
         final tag = 'asset_photo_${asset.id}_$index';
         return Hero(
           tag: tag,
+          // Hero flight curve per DESIGN_T09 section 5E.
+          curve: Curves.easeOutCubic,
           child: LayoutBuilder(
             builder: (context, constraints) {
               // 0.5x parallax with a hard 48 px budget (motion red line).

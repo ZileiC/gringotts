@@ -3,6 +3,47 @@
 > 执行层（Codex）每次收工在顶部追加一段：做了什么 / 关键决策 / 遗留问题 / 下一步。管理层（Hermes）通过本文件验收进度。
 > ⚠️ 并发写入约定：追加前先重新读取文件最新版，在头部插入自己的段落，不要重建文件横幅；管理层 patch 前同样先重读。
 
+## 2026-09-11（T-09C2 执行层施工记录：§4 基础动效三项 + P4 触感修复 + Hero easeOutCubic）
+
+### 做了什么
+- **§4 基础动效三项**（`lib/ui/motion.dart` 新增三组件 + 页面挂载）：
+  1. `CountUpNumber`：临界阻尼 spring（mass 1 / stiffness 260 / ratio 1.0，落定 ≈400ms）从上一显示值计数到目标，页面进入与数值变化都触发，**落定后精确吸附目标值**；reduce-motion 直接呈现。挂载：资产页「总资产净值」、统计页「净结余」
+  2. `SheenSweep`：确认键 600ms **一次性**扫光（白 22% 高光带左→右；`StackFit.passthrough` 保证不改按钮布局；扫完移除覆盖层，禁循环）；挂载速记首页「记一笔」（`_sheenTick` 每次确认 +1 触发）；reduce-motion 完全跳过
+  3. `MotionChip`：选中态 `AnimatedContainer` **150ms**（surfaceElevated/ink ↔ goldContainer/onGoldContainer + 金描边），替换速记页两处 chip（时段默认类别 + 高频 chip 条）；reduce-motion 时长归零
+- **P4 修复（管理层验收发现，必做项）**：`TouchedScale` 触感与缩放动画**解耦** —— pointer-down 恒触发 `onPressHaptic`，仅在未开 reduce-motion 时驱动缩放动画；spec「触感保留」在 reduce-motion 下成立（单元测试 + 集成双重断言）
+- **Hero 飞行曲线 easeOutCubic（批准项，带回退条件）**：用 Flutter 官方机制 `Hero.curve`（默认 fastOutSlowIn）在三处 relaying Hero 设为 easeOutCubic —— 资产 tile ×2（push 侧，飞行 manifest 取 `toHero.curve`）+ 详情 hero wall（pop 侧取 `fromHero.curve`）；**不覆盖 `route.animation`**，页面转场保持平台原生形态（回退条件未触发）
+- 新增 `test/motion_base_test.dart`（10 条确定性断言）+ `integration_test/t09c2_base_motion_test.dart`（2 用例：动效读回 + reduce-motion 全项退化含 P4 触感）+ `integration_test/t09b_detail_flow_test.dart` 加 ensureVisible 健壮性修法
+
+### 收尾中发现并修掉的真 bug（本票自己引入的，由帧证据抓出）
+1. **SheenSweep 改变 CTA 布局**：`Stack` 默认 `StackFit.loose` 使「记一笔」按钮从满宽 shrink-wrap 成内容宽（帧 02 目检发现）→ 改 `StackFit.passthrough`，并补**尺寸不变回归单测**（320×56 恒定，扫光中/扫光后都断言）
+
+### 关键决策
+- Hero 曲线取 `Hero.curve` 而非覆盖路由动画：T-09B 已验证的页面转场零改动；回退条件（jank / 破坏 Hero 流程）**未触发** —— t09b 脚本复跑：列表→详情 Hero 接力（02_detail_hero）、翻页（03_detail_photo2）、返回逆接力（04_back_to_list）三段全部通过
+- 证据策略延续 T-09C：**语义用数值读回锁定**（chip 颜色 lerp、sheen progress、count-up 分位、Hero curve、沉入数学），帧只作视觉记录
+- sheen 高光 token 化（新增 `AppColors.sheen/sheenEdge`，白 22% 高光带，**非金色渐变**）：金色渐变定义处仍为 2（确认键 + 饼图金阶），§9 金色纪律未破
+
+### 遗留问题（交管理层裁决）
+- **sheen 与 snackbar 视觉叠加**（观感观察，非缺陷）：§4 同时要求「sheen 扫过 + snackbar（goldContainer 底）」，确认后 snackbar 恰盖住按钮下缘，sheen 可见时长被压缩；本票按 spec 在确认时触发，若要更可见可改 pointer-down 触发或抬起 snackbar —— 请裁决
+- **t09b 脚本第二处 ensureVisible 未复跑验证**：t09b 在「返回列表→再点 tile→卖出」段因 dev 库资产累积 + 脚本自身滚动致目标出视口、tap 未命中（与 Hero 曲线无关，该段代码本轮未改）；已补 ensureVisible 修法但**未复跑确认**，建议 T-09E 全量回归时验证
+- **dev 库资产累积**：证据脚本在 dev 库留下若干 'T09C2 Hero *'（含被墓碑的）/ 'T09B资产*' 资产（纯开发数据，T-09E 可清墓碑）
+- **FPS/真机**：本票未做帧率采样，归 T-09E（profile 模式；真机 60fps 判定权归用户）
+
+### 下一步
+- 等管理层验收 T-09C2；验收后 T-09D（编辑补完：购买日期 + 照片增删/设封面）
+
+### DoD 证据
+- `flutter analyze` → No issues found（含新组件、新测试、integration 脚本）
+- `flutter test` → All tests passed (**108**)，98 → +10（P4 触感 / count-up 值序与吸附 / sheen 一次性与禁循环 / chip 150ms / sheen 尺寸不变）
+- integration（Windows 实跑，t09c2 脚本 2 用例）→ All tests passed；6 帧全 Dart PNG + **md5 全唯一（6/6）**：
+  - `01_chip_selected` 3bf8def7d0ab —— chip 150ms：before #ff1d1a13 → mid #ff292214（lerp）→ settled #ff2a2314（= goldContainer）
+  - `02_confirm_sheen_mid` b3ce316258aa —— sheen progress 0.563 扫光中；**帧内亮度剖面复核**：按钮带基线 181.8 → 高光带峰值 196.4，位置与 progress 吻合
+  - `03_net_value_countup_mid` 2fc01e0c25b3 —— 计数中途（状态读回 7,341,799 分）；帧为页面转场帧、净值文本仍显示起始 ¥0，**数值以读回为准，帧只作视觉记录**
+  - `04_detail_hero_relay` 6742b00ec11f —— Hero 接力进详情（list_heroes=8 全 easeOutCubic，详情侧同曲线）
+  - `05_reduce_motion_assets` 6992e3c2aae0 ｜ `06_reduce_motion_scrolled` 754f212ebbd7 —— reduce-motion 全项退化
+- **reduce-motion 全项退化实证**（integration 用例 2）：无 ScaleTransition / chip 时长 0 / count-up 立即到位（isCounting=false）/ sheen 不扫（progress 0）/ 沉入无 Transform+Opacity / 点击仍生效（snackbar 出现）＋ **P4：确认触感 mediumImpact 仍触发**（`T09C2_REDUCED haptics=3 confirm_haptic=ok snackbar=ok`）
+- count-up 数值自洽复核：资产页净值落定 13,089,900 分 = 上轮 12,489,900 + 本轮播种资产 600,000 ✓
+- **执行成本如实记录**：本票 integration 共跑 **10 次**（t09c2 8 次 + t09b 2 次），**无一次盲目重跑** —— 每次均由已诊断的具体缺陷驱动（脚本视口/DB 前提 5 次、FAB 内置 Hero 干扰 1 次、脚本自身滚动致 tap 失效 1 次、CTA 布局真 bug 1 次、t09b 卖出段出视口 2 次）。教训：证据脚本须先声明「元素可见性 + DB 状态」前提（已加 ensureVisible）；语义优先用单测锁定，integration 在脚本前提确认后再跑
+
 ## 2026-09-11（管理层验收记录：T-09C ✅ 通过，附 P4 偏差 + 4 项裁决 + 票务重排）
 - **五层验收**：
   1. 记录核对：commit `26e8d99` 对版（20 文件 +1000）；**注意：执行层已 commit 但未 push**（origin 停在 Round 10 验收提交），管理层代为推送——非缺陷，流程补记

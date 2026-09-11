@@ -3,6 +3,23 @@
 > 执行层（Codex）每次收工在顶部追加一段：做了什么 / 关键决策 / 遗留问题 / 下一步。管理层（Hermes）通过本文件验收进度。
 > ⚠️ 并发写入约定：追加前先重新读取文件最新版，在头部插入自己的段落，不要重建文件横幅；管理层 patch 前同样先重读。
 
+## 2026-09-11（管理层验收记录：T-09C ✅ 通过，附 P4 偏差 + 4 项裁决 + 票务重排）
+- **五层验收**：
+  1. 记录核对：commit `26e8d99` 对版（20 文件 +1000）；**注意：执行层已 commit 但未 push**（origin 停在 Round 10 验收提交），管理层代为推送——非缺陷，流程补记
+  2. 独立复验：flutter analyze → **No issues found** ✓；flutter test → **All tests passed (98)**（89 → +9 动效断言）✓
+  3. 源码级审查（motion.dart 275 行全文 + 测试 291 行）：参数与 DESIGN_T09 §4/§5 逐条对上（spring mass 0.55/stiffness 220/ratio 1.05、tile 0.98/key 0.97+120ms/CTA 0.96、stagger 60ms+12px、沉入 0.85x 硬顶 48px、路由 350ms）；**两个 bug 修复源码核实为真**——① `AnimationController` 不再预置 `value: 1`（静息 1.0 → 按下 pressedScale → 回弹）② `stats_page` 已挂 `controller: _scroll`（bug 是 `hasClients == false` 导致沉入完全不触发）；沉入数学自洽（48×0.85=40.8、1−0.4×1=0.6）
+  4. **独立 integration（管理层亲跑）**：t09c_motion_test.dart → All tests passed；**确定性数值复现逐位一致**：`scroll_px=80.0 rise=40.8 opacity=0.600`（两处 header 均如此）；8 帧全 Dart PNG + md5 全唯一（管理层重跑覆盖证据帧后已 `git checkout` 还原为执行层提交版，md5 与 run log 逐位一致）；FPS 采样 24–28ms 属 debug 构建成本（执行层标注正确）
+  5. **UI 目检（三帧关键帧）**：idle 确认键满宽正常 ✓；**pressed 帧肉眼可见内缩**（证明 bug#1 修复真实生效，不再与 idle 字节相同）✓；资产页滚动沉入可见（看板位移 + 变淡 + 列表正常滚动）✓
+- **P4 偏差（新发现，P3 级，非阻塞，随 T-09C2 修）**：`TouchedScale` 在 reduce-motion 下 `onPointerDown: null` → `_down()` 不执行 → **`onPressHaptic` 不触发**，即手感受损模式下滑动/按键**失去触感反馈**；而 DESIGN_T09 §4/§5 均要求「触感保留」，提交信息亦声称 "(haptics kept)"，**代码与声明不符**。既有测试只验「taps still fire」未验触感。修法一行：触感回调与缩放动画解耦（reduce-motion 下仍触发 haptic，只跳过动画）
+- **管理层裁决（回应执行层 4 项待决）**：
+  1. **§4 基础动效**（净值/净结余 count-up spring 400ms、确认键 sheen 600ms 一次性、chip 选中 150ms）→ **单开 T-09C2**，与 P4 修复同票（同属动效域，且保持每票小颗粒——session 上下文友好）
+  2. **Hero 飞行曲线 easeOutCubic** → **批准做**，但附回退条件：若自定义曲线引入任何 jank 或回归（T-09B 已验证的 Hero 流程），立即回退到 350ms 平台原生默认并在 WORKLOG 记录——用户最看重动效，值得花这 20 行，但不许为观感牺牲已验证的稳定性
+  3. **真机帧率** → T-09E 补 **profile 模式**采样（Windows profile 是目前可得的最佳代理）；**真机 60fps 判定权归用户**（最终验收时装 APK 实感）；从此不再把 debug 帧耗时当证据，只作 debug 成本标注（执行层已做对）
+  4. **编辑 sheet 补全** → **购买日期必做**（P1：直接喂 CPD 与持有天数，填错会算错钱）＋**照片增删/设封面必做**（P2：用户裁决③的多照片是核心功能，创建后无法改照片是硬缺口；复用既有 multi-picker + PhotoService + asset_photos 仓储，主要是 UI 活）；**不做拖拽排序**（避免范围蔓延，设封面 = sort 交换即可）→ 单开 **T-09D 编辑补完**
+- **AGENTS.md「反浪费铁律」追认**：该 standing rule 由用户亲定、执行层代录（属管理文档域），管理层**追认生效**并同步进 PROJECT_STATE 决策记录；同时肯定本轮实效——两个真 bug 均由确定性单测/数值读回抓出，零盲目重跑
+- **票务重排（T-09 系列）**：T-09C2 动效补完 → T-09D 编辑补完 → **T-09E 品牌收尾**（启动画面/图标/全量回归/release APK/完工报告/用户目测）——原「T-09D 收尾整合」顺延为 T-09E
+- **结论：T-09C 验收通过 ✅**。下一票 T-09C2
+
 ## 2026-09-11（T-09C 执行层施工记录：高级动效层落地 + 收尾）
 
 ### 反浪费铁律首次生效（用户 2026-09-11 指令，已落 AGENTS.md standing rule）

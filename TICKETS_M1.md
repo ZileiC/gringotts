@@ -37,9 +37,24 @@
 - 无障碍：disableAnimations 全退化（§4/§5）；触感保留
 - 验收：动效逐项截图/录屏帧（md5 唯一 + Dart PNG）；既有 85+ 单测全绿不回退
 
-## T-09D 收尾整合与品牌资产
-- 启动画面（canvas + 徽标 38% + Playfair wordmark）+ Android 自适应图标（G 龙 66% 安全区）+ Windows ico 多尺寸——源文件 brand/gringotts-logo.png
-- 全量回归：速记→draft→补全→统计→资产→详情→导出 全链路 Windows 实跑（三段 integration 单跑拼合）
+## T-09C2 动效补完（管理层裁决追加票，2026-09-11）
+- **§4 基础动效三项**（DESIGN_T09 §4，T-09C 未含，本轮补）：
+  - 净值 / 净结余**数字 count-up spring 400ms 临界阻尼**（仅页面进入与数值变化时触发；reduce-motion 直接呈现）
+  - 确认键 **sheen 600ms 一次性**扫光（禁循环；reduce-motion 跳过，触感保留）
+  - chip 选中 **AnimatedContainer 150ms**（选中色＝goldContainer/onGoldContainer）
+- **P4 修复（必做）**：`TouchedScale` reduce-motion 下 `onPointerDown: null` 导致 `onPressHaptic` 不触发——触感与缩放动画解耦，reduce-motion 仍触发 haptic（spec「触感保留」）；补断言单测
+- **Hero 飞行曲线 easeOutCubic（批准做，带回退条件）**：自定义转场曲线让 Hero 接力飞行走 easeOutCubic；**若引入 jank 或破坏 T-09B 已验证的 Hero 流程，立即回退 350ms 平台原生默认并在 WORKLOG 记录**
+- 验收：三项动效各有确定性断言单测（count-up 值序、sheen 一次性不循环、chip 150ms）+ P4 触感断言 + Hero 回退条件记录；analyze/test 全绿；Windows 实跑帧（Dart PNG + md5 唯一）；reduce-motion 全项退化验证
+
+## T-09D 编辑补完（管理层裁决追加票，2026-09-11）
+- **购买日期编辑（P1 必做）**：编辑 sheet 增加购买日期选择——直接喂 CPD 与持有天数，填错即算错钱；改动后 `updated_at` 刷新，CPD 即时重算（同源 CpdCalculator）
+- **照片管理（P2 必做）**：编辑 sheet 支持照片**增/删/设封面**（复用 multi-picker + PhotoService 压缩 hash 管线 + asset_photos 仓储：新增 sort 末位、删除=墓碑、设封面=sort 交换）；**不做拖拽排序**（防范围蔓延）
+- 验收：购买日期改动→CPD 重算单测；照片增删/设封面单测 + 墓碑语义；integration 补「编辑资产：改日期 + 加照片 + 删照片 + 设封面 → 列表主图更新」链路；Windows 实跑
+
+## T-09E 品牌收尾（原 T-09D 顺延）
+- 启动画面（canvas 纯色 + 徽标 38% + Playfair wordmark「Gringotts」）+ Android 自适应图标（前景 G 龙 66% 安全区 / canvas 背景）+ Windows ico 多尺寸——源文件 brand/gringotts-logo.png
+- 全量回归：速记→draft→补全→统计→资产→详情→编辑→导出 全链路 Windows 实跑（三段 integration 单跑拼合）
+- **profile 模式帧率采样**（debug 帧耗时不再作证据，只作 debug 成本标注；真机 60fps 判定权归用户实装 APK 实感）
 - release APK 重建 + WORKLOG 写 T-09 完工报告（DESIGN_T09 §8 逐页对照 + 动效清单对照）
 - 不包含：AI 能力、预算、周期账单、加密、截屏解析、账户、多币种（负范围不变）
 - 验收：回归证据 + 全部测试绿 + APK + **用户目测通过（最终拍板在用户）**
@@ -47,5 +62,5 @@
 ---
 
 ## 施工顺序
-T-09A → T-09B → T-09C → T-09D（A 是 B/C/D 的地基；B 与 C 可在 A 后并行；D 收尾）
+T-09C2 → T-09D → T-09E（C2 补动效缺口与 P4；D 补资产编辑；E 收尾拍板）
 每票一 commit：`T-09x: <summary>`；发现缺口 → WORKLOG 登记，不得自行改需求

@@ -70,6 +70,7 @@
 | 2026-09-10 | **T-09 发布** | 设计细则 DESIGN_T09.md（用户三裁决+Leclerc 动效转译）+ 工单 T-09A 换肤/T-09B 详情页多照片 D1/T-09C 动效层/T-09D 收尾；原 T-08 票号退役并入 T-09A |
 | 2026-09-10 | **T-09A 验收：通过 ✅（色值级核对）** | tokens 16 色值 vs spec 零偏差；金渐变=2 处全消费 AppColors；tokens 外硬编码 0；三帧 Dart PNG md5 唯一 + 亲跑 integration 通过；UI 目检三屏全部符合 §8（wordmark 金衬线/暖黑底/确认键金渐变/tabular 净值/hairline 无投影）；P3=integration 文件 2 个 unused_import（申报与实测不符，随 T-09B 清） |
 | 2026-09-10 | **T-09B 验收：通过 ✅，D1 正式关闭** | 89 单测全绿 + 亲跑 integration 五帧全链路（多照片创建→Hero 进详情→翻页→返回→卖出复盘）；V1→V2 迁移语义单测锁定；净成本 ¥2.57/天 数学精确吻合；P3 已清（analyze 恢复零问题）；编辑入口归 T-09C |
+| 2026-09-11 | **T-09C 验收：通过 ✅（管理层亲跑，数值逐位复现）** | 98 单测全绿；下沉数值 rise=40.8/opacity=0.600 复现一致；8 帧 md5 唯一；**执行层修掉两个真 bug**（TouchedScale 静息态反转 = 上轮两帧字节相同的真凶；stats 沉入未接控制器）；**P4 新偏差**：reduce-motion 下触感丢失（与 spec「触感保留」及提交声明不符）→ 随 T-09C2 修；**裁决**：§4 基础动效单开 T-09C2、Hero easeOutCubic 批准带回退、真机帧率归 T-09E+用户实感、编辑补全（购买日期+照片管理）单开 T-09D；**AGENTS.md 反浪费铁律追认生效**；票务重排 T-09C2→T-09D→T-09E |
 
 ## 下次 Session 开场
 1. 读本文件 + WORKLOG.md

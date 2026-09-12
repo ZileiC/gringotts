@@ -22,10 +22,12 @@
 继续 Gringotts 施工。先读 PROJECT_STATE.md + TICKETS_M2A.md 的 T-12c + DESIGN_MAIN.md §3 第 1 条（月份按钮与月历弹窗规格）——只读这些，其余不必读。
 
 任务：T-12c 结构+流程重构（四部分，一次改到位）
-Part A 导航层级：顶级=底部 tab bar 三页平级（分析/资产/统计，key: tab_home/tab_assets/tab_stats，切换不压栈）；「记一笔」= 底栏上方居中金色主按钮，点击压栈进快记页（快记页=分析页下一级，返回回分析页）；明细页改为统计页的子页（统计页顶部「明细 ›」入口）；删除分析页原 [记一笔][明细] 双按钮与快记页顶栏三入口（quick_review/quick_assets/quick_stats）。
+Part A 导航层级：顶级=底部 tab bar 三页平级（分析/资产/统计，key: tab_home/tab_assets/tab_stats，切换不压栈）；「记一笔」= 底栏上方居中金色主按钮，点击压栈进快记页（快记页=分析页下一级，返回回分析页）；明细页改为统计页的子页（统计页顶部「明细 ›」入口）；删除分析页原 [记一笔][明细] 双按钮与快记页顶栏三入口（quick_review/quick_assets/quick_stats）。**一个导航壳**（单一 Scaffold + IndexedStack 或等效）：tab 切换保状态、主按钮常驻、任一 tab 都可达「记一笔」。
 Part B 快记即正式：快记确认直接写 is_draft=false，立即进统计/预算/明细；删除 review_page.dart 与批量补类别（_applyBulkAndConfirm）、主页待完善徽章与 watchTodayDraftCount、明细页待完善分支；is_draft 列与统计/预算的草稿排除逻辑保留（不迁移、不删列）；dev 库残留 live 草稿墓碑清理；t03_flow_test 整条删除、draft_workflow_test 草稿用例删除但保留其中统计口径断言（改为直接建正式记录）、widget_test/home_page_test 依赖徽章草稿的断言同步删改，不留死引用。
 Part C 隐患收口：审计 updateFields 剩余调用点——无调用则整方法删除，有调用则改 Value<String?>(absent=不动/null=清空)。顺带：证据脚本播种改固定时间戳（跨 run 帧 md5 漂移根因）。
 Part D 月份选择：主页左上月份标题改「月份按钮」，点开月历 sheet（规格严格照 DESIGN_MAIN §3 第 1 条：年份 ‹ 2026 › + 月份 3×4 宫格、当前月金边选中、未来月灰显禁用、选中即切换、与类别网格同语言、禁渐变投影）；删除右上左右箭头，只留预算设置 ⚙。
+
+级联（本票最烧钱处，务必一次收干净）：11 个 integration 脚本仍引用被删入口/徽章 key——t03 / t04 / t05 / t09a / t09b / t09c / t09c2 / t09d / perf_scan / t11 / t10b。逐个适配入口引用并跑通；t10b / t11 / t12 属回归，帧落 `evidence/regression/`，不覆盖原票证据。收工时列出：删了哪些测试/脚本、改了哪些、各自结果。
 
 文档顺带（你直接改）：AGENTS.md 数据铁律「draft 入库…确认后才进统计」→「快记即正式（is_draft=false），立即计入统计；草稿链路已废除」；DESIGN_MAIN §4.1 保留清单的「draft 入库」与 §5 草稿标记录同步订正。
 

@@ -3,6 +3,34 @@
 > 执行层（Codex）每次收工在顶部追加一段：做了什么 / 关键决策 / 遗留问题 / 下一步。管理层（Hermes）通过本文件验收进度。
 > ⚠️ 并发写入约定：追加前先重新读取文件最新版，在头部插入自己的段落，不要重建文件横幅；管理层 patch 前同样先重读。
 
+## 2026-09-12（T-10a 执行层施工记录：预算数据层 + 纯函数引擎）
+### 做了什么
+1. **新表 `budget_months`**（`lib/data/app_database.dart`）：`id` UUID（`clientDefault(_newUuid)`）/ `year_month` TEXT **唯一**（`uniqueKeys`）/ `income_cents` INT / `savings_target_cents` INT / `created_at` + `updated_at` + `deleted_at` 墓碑；金额一律整数分
+2. **迁移 V2→V3**：`schemaVersion` 2→3；`onUpgrade` 增 `if (from < 3) await m.createTable(budgetMonths);`（**无历史回填**，历史月无预算=正常态）；V1→V2 分支原样保留。`build_runner` 重生成 `app_database.g.dart`
+3. **`BudgetRepository`**（`lib/data/repositories/budget_repository.dart`）：`upsert(yearMonth, incomeCents, savingsTargetCents)`（唯一月键 → 同月为 update 而非 insert；命中墓碑则**复活同一行**并清 `deletedAt`，绝不违反唯一索引）/ `getByMonth` / `watchByMonth`（T-10b 响应式）/ `listMonths`（升序）/ `watchMonths` / `softDelete`（墓碑）
+4. **`BudgetEngine` 纯函数**（`lib/services/budget_engine.dart`，无 DB 依赖）：`monthKey`（`YYYY-MM` 补零）/ `isLeapYear` / `daysInMonth` / `remainingDays`（含今天）/ `budgetCents = income − savings` / `fixedDailyCents`（**向下取整**）/ `liveDailyCents`（向下取整 + **负值钳 0**）/ `spentCentsInMonth`（draft、收入、transfer、墓碑一律不计 = T-05 口径）/ `todaySpending`（今日金额+笔数）/ `compute(...) → BudgetSnapshot`（**无预算记录时 budget/fixed/remaining/live 四字段为 null**，实际支出照常返回；含 `isOverspent` 与 `spentRatio` 供 T-10b 进度条）
+5. **边界单测全套**（`test/budget_engine_test.dart` 20 条 + `test/budget_repository_test.dart` 8 条，**+28 条**）：闰年（2024/2023/2000/1900）/ 30-31 天月 / 首中末日与 2 月闰年末日 / 跨月重置 / 超支负值 / `budgetCents ≤ 0` 防御（0 与赤字）/ draft+收入+transfer+墓碑不计 / 编辑后即时重算 / 无预算返回 null / 墓碑复活 upsert / V2→V3 迁移（真实 DDL 降级重开验证）
+
+### 关键决策
+- **“向下取整”实现为数学 floor**：Dart `~/` 向零截断，故 `_floorDiv` 显式对负数向下取（`-100 / 3 → -34` 而非 `-33`），由单测锁定——口径不靠默认运算符的隐患猜
+- **墓碑月份的两种语义各司其职**：引擎层把 `deletedAt != null` 的预算当“无预算”（不显示假数字）；仓储 `upsert` 命中同月墓碑则复活该行——unique `year_month` 在墓碑模型下永不冲突
+- **快照字段可空边界**：`BudgetSnapshot` 只让**预算派生**字段可空，`spentCents`/`todaySpentCents` 永远有值——引导态也能显示“本月已花”，但绝不显示假的每日额度
+- **引擎不碰 DB**：以 `List<Transaction>` 入参，复用 T-05 口径且可纯单测；T-10b 用既有 `TransactionRepository.confirmedExpenseCentsInRange(start,end)` 取月区间即可，无需新查询
+
+### 遗留问题 / 边界
+- **本票零 UI 变更**：未动 `app.dart`/`main.dart`/任何 page（provider 注入与首页由 T-10b 承接，避免与本票拆分的边界混淆）
+- **未重建 release APK**：本步无 UI/行为变更，APK 归 T-10b UI 落地后统一重建
+- **dev 库**：t03 实跑触发真实 V2→V3 迁移（`user_version 2→3`、`budget_months` 建成空表、既有 48 行原样）；跑后已把 t03 新增的 1 行按墓碑模型清理，恢复 live=0 / categories 9（备份 `gringotts.sqlite.pre-t10a-20260912-151157.bak`）
+
+### 下一步
+- 等管理层验收 T-10a；通过后 **T-10b 主页 UI**（等用户过目 `design/MAIN_preview.html` 第①屏后开工）——需在 T-10b 接线：`budgetRepositoryProvider` + 当月预算 `watchByMonth` + 月区间支出流 → `BudgetEngine.compute` 单一真相源
+
+### DoD 证据
+- `flutter analyze` → **No issues found**
+- `flutter test` → **All tests passed（144）**，116 → **+28**（引擎 20 / 仓储 8）
+- **受影响 integration（Windows 实跑）**：`t03_flow_test` → **All tests passed**（`DB_DRAFTS_BEFORE=0 → AFTER_CREATE=1 → AFTER_CONFIRM=0`）——证明真实 V2 开发库经 V3 迁移后 app 正常启动且核心记账流不受影响；本步无 UI 变更故**不采帧**（语义优先单测，AGENTS.md 证据条款）
+- **迁移实证（复算，非重跑）**：迁移后 dev 库 `PRAGMA user_version=3`、`sqlite_master` 含 `budget_months`、该表 0 行（无回填）、transactions 48→49（t03 新增）后已墓碑、categories 9 live 未动
+
 ## 2026-09-11（管理层验收记录：T-09E ✅ 通过 —— M1.0 功能与品牌全部验收完成）
 - **五层验收**：
   1. 记录核对：三个 commit（`a8e9cbc` 主体 / `5e3be39` 品牌审阅表 / `ddd37e3` 完工记录）对版，已 push，工作区干净

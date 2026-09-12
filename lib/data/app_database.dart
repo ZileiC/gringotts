@@ -145,12 +145,46 @@ class AssetPhotos extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-@DriftDatabase(tables: [Transactions, Categories, Assets, AssetPhotos])
+/// Monthly budgets (T-10). One row per calendar month, keyed by `YYYY-MM`.
+///
+/// `income_cents` and `savings_target_cents` are integer cents only; the
+/// spendable budget (`income - savings`) is derived, never stored.
+class BudgetMonths extends Table {
+  @override
+  String get tableName => 'budget_months';
+
+  TextColumn get id => text().clientDefault(_newUuid)();
+
+  /// Calendar month key in `YYYY-MM` form (e.g. `2026-09`). Unique.
+  TextColumn get yearMonth => text()();
+
+  /// Total income entered by the user for the month, in integer cents.
+  IntColumn get incomeCents => integer()();
+
+  /// Planned savings for the month, in integer cents.
+  IntColumn get savingsTargetCents => integer()();
+
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  /// Tombstone timestamp; null means the row is alive. Never physically delete.
+  DateTimeColumn get deletedAt => dateTime().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+        {yearMonth},
+      ];
+}
+
+@DriftDatabase(tables: [Transactions, Categories, Assets, AssetPhotos, BudgetMonths])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -179,6 +213,11 @@ class AppDatabase extends _$AppDatabase {
             if (rows.isNotEmpty) {
               await batch((b) => b.insertAll(assetPhotos, rows));
             }
+          }
+          if (from < 3) {
+            // V2 -> V3: introduce budget_months. No backfill: months without a
+            // budget are a normal state (home shows the onboarding card).
+            await m.createTable(budgetMonths);
           }
         },
       );

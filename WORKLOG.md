@@ -4,6 +4,7 @@
 > ⚠️ 并发写入约定：追加前先重新读取文件最新版，在头部插入自己的段落，不要重建文件横幅；管理层 patch 前同样先重读。
 
 ## 2026-09-12（T-11 执行层施工记录：快记页整体重设计 B+C 混合）
+- 📌 **本票 commit = `17c135f`**（已 push；收工三连 WORKLOG → commit → push 完成）
 ### 做了什么
 1. **`lib/pages/quick_entry_page.dart` 整页重构**（DESIGN_MAIN §4，用户定稿 B+C 混合）：
    - **两个输入**：新增「项目名称」输入行（`entry_name`，elevated + hairline，高 44，hint「项目名称 · 如 瑞幸咖啡」）；金额改由 4×3 键盘输入、单独显示（Playfair 600 / 42px + tabular）

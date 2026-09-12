@@ -7,20 +7,22 @@
 > DoD（每票通用）：`flutter analyze` 零错误 + `flutter test` 全绿 + Windows 实跑证据（Dart PNG + md5 唯一）+ 受影响 integration 脚本通过。
 
 ## T-10 预算引擎 + 新主页（本波核心，功能与 UI 都是大头）
-**数据层（V2→V3 迁移）**
+> **拆两步**：T-10a（数据+引擎，**与 UI 无关，立即可开工**）/ T-10b（主页 UI，**等用户过目第①屏后开工**）
+
+### T-10a 数据层 + 预算引擎（立即可开工）
 - 新表 `budget_months`：`id` UUID / `year_month` TEXT(`YYYY-MM`，唯一) / `income_cents` INT / `savings_target_cents` INT / 三时间戳 / `deleted_at` 墓碑
 - 迁移 V2→V3：createTable（无历史回填）；仓储 `BudgetRepository`（按年月 upsert / 读单月 / 按月列表）
-
-**引擎（纯函数 `BudgetEngine`，全部整数分）**
-- `daysInMonth`（闰年判定）/ `remainingDays = daysInMonth − dayOfMonth + 1`（含今天）
-- `budgetCents = income − savings`；`spentCents` = 本月已确认支出（**draft/收入/transfer 不计**，T-05 口径）
-- `fixedDailyCents = budgetCents ÷ daysInMonth`（向下取整）
-- `remainingCents = budgetCents − spentCents`（可负）
-- `liveDailyCents = remainingCents ÷ remainingDays`（**向下取整**，负值显示钳 0）
-- 无预算记录 → 三个额度返回 `null`（主页走引导态，**不显示假数字**）
+- 纯函数 `BudgetEngine`（全部整数分）：
+  - `daysInMonth`（闰年判定）/ `remainingDays = daysInMonth − dayOfMonth + 1`（含今天）
+  - `budgetCents = income − savings`；`spentCents` = 本月已确认支出（**draft/收入/transfer 不计**，T-05 口径）
+  - `fixedDailyCents = budgetCents ÷ daysInMonth`（向下取整）
+  - `remainingCents = budgetCents − spentCents`（可负）
+  - `liveDailyCents = remainingCents ÷ remainingDays`（**向下取整**，负值显示钳 0）
+  - 无预算记录 → 三个额度返回 `null`（**不显示假数字**）
 - **边界单测全套**：跨月重置 / 2 月与闰年 / 当月最后一天(remainingDays=1) / 超支负值 / `budgetCents ≤ 0` 防御 / draft 不计 / 编辑历史记录后即时重算
+- 验收：边界单测全绿 + analyze/test 全绿（**本步无 UI 变更，不动首页**）
 
-**新主页（启动页，DESIGN_MAIN §3）**
+### T-10b 新主页 UI + IA 切换（等用户过目 design/MAIN_preview.html 第①屏）
 - 顶栏：月份标题（可左右切换看历史月，**只读**）+ 预算设置入口
 - Hero 卡：eyebrow「今天还能花」+ **实时额度（Playfair 衬线 + 金渐变，tabular 数字）** + 副行「基准/剩余额度/剩 N 天」
 - 进度区：本月已花 / 预算可花 + 进度条（gold，超支满格转 `semanticExpense`）+ 百分比 + 预算构成说明
@@ -28,11 +30,9 @@
 - 主 CTA「记一笔」→ 压栈进快记页；次级「明细」→ 明细页
 - AI 占位卡（M2.0 填充，**不放假数据**）
 - 引导态（无预算）：Hero 换「先设置本月预算」卡 → 预算 sheet（收入 + 计划存款，数字键盘输入）+ 「沿用上月数值」一键
-
-**顺带项（管理层指令）**：更新 `AGENTS.md` 两处——①工作流程条款的「当前派工工单」指向 `TICKETS_M2A.md`（并注明 `TICKETS_M1.md` 为已完成的 M1.0 存档）②UI 铁律中「首页即速记键盘、无导航层」已作废，改为「首页 = 分析页（A0），速记页为二级，[记一笔] 一键可达」——**原因：管理层 session 对 AGENTS.md 的写入被防护栏拦下（授权超时），按规矩不绕过，转由执行层订正**
-
-**IA 变更**：`main.dart` 首页改为分析页；快记页保留全部既有能力但降为二级（返回键回主页）。**T-09「首页即键盘」铁律作废**（用户 2026-09-11 明确推翻）
-- 验收：引擎边界单测全绿 + Windows 实跑（主页引导态 / 已设置态 / 超支态三帧）+ 受影响的 t09a/t09c/t09c2 速记相关 integration 断言按新 IA 更新后通过
+- **IA 变更**：`main.dart` 首页改为分析页；快记页保留全部既有能力但降为二级（返回键回主页）。**T-09「首页即键盘」铁律作废**（用户 2026-09-11 明确推翻）
+- **顺带项（管理层指令）**：更新 `AGENTS.md` 两处——①工作流程条款的「当前派工工单」指向 `TICKETS_M2A.md`（注明 `TICKETS_M1.md` 为已完成的 M1.0 存档）②UI 铁律中「首页即速记键盘、无导航层」已作废 → 改为「首页 = 分析页（A0），速记页为二级、[记一笔] 一键可达」。原因：管理层 session 对 AGENTS.md 的写入被防护栏拦下（授权超时），按规矩不绕过，转由执行层订正
+- 验收：Windows 实跑三帧（引导态 / 已设置态 / 超支态）+ 受影响的 t09a/t09c/t09c2 速记相关 integration 断言按新 IA 更新后通过
 
 ## T-11 快记页重设计（**方向待用户选型后开工，禁止先动**）
 - 用户将在 DESIGN_MAIN §4 三方向（A 素净计算器 / B 额度联动 / C 类别优先）中选一 → 管理层更新本票为「按方向 X 落地」后开工

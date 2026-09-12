@@ -63,9 +63,10 @@ class _FakeCategoryRepository implements CategoryRepository {
 }
 
 class _FakeTransactionRepository implements TransactionRepository {
-  _FakeTransactionRepository(this.transactions);
+  _FakeTransactionRepository(this.transactions, {this.draftCount = 0});
 
   final List<Transaction> transactions;
+  final int draftCount;
 
   @override
   Stream<List<Transaction>> watchAll() => Stream.value(transactions);
@@ -97,7 +98,7 @@ class _FakeTransactionRepository implements TransactionRepository {
   Stream<List<Transaction>> watchDrafts() => Stream.value(const []);
 
   @override
-  Stream<int> watchTodayDraftCount() => Stream.value(0);
+  Stream<int> watchTodayDraftCount() => Stream.value(draftCount);
 
   @override
   Future<int> updateFields(
@@ -105,6 +106,18 @@ class _FakeTransactionRepository implements TransactionRepository {
     String? categoryId,
     String? merchant,
     String? note,
+  }) =>
+      throw UnimplementedError();
+
+  @override
+  Future<int> updateTransaction({
+    required String id,
+    required int amountCents,
+    required TransactionType type,
+    required String? categoryId,
+    required String? merchant,
+    required String? note,
+    required DateTime occurredAt,
   }) =>
       throw UnimplementedError();
 
@@ -171,12 +184,13 @@ Widget harness({
   BudgetMonth? budget,
   List<Transaction> transactions = const [],
   List<Category> categories = const [],
+  int draftCount = 0,
 }) =>
     ProviderScope(
       overrides: [
         budgetRepositoryProvider.overrideWithValue(_FakeBudgetRepository(budget)),
-        transactionRepositoryProvider
-            .overrideWithValue(_FakeTransactionRepository(transactions)),
+        transactionRepositoryProvider.overrideWithValue(
+            _FakeTransactionRepository(transactions, draftCount: draftCount)),
         categoryRepositoryProvider
             .overrideWithValue(_FakeCategoryRepository(categories)),
       ],
@@ -255,6 +269,24 @@ void main() {
     expect(find.textContaining('已超支'), findsNothing);
     expect(find.textContaining('基准 ¥'), findsOneWidget,
         reason: 'the hero still renders (derived figures exist, just negative)');
+  });
+
+  testWidgets('ledger entry opens the real ledger page (T-12 wiring)',
+      (tester) async {
+    await tester.pumpWidget(harness(categories: categories));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('home_ledger_cta')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('ledger_back')), findsOneWidget);
+    expect(find.byKey(const Key('ledger_month_label')), findsOneWidget);
+  });
+
+  testWidgets('draft badge on the ledger entry reads 今日 N 笔待完善',
+      (tester) async {
+    await tester.pumpWidget(harness(categories: categories, draftCount: 2));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('home_draft_badge')), findsOneWidget);
+    expect(find.text('今日 2 笔待完善'), findsOneWidget);
   });
 
   testWidgets('donut merges beyond 3 categories into 其他', (tester) async {

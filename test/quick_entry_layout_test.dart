@@ -77,6 +77,18 @@ class _TxRepo implements TransactionRepository {
       throw UnimplementedError();
 
   @override
+  Future<int> updateTransaction({
+    required String id,
+    required int amountCents,
+    required TransactionType type,
+    required String? categoryId,
+    required String? merchant,
+    required String? note,
+    required DateTime occurredAt,
+  }) =>
+      throw UnimplementedError();
+
+  @override
   Future<int> confirmedExpenseCentsInRange(DateTime start, DateTime end) async => 0;
 
   @override

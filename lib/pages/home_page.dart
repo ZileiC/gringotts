@@ -7,6 +7,7 @@ import '../app/app.dart';
 import '../data/app_database.dart';
 import '../data/repositories/budget_repository.dart';
 import '../domain/models.dart';
+import '../pages/ledger_page.dart';
 import '../pages/quick_entry_page.dart';
 import '../services/budget_engine.dart';
 import '../services/statistics_service.dart';
@@ -76,13 +77,8 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   void _openLedger() {
-    // Ledger page is ticket T-12; the entry exists now so the fixed action bar
-    // matches the approved frame, and is wired when that page lands.
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('明细页即将上线'),
-        duration: Duration(seconds: 2),
-      ),
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const LedgerPage()),
     );
   }
 
@@ -656,14 +652,20 @@ class _AiCard extends StatelessWidget {
 }
 
 /// Fixed bottom action bar: 记一笔 (gold gradient) + 明细 (gold outline).
-class _BottomActionBar extends StatelessWidget {
+///
+/// The 明细 entry carries the "今日 N 笔待完善" draft badge (T-11 acceptance
+/// ruling: the old quick-entry badge moves to the home ledger entry).
+class _BottomActionBar extends ConsumerWidget {
   const _BottomActionBar({required this.onRecord, required this.onLedger});
 
   final VoidCallback onRecord;
   final VoidCallback onLedger;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final draftCount = ref
+        .watch(transactionRepositoryProvider)
+        .watchTodayDraftCount();
     return SafeArea(
       top: false,
       child: Container(
@@ -725,7 +727,28 @@ class _BottomActionBar extends StatelessWidget {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  child: const Text('明细'),
+                  child: StreamBuilder<int>(
+                    stream: draftCount,
+                    builder: (context, snapshot) {
+                      final count = snapshot.data ?? 0;
+                      if (count <= 0) return const Text('明细');
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text('明细'),
+                          Text(
+                            '今日 $count 笔待完善',
+                            key: const Key('home_draft_badge'),
+                            style: const TextStyle(
+                              fontSize: AppFont.caption,
+                              height: 1.1,
+                              color: AppColors.onGoldContainer,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
                 ),
               ),
             ),

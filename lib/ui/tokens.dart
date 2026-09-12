@@ -99,14 +99,6 @@ abstract final class AppColors {
       ? neutralChartScale[index % neutralChartScale.length]
       : chartColor(index);
 
-  // Motion (§4): one-shot sheen highlight swept across the confirm CTA.
-  // White-alpha highlight, deliberately NOT a gold gradient.
-  /// Sheen band core (22% white) - DESIGN_T09 section 4.
-  static const Color sheen = Color(0x38FFFFFF);
-
-  /// Sheen band edge (fully transparent, same hue family for a clean fade).
-  static const Color sheenEdge = Color(0x00FFFFFF);
-
   // Backwards-compatible aliases used across existing pages.
   /// Deprecated alias for [surface].
   static const Color surfaceBlack = canvas;

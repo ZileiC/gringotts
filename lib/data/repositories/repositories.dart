@@ -166,6 +166,35 @@ class TransactionRepository {
       updatedAt: Value(now),
     ));
   }
+
+  /// Full-field edit for the ledger sheet (T-12).
+  ///
+  /// Every editable column is written explicitly, so a `null` merchant/note
+  /// actually clears the field (unlike a partial update). `is_draft` and
+  /// `source` are deliberately untouched: editing a draft keeps it a draft
+  /// (promotion stays in the review page), and `updated_at` is refreshed.
+  Future<int> updateTransaction({
+    required String id,
+    required int amountCents,
+    required TransactionType type,
+    required String? categoryId,
+    required String? merchant,
+    required String? note,
+    required DateTime occurredAt,
+  }) {
+    assert(amountCents >= 0, 'amount_cents must be a non-negative integer');
+    final now = DateTime.now().toUtc();
+    return (_db.update(_db.transactions)..where((t) => t.id.equals(id)))
+        .write(TransactionsCompanion(
+      amountCents: Value(amountCents),
+      type: Value(type),
+      categoryId: Value(categoryId),
+      merchant: Value(merchant),
+      note: Value(note),
+      occurredAt: Value(occurredAt),
+      updatedAt: Value(now),
+    ));
+  }
   /// Permanently marks a draft transaction as a confirmed record.
   Future<int> confirmDraft(String id) {
     return (_db.update(_db.transactions)

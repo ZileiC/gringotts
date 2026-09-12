@@ -83,6 +83,22 @@ Future<void> enterSpeedEntry(WidgetTester tester) async {
   await tester.pumpAndSettle(const Duration(seconds: 2));
 }
 
+/// Tombstones drafts this test creates (evidence clause: a script cleans up
+/// the rows it seeds). The confirm taps below create drafts; they used to leak
+/// into later runs and show on the home 待完善 badge (T-12 finding).
+Future<void> captureDraftsForCleanup(
+  WidgetTester tester,
+  ProviderContainer container,
+) async {
+  final repo = container.read(transactionRepositoryProvider);
+  final before = (await repo.watchDrafts().first).map((t) => t.id).toSet();
+  addTearDown(() async {
+    for (final draft in await repo.watchDrafts().first) {
+      if (!before.contains(draft.id)) await repo.softDelete(draft.id);
+    }
+  });
+}
+
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
@@ -90,6 +106,7 @@ void main() {
       'count-up spring, hero easeOutCubic', (tester) async {
     final container = ProviderContainer();
     addTearDown(container.dispose);
+    await captureDraftsForCleanup(tester, container);
     await tester.pumpWidget(harness(container));
     await tester.pumpAndSettle(const Duration(seconds: 2));
 
@@ -117,9 +134,9 @@ void main() {
     expect(settled, AppColors.goldContainer);
     await snap(tester, '01_category_selected');
 
-    // ---------- 2. sheen removed; amount + confirm still work ----------
-    expect(find.byType(SheenSweep), findsNothing,
-        reason: 'T-11 removed the sheen sweep from the page');
+    // ---------- 2. amount + confirm still work (SheenSweep was deleted as
+    // dead code in T-12; the outline-style confirm asserted below via
+    // gradient == null is the remaining semantic guarantee) ----------
     await tester.ensureVisible(find.byKey(const Key('key_1')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('key_1')));
@@ -247,6 +264,7 @@ void main() {
 
     final container = ProviderContainer();
     addTearDown(container.dispose);
+    await captureDraftsForCleanup(tester, container);
     await tester.pumpWidget(harness(container));
     await tester.pumpAndSettle(const Duration(seconds: 2));
 
@@ -284,8 +302,7 @@ void main() {
       await tester.tap(find.byKey(Key('key_$key')));
       await tester.pump();
     }
-    expect(find.byType(SheenSweep), findsNothing,
-        reason: 'the sheen is removed, not merely skipped');
+    // The sheen widget no longer exists at all (deleted in T-12).
     await tester.tap(find.byKey(const Key('confirm_cta')));
     await tester.pump();
     expect(haptics.map((MethodCall c) => c.arguments),

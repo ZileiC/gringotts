@@ -3,6 +3,18 @@
 > 执行层（Codex）每次收工在顶部追加一段：做了什么 / 关键决策 / 遗留问题 / 下一步。管理层（Hermes）通过本文件验收进度。
 > ⚠️ 并发写入约定：追加前先重新读取文件最新版，在头部插入自己的段落，不要重建文件横幅；管理层 patch 前同样先重读。
 
+## 2026-09-13（管理层事故记录：执行层 T-12c 掉线 → WIP 已保全 + 续工票重开 + T-13 拆票）
+- 📌 **保全 commit = `cc26215`**（WIP T-12c parts A–D，已 push；**未验收**，不得当作完工）
+- **事故**：执行层在 T-12c 施工中途掉线，工作区留下**整票未提交**的施工（24 文件改/删 + 2 新增 `lib/pages/home_shell.dart`、`test/home_shell_test.dart`），零 commit、零 push、无 WORKLOG、无证据、无 APK——本项目最脆弱状态（第 1 条教训翻版：一次误 reset 即全丢）
+- **管理层核查（源码级 + 实测，基线 `cc26215`）**：
+  1. `flutter analyze` → **No issues found**，四部分源码完整：Part A 导航壳（单 Scaffold + IndexedStack + `home_record_cta` 压栈）；Part B 快记确认 `isDraft: false`、`review_page.dart` 与 `integration_test/t03_flow_test.dart` 已删；Part C `updateFields` 整方法移除（全仓零引用）；Part D 月历 sheet 已实现、左右箭头已移除；11 个 integration 脚本完成级联源码适配（t10b 播种改固定时间戳）
+  2. `flutter test` → **179 passed / 3 failed，且整轮不退出（挂死）**；确定性定位（逐文件 90s 上限）：**`test/home_shell_test.dart` 超时挂起**（EXIT=124），其余可疑文件单独跑全绿（quick_entry_defaults / smart_parser / smart_prefill / statistics_service / tombstone / quick_entry_layout）。失败根因已定：Finder 未设 `skipOffstage: false`（IndexedStack 非选中子页 offstage ⇒ `AssetsPage` 找不到）、drift `StreamQueryStore` 流未释放（pending Timer）；另 `test/home_page_test.dart` 月历切换 1 例失败（sheet pop 后 setState 时序）
+- **保全动作**：管理层立即 `git add lib test integration_test` → commit `cc26215` → push（工作区随即干净，执行层可无缝续工）；**未改动任何代码**
+- **管理层裁决（技术）**：① 原 T-13 拆为 **T-13a**（资产字体回归 + 照片 GC + M1.x 清账）/ **T-13b**（wordmark 裁决 + 全量回归 + APK + 完工报告）——掉线风险下小票更省、损失面更小，原票语义不变仅分两轮 ② 「记一笔」从统计/资产 tab 进入后返回**必须落回分析页**（工单字面：快记页 = 分析页下一级）⇒ push 前 `_index = 0` + 补断言 ③ 月历「未来月禁用」断言随箭头删除而丢失 ⇒ 必须在 sheet 上重建，不得只靠实现
+- **管理层文档订正（本轮已做，仅 .md）**：`DESIGN_MAIN.md` §1 IA 升 v3（导航壳 + 三 tab 平级 + 快记即正式）、§4.1 保留清单、§5 草稿标记、§7 金渐变处（新增底栏「记一笔」主按钮，仍 ≤4）、§8 新增 T-12c 验收条目；`TICKETS_M2A.md` 重开为续工票 + 拆 T-13；`SESSION_PROMPTS.md` §B 改续工 prompt。⚠️ `AGENTS.md` 数据铁律订正（draft → 快记即正式）**写入被防护栏拦下（需用户当次批准）**，仍待批
+- **待用户决策**：① 是否批准 `AGENTS.md` 该行订正（现为**错误规则**，每回合注入执行层上下文，有误导成本）② 是否新增派工条款「执行层每完成一个 Part 立即 `WIP T-xx: Part N` 提交」（掉线最多损失一个 Part）③ T-13b 的「启动画面 wordmark 去重」裁决
+- **下一步**：派 T-12c 续工（prompt = `SESSION_PROMPTS.md` §B）→ 验收 → T-13a → T-13b
+
 ## 2026-09-12（管理层验收记录：T-12 ✅ 通过 —— 附 1 项 P1 缺陷立票 + 1 项口径裁决）
 - **五层验收**：
   1. 记录核对：`e581909`（T-12 本体）+ `0e383f8`（hash 记录）双提交，工作区干净、已 push；收工三连完整 ✓

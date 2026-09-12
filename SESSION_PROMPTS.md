@@ -1,39 +1,55 @@
 # SESSION_PROMPTS.md — 当前两个 session 的开场 prompt（复制即用）
 
-> 维护：管理层。每次派工/交接后更新。**注意 T-12b 已合并入 T-12c（其唯一危险调用点在回顾页，随 Part B 删除）**。
+> 维护：管理层。每次派工/交接后更新。
+> 2026-09-13：执行层掉线事故 → T-12c 转为**续工票**（WIP 已保全 `cc26215`）；原 T-13 拆为 **T-13a / T-13b**。
 
 ## A. 新管理层 session 的开场 prompt
 
 ```
 你是 Gringotts 项目的新任管理层 session（Hermes）。项目档案 = C:/Users/JHarayden/Desktop/Gringotts。
 
-先读一次（仅此一次）：HANDOFF_MANAGEMENT.md —— 你的角色权限边界、双 session 协议、五层验收协议、成本纪律、施工 prompt 写法、M2.0/M3/M4 路线图、8 条事故教训都在里面。
+先读一次（仅此一次）：HANDOFF_MANAGEMENT.md —— 你的角色权限边界、双 session 协议、五层验收协议、成本纪律、施工 prompt 写法、M2.0/M3/M4 路线图、9 条事故教训都在里面。
 
-日常开工只读三样：PROJECT_STATE.md → TICKETS_M2A.md（当前票 T-12c → T-13）→ WORKLOG.md 顶部两条。设计细节按需只读章节（如 DESIGN_MAIN §3），不要整篇读。
+日常开工只读三样：PROJECT_STATE.md → TICKETS_M2A.md（当前票 T-12c 续工 → T-13a → T-13b）→ WORKLOG.md 顶部两条。设计细节按需只读章节（如 DESIGN_MAIN §3 第 1 条），不要整篇读。
 
 职责：brainstorm、派工、验收（结论必标 commit hash）、GitHub 仓库管理；代码只读不改。成本敏感：每票约 ¥15，严格执行 HANDOFF §4 降本纪律与 §5 prompt 写法。
 
-接手第一件事：读 HANDOFF §8 开放项，然后给用户 T-12c 的施工 prompt（本文件 §B 已是现成版）。
+接手第一件事：读 HANDOFF §8 开放项，确认工作区是否有执行层遗留的未提交施工（若有 → 先 commit 保全，见 §7 第 9 条），再派工。
 ```
 
-## B. 执行层 T-12c 的施工 prompt（结构+流程重构，含原 T-12b）
+## B. 执行层 T-12c **续工** 的施工 prompt（复制即用）
 
 ```
-继续 Gringotts 施工。先读 PROJECT_STATE.md + TICKETS_M2A.md 的 T-12c + DESIGN_MAIN.md §3 第 1 条（月份按钮与月历弹窗规格）——只读这些，其余不必读。
+继续 Gringotts 施工：T-12c 续工。先读 PROJECT_STATE.md + TICKETS_M2A.md 的 T-12c（「现状 / 剩余」两段）+ WORKLOG.md 顶部管理层条目；设计细节只在需要时读 DESIGN_MAIN §3 第 1 条。不要整篇读设计文档。
 
-任务：T-12c 结构+流程重构（四部分，一次改到位）
-Part A 导航层级：顶级=底部 tab bar 三页平级（分析/资产/统计，key: tab_home/tab_assets/tab_stats，切换不压栈）；「记一笔」= 底栏上方居中金色主按钮，点击压栈进快记页（快记页=分析页下一级，返回回分析页）；明细页改为统计页的子页（统计页顶部「明细 ›」入口）；删除分析页原 [记一笔][明细] 双按钮与快记页顶栏三入口（quick_review/quick_assets/quick_stats）。**一个导航壳**（单一 Scaffold + IndexedStack 或等效）：tab 切换保状态、主按钮常驻、任一 tab 都可达「记一笔」。
-Part B 快记即正式：快记确认直接写 is_draft=false，立即进统计/预算/明细；删除 review_page.dart 与批量补类别（_applyBulkAndConfirm）、主页待完善徽章与 watchTodayDraftCount、明细页待完善分支；is_draft 列与统计/预算的草稿排除逻辑保留（不迁移、不删列）；dev 库残留 live 草稿墓碑清理；t03_flow_test 整条删除、draft_workflow_test 草稿用例删除但保留其中统计口径断言（改为直接建正式记录）、widget_test/home_page_test 依赖徽章草稿的断言同步删改，不留死引用。
-Part C 隐患收口：审计 updateFields 剩余调用点——无调用则整方法删除，有调用则改 Value<String?>(absent=不动/null=清空)。顺带：证据脚本播种改固定时间戳（跨 run 帧 md5 漂移根因）。
-Part D 月份选择：主页左上月份标题改「月份按钮」，点开月历 sheet（规格严格照 DESIGN_MAIN §3 第 1 条：年份 ‹ 2026 › + 月份 3×4 宫格、当前月金边选中、未来月灰显禁用、选中即切换、与类别网格同语言、禁渐变投影）；删除右上左右箭头，只留预算设置 ⚙。
+背景：T-12c 四部分上一轮已写完并保全在 commit cc26215（未验收，勿重做）。你的任务是把剩余项收干净。
 
-级联（本票最烧钱处，务必一次收干净）：11 个 integration 脚本仍引用被删入口/徽章 key——t03 / t04 / t05 / t09a / t09b / t09c / t09c2 / t09d / perf_scan / t11 / t10b。逐个适配入口引用并跑通；t10b / t11 / t12 属回归，帧落 `evidence/regression/`，不覆盖原票证据。收工时列出：删了哪些测试/脚本、改了哪些、各自结果。
+剩余项：
+① test/home_shell_test.dart 会挂死整轮 flutter test（单独跑 90s 超时）——两个用例要修：AssetsPage 断言需 skipOffstage: false（IndexedStack 非选中页是 offstage）；「记一笔压栈」用例 pending drift Timer 未释放（补 close/addTearDown/pumpAndSettle）。
+② test/home_page_test.dart 的「月历 sheet 切换月」用例失败（伴随 deactivated widget ancestor）——查 sheet pop 后 setState 时序。
+③ 管理层裁决：从任一 tab 点「记一笔」，返回必须落回分析页 → _openQuickEntry 前 _index = 0，并补导航断言。
+④ 月历补「未来月灰显不可点」断言（原 future 箭头断言已随箭头删除），并断言箭头无残余 key。
+⑤ 证据：受影响 integration 逐个跑通（t10b/t11/t12 属回归，帧落 evidence/regression/，不覆盖原票 evidence）；新增 t12c 专属 integration（tab 切换不压栈 / 记一笔压栈 / 月历切换），帧 md5 唯一。反浪费：脚本先声明前提，播种用固定时间戳，失败不盲目重跑。
+⑥ 收工：重建 release APK（gringotts-T12c-release.apk）交付用户；申报「删了哪些测试 / 改了哪些 / 各自结果」与测试数量变化。
 
-文档顺带（你直接改）：AGENTS.md 数据铁律「draft 入库…确认后才进统计」→「快记即正式（is_draft=false），立即计入统计；草稿链路已废除」；DESIGN_MAIN §4.1 保留清单的「draft 入库」与 §5 草稿标记录同步订正。
-
-验收：①三 tab 平级切换 + 记一笔压栈进快记页（导航断言）②统计页可达明细 ③快记一笔后立即可在明细/统计/主页额度看到（无需确认）④回顾页/批量补类别/徽章 代码与测试全清（无死引用）⑤updateFields 无残留陷阱 ⑥月份按钮+月历可用、箭头已移除 ⑦analyze 零错 + test 全绿（申报时说明删了哪些测试）⑧Windows 实跑帧（Dart PNG + md5 唯一）⑨完成后重建 release APK 交付用户。
+不要改 DESIGN_MAIN.md（管理层已订正）与 AGENTS.md（受防护栏约束，未获用户批准就跳过并在 WORKLOG 记一笔）。
 规则：收工三连 WORKLOG → commit（T-12c: …）→ push；停下等验收。
 ```
 
-## C. 备查：T-13（T-12c 验收后派工）
-资产页净值大数字恢复衬线金渐变 / 照片孤儿 GC（先 dry-run）/ M1.x 清账 / **启动画面 wordmark 去重（待用户裁决）** / 全量回归 + APK + 完工报告。
+## C. 备查：T-13a / T-13b 施工 prompt（T-12c 验收通过后派工）
+
+**T-13a（收尾 I：资产与存储）**
+```
+继续 Gringotts 施工。T-12c 已验收。先读 PROJECT_STATE.md + TICKETS_M2A.md 的 T-13a + DESIGN_MAIN §6。
+任务：① 资产页净值大数字恢复 Playfair 衬线 + 金渐变（其余数字 tabular sans 不变）② 照片孤儿文件 GC：gringotts/photos/ 无 DB 引用（含墓碑）的文件清理，先 dry-run 后 apply，输出前后数量 ③ t09e 过时注释订正（如再触碰）。
+验收：净值字体/渐变与 spec 逐值一致（源码 + 帧）；GC 前后数量自洽、被引用文件零误删；analyze 零错 + test 全绿；帧 md5 唯一。
+规则：收工三连 WORKLOG → commit（T-13a: …）→ push；停下等验收。
+```
+
+**T-13b（收尾 II：全量回归与交付）—— 派工前先拿用户对「启动画面 wordmark 去重」的裁决**
+```
+继续 Gringotts 施工。T-13a 已验收。先读 PROJECT_STATE.md + TICKETS_M2A.md 的 T-13b + DESIGN_T09 §8。
+任务：① 启动画面 wordmark 去重（用户裁决结果：<派工时填入>）② 全量回归：快记→立即入账→统计→资产→详情→编辑→明细→导出 全链路实跑（须覆盖新导航：三 tab + 记一笔压栈 + 明细从统计页进入）③ release APK 重建交付 ④ 完工报告：对照 DESIGN_T09 §8 + DESIGN_MAIN 逐页核对。
+验收：全链路 integration 通过且前置条件自声明；完工报告逐页无遗漏；APK md5 交付；analyze + test 全绿。
+规则：收工三连 WORKLOG → commit（T-13b: …）→ push；停下等验收。
+```

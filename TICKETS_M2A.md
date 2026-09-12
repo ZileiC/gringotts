@@ -54,6 +54,12 @@
 - **规格确认（随本条撤回补入 DESIGN_MAIN §4.1）**：速记页结构 = **顶栏固定 + 中段可滚 + 确认键固定**——「3 秒一笔」的可达性保障
 - 顺带（可选）：`SheenSweep` 已无消费件（确认键改描边后），属死代码 → 与 N1 同理，**T-12/T-13 顺手删**；`MotionChip` 保留（T-12 筛选 chips 会用）
 
+## T-12b 必修：`updateFields` 数据丢失（P1，管理层 2026-09-12 验收时实锤）
+**缺陷**：`TransactionRepository.updateFields` 无条件写 `Value(merchant)` / `Value(note)`，而调用方 `ReviewPage._applyBulkAndConfirm`（`review_page.dart:54`）只传 `categoryId` ⇒ **批量补类别时把草稿的商户与备注清成 null**。这是用户主流程（快记时在「项目名称」里输了「瑞幸」→ 之后回顾页批量补类别 → 商户悄悄丢失）上的**静默数据丢失**，已由管理层在源码级确认。
+**修法（建议，执行层可择优）**：把「未提供」与「置空」在类型上区分开——参数改用 drift 的 `Value<String?>`（`Value.absent()` = 不动，`Value(null)` = 清空），或为每个字段加显式 flag；同步审计 `updateFields` 的**全部调用点**（含测试），确保语义各自正确；`updateTransaction`（T-12 新增）已是显式全字段写，无需改动。
+**验收**：① 批量补类别后 **merchant/note 原值保留**（回归断言）② 需要清空时仍能清空（显式传 `Value(null)`）③ `analyze` 零错误 + `test` 全绿
+**顺带（证据纪律）**：本票复跑时列表/编辑帧跨 run md5 有差异，根因是**证据脚本播种的时间戳取自 `now`（如 now−2h）⇒ 帧内显示的时刻随 run 漂移**。约定：证据脚本播种**使用固定时间戳**（或以相对时间并在 run log 注明），使帧 md5 可跨 run 比对
+
 ## T-12 明细页（全部收支查看 + 全字段编辑，DESIGN_MAIN §5）
 - 入口：主页「明细」按钮（+ 统计页可选）
 - **结构铁律（用户裁决③）：唯一默认层级 = 时间 —— `月 → 日 → 条目`**

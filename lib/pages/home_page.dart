@@ -72,6 +72,10 @@ class _HomePageState extends ConsumerState<HomePage> {
     if (!reduceMotion) {
       await showModalBottomSheet<void>(
         context: context,
+        // The calendar is a fixed handle + year row + 3x4 grid (~342dp). The
+        // default modal cap of 9/16 of the screen (337.5dp on a 600dp high
+        // surface) clipped its bottom edge, so let the sheet size to content.
+        isScrollControlled: true,
         builder: (_) => _MonthSheet(
           selected: _month,
           today: today,

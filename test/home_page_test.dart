@@ -180,6 +180,16 @@ Widget harness({
       ),
     );
 
+/// Text colour of a month cell: the disabled (future) state uses the muted
+/// token, the selection is gold, every selectable month keeps primary ink.
+Color? cellTextColor(WidgetTester tester, int month) => tester
+    .widget<Text>(find.descendant(
+      of: find.byKey(Key('month_sheet_cell_$month')),
+      matching: find.byType(Text),
+    ))
+    .style
+    ?.color;
+
 void main() {
   final categories = [
     _cat(categoryIdDining, '餐饮'),
@@ -262,8 +272,15 @@ void main() {
     expect(find.byKey(const Key('home_month_sheet')), findsOneWidget);
 
     final now = DateTime.now();
+    final homeLabel = '${now.year} 年 ${now.month} 月';
     expect(find.byKey(const Key('month_sheet_year')), findsOneWidget);
     expect(find.text('${now.year}'), findsOneWidget);
+    // T-12c Part D removed the ‹ › month arrows: no residual key anywhere
+    // (the sheet's own ‹ › belong to the year row and are keyed separately).
+    expect(find.byKey(const Key('home_month_prev')), findsNothing);
+    expect(find.byKey(const Key('home_month_next')), findsNothing);
+    expect(find.text(homeLabel), findsOneWidget,
+        reason: 'the month bar shows the selected month');
 
     // The next year is disabled: tapping does not advance the year label.
     await tester.tap(find.byKey(const Key('month_sheet_year_next')));
@@ -271,12 +288,26 @@ void main() {
     expect(find.text('${now.year}'), findsOneWidget,
         reason: 'future year is disabled');
 
-    // A future month in the current year is disabled (sheet stays open).
+    // A future month in the current year is greyed out and NOT tappable: the
+    // sheet stays open and the displayed month does not move. This rebuilds
+    // the assertion that was lost with the removed future arrow.
     if (now.month < 12) {
-      await tester.tap(find.byKey(Key('month_sheet_cell_${now.month + 1}')));
+      final future = now.month + 1;
+      expect(cellTextColor(tester, future),
+          AppColors.inkSecondary.withValues(alpha: 0.4),
+          reason: 'future month is muted');
+      expect(cellTextColor(tester, now.month), AppColors.goldAccent,
+          reason: 'the current month keeps the gold selection');
+      if (now.month > 1) {
+        expect(cellTextColor(tester, 1), AppColors.ink,
+            reason: 'a selectable past month keeps primary ink');
+      }
+      await tester.tap(find.byKey(Key('month_sheet_cell_$future')));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key('home_month_sheet')), findsOneWidget,
           reason: 'future month must not be selectable');
+      expect(find.text(homeLabel), findsOneWidget,
+          reason: 'a disabled month can not switch the home data');
     }
 
     // A guaranteed past month closes the sheet and switches the home data.

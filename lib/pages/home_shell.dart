@@ -25,6 +25,10 @@ class _HomeShellState extends State<HomeShell> {
   int _index = 0;
 
   void _openQuickEntry() {
+    // Ruling (2026-09-13): the speed-entry page is the analysis page's child,
+    // so returning from it must land on analysis even when 记一笔 was tapped
+    // from the assets or statistics tab.
+    setState(() => _index = 0);
     Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => const QuickEntryPage()),
     );

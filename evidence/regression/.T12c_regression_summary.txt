@@ -1,0 +1,18 @@
+T-12c regression (T-10b / T-11 / T-12 re-run after the T-12c fixes)
+runner:  flutter test integration_test/<file>.dart -d windows   (Windows desktop engine)
+date:    2026-09-13
+
+file                     result            evidence log
+t10b_home_test           All tests passed  evidence/regression/t10b_home_test.log
+t11_quick_entry_test     All tests passed  evidence/regression/t11_quick_entry_test.log
+t12_ledger_test          All tests passed  evidence/regression/t12_ledger_test.log
+t12c_shell_test (new)    All tests passed  evidence/t12c/.t12c_run_log.txt
+
+preconditions printed by the scripts themselves:
+T10B_PRECONDITION month=2026-09 live_today_expenses=0
+T11_PRECONDITION live_tx_before=0      T11B_PRECONDITION live_tx=0 spent=0 remaining=360000 remaining_days=18
+T12_PRECONDITION  live_tx=0            T12_PRECONDITION seeded=4 spent_this_month=4850
+T12C_PRECONDITION seeded=0 now=2026-9
+
+The original ticket records (evidence/t10b|t11|t12/.t*_frame_md5.txt) were NOT
+touched; the frames of this regression run were moved into this folder.

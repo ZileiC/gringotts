@@ -8,7 +8,10 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gringotts/app/app.dart';
+import 'package:gringotts/data/app_database.dart';
+import 'package:gringotts/data/repositories/budget_repository.dart';
 import 'package:gringotts/domain/seed_ids.dart';
+import 'package:gringotts/services/budget_engine.dart';
 import 'package:gringotts/ui/tokens.dart';
 import 'package:integration_test/integration_test.dart';
 
@@ -44,6 +47,45 @@ BoxDecoration cellDecoration(WidgetTester tester, String id) =>
 
 Color? cellBorder(WidgetTester tester, String id) =>
     (cellDecoration(tester, id).border as Border?)?.top.color;
+
+/// Stub budget repository for the T-11b top-of-page frame: keeps the dev DB
+/// untouched (the month budget there is tombstoned) while making the link row
+/// fully deterministic.
+class _StubBudgetRepo implements BudgetRepository {
+  _StubBudgetRepo(this.row);
+  final BudgetMonth row;
+
+  @override
+  Stream<BudgetMonth?> watchByMonth(String yearMonth) => Stream.value(row);
+
+  @override
+  Future<BudgetMonth?> getByMonth(String yearMonth) async => row;
+
+  @override
+  Future<List<BudgetMonth>> listMonths() async => <BudgetMonth>[row];
+
+  @override
+  Stream<List<BudgetMonth>> watchMonths() => Stream.value(<BudgetMonth>[row]);
+
+  @override
+  Future<BudgetMonth> upsert({
+    required String yearMonth,
+    required int incomeCents,
+    required int savingsTargetCents,
+  }) =>
+      throw UnimplementedError();
+
+  @override
+  Future<int> softDelete(String id) => throw UnimplementedError();
+}
+
+/// Mirrors the page's yuan formatting (70004 -> 700.04).
+String _money(int cents) {
+  final abs = cents.abs();
+  if (abs % 100 == 0) return (abs ~/ 100).toString();
+  if (abs % 10 == 0) return (abs / 100).toStringAsFixed(1);
+  return (abs / 100).toStringAsFixed(2);
+}
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -160,5 +202,109 @@ void main() {
 
     // Confirm cleared the keypad (T-11: clear lives on the amount row).
     expect(find.text('¥ 0'), findsOneWidget);
+  });
+
+  testWidgets('T-11b top-of-page frame: name + amount + budget link row',
+      (tester) async {
+    // Precondition (AGENTS.md evidence clause): the dev DB has no live month
+    // budget (the 2026-09 row is tombstoned), so the link row would be absent.
+    // A stub budget repo makes it present and deterministic without writing to
+    // the dev DB; the transaction set stays real and is read back below.
+    final now = DateTime.now();
+    final monthKey = '${now.year.toString().padLeft(4, '0')}-'
+        '${now.month.toString().padLeft(2, '0')}';
+    final budget = BudgetMonth(
+      id: 't11b-stub-budget',
+      yearMonth: monthKey,
+      incomeCents: 560000,
+      savingsTargetCents: 200000,
+      createdAt: now,
+      updatedAt: now,
+    );
+    final container = ProviderContainer(overrides: [
+      budgetRepositoryProvider.overrideWithValue(_StubBudgetRepo(budget)),
+    ]);
+    addTearDown(container.dispose);
+    await tester.pumpWidget(
+      RepaintBoundary(
+        key: const Key('app_repaint_boundary'),
+        child: UncontrolledProviderScope(
+          container: container,
+          child: const GringottsApp(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle(const Duration(seconds: 2));
+
+    final txRepo = container.read(transactionRepositoryProvider);
+    final transactions = await txRepo.watchAll().first;
+    final snapshot = BudgetEngine.compute(
+      budget: budget,
+      transactions: transactions,
+      now: now,
+    );
+    expect(snapshot.remainingCents, isNotNull);
+    // ignore: avoid_print
+    print('T11B_PRECONDITION live_tx=${transactions.length} '
+        'spent=${snapshot.spentCents} remaining=${snapshot.remainingCents} '
+        'remaining_days=${snapshot.remainingDays}');
+
+    await tester.tap(find.byKey(const Key('home_record_cta')));
+    await tester.pumpAndSettle(const Duration(seconds: 2));
+
+    // Link row is live before keying (amount 0).
+    final baseline = BudgetEngine.liveDailyCents(
+      remainingCents: snapshot.remainingCents!,
+      remainingDays: snapshot.remainingDays,
+    );
+    expect(
+      find.textContaining('记这笔后，今天还能花 ¥${_money(baseline)}'),
+      findsOneWidget,
+    );
+
+    await tester.enterText(find.byKey(const Key('entry_name')), '瑞幸');
+    await tester.pumpAndSettle();
+    for (final key in <String>['1', '5']) {
+      final finder = find.byKey(Key('key_$key'));
+      await tester.ensureVisible(finder);
+      await tester.pumpAndSettle();
+      await tester.tap(finder);
+      await tester.pumpAndSettle();
+    }
+
+    // Stop at the page top for the evidence frame (name + amount + link row).
+    await tester.ensureVisible(find.byKey(const Key('entry_name')));
+    await tester.pumpAndSettle();
+
+    final projected = BudgetEngine.liveDailyCents(
+      remainingCents: snapshot.remainingCents! - 1500,
+      remainingDays: snapshot.remainingDays,
+    );
+    expect(
+      find.textContaining('记这笔后，今天还能花 ¥${_money(projected)}'),
+      findsOneWidget,
+      reason: 'the link row must reflect the keyed amount',
+    );
+
+    // All three rows must actually be inside the captured frame.
+    final screen = tester.getRect(find.byKey(const Key('app_repaint_boundary')));
+    for (final finder in <Finder>[
+      find.byKey(const Key('entry_name')),
+      find.text('¥ 15'),
+      find.textContaining('记这笔后'),
+    ]) {
+      final rect = tester.getRect(finder);
+      expect(
+        screen.top <= rect.top && rect.bottom <= screen.bottom,
+        isTrue,
+        reason: 'row must be visible in the frame: $finder',
+      );
+    }
+
+    await snap(tester, '04_top', [
+      find.byKey(const Key('entry_name')),
+      find.text('¥ 15'),
+      find.textContaining('记这笔后'),
+    ]);
   });
 }

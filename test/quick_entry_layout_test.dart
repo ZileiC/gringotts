@@ -8,6 +8,7 @@ import 'package:gringotts/data/repositories/repositories.dart';
 import 'package:gringotts/domain/models.dart';
 import 'package:gringotts/domain/seed_ids.dart';
 import 'package:gringotts/pages/quick_entry_page.dart';
+import 'package:gringotts/services/budget_engine.dart';
 import 'package:gringotts/ui/motion.dart';
 import 'package:gringotts/ui/tokens.dart';
 
@@ -194,6 +195,20 @@ TextStyle keyStyle(WidgetTester tester, String value) => tester
     ))
     .style!;
 
+/// Plain text of the budget link row (it is a `Text.rich`, so `data` is null).
+String linkRowText(WidgetTester tester) {
+  final text = tester.widget<Text>(find.textContaining('记这笔后'));
+  return text.data ?? text.textSpan!.toPlainText();
+}
+
+/// Mirrors the page's yuan formatting (70004 -> 700.04).
+String money(int cents) {
+  final abs = cents.abs();
+  if (abs % 100 == 0) return (abs ~/ 100).toString();
+  if (abs % 10 == 0) return (abs / 100).toStringAsFixed(1);
+  return (abs / 100).toStringAsFixed(2);
+}
+
 void main() {
   final midday = DateTime(2026, 9, 12, 12, 0); // lunch window -> dining
   // Mid-afternoon: no time-of-day rule (03:00 would be the late-night rule).
@@ -343,6 +358,46 @@ void main() {
     await tester.pumpAndSettle();
     expect(cellBorder(tester, categoryIdGift), AppColors.goldAccent);
     expect(cellBorder(tester, categoryIdDining), AppColors.hairline);
+  });
+
+  testWidgets('budget link row: exists, reads 记这笔后, tracks the amount',
+      (tester) async {
+    final budget = BudgetMonth(
+      id: 'b-2026-09',
+      yearMonth: '2026-09',
+      incomeCents: 560000,
+      savingsTargetCents: 200000,
+      createdAt: midday,
+      updatedAt: midday,
+    );
+    await tester.pumpWidget(harness(now: midday, budget: budget));
+    await tester.pumpAndSettle();
+
+    // Retained capability: the row exists and carries the agreed copy.
+    expect(find.textContaining('记这笔后'), findsOneWidget);
+    final baseline = linkRowText(tester);
+
+    final snapshot = BudgetEngine.compute(
+      budget: budget,
+      transactions: const <Transaction>[],
+      now: midday,
+    );
+    final before = BudgetEngine.liveDailyCents(
+      remainingCents: snapshot.remainingCents!,
+      remainingDays: snapshot.remainingDays,
+    );
+    expect(baseline, contains('记这笔后，今天还能花 ¥${money(before)}'));
+
+    // Keying an amount updates the projection (¥15 -> 1500 cents).
+    await tapKey(tester, '1');
+    await tapKey(tester, '5');
+    final after = linkRowText(tester);
+    final projected = BudgetEngine.liveDailyCents(
+      remainingCents: snapshot.remainingCents! - 1500,
+      remainingDays: snapshot.remainingDays,
+    );
+    expect(after, isNot(baseline), reason: 'the row must track the amount');
+    expect(after, contains('记这笔后，今天还能花 ¥${money(projected)}'));
   });
 
   testWidgets('typography: amount and key numbers use Playfair, symbols sans',

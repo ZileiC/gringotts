@@ -3,6 +3,68 @@
 > 执行层（Codex）每次收工在顶部追加一段：做了什么 / 关键决策 / 遗留问题 / 下一步。管理层（Hermes）通过本文件验收进度。
 > ⚠️ 并发写入约定：追加前先重新读取文件最新版，在头部插入自己的段落，不要重建文件横幅；管理层 patch 前同样先重读。
 
+## 2026-09-12（管理层验收记录：T-10b 实质通过 ✅ —— 附 1 项流程挂起 + 5 项裁决）
+- **⚠️ 流程挂起项（验收结论待生效）**：本票全部代码与证据**未提交**（`git status` 显示 home_page.dart / 8 个 integration / AGENTS.md / WORKLOG 等 16 个文件 modified + 5 个 untracked，均在 worktree）。按 Round-7 事故后本管理层自订铁律「**验收结论必须标注所依据的 commit hash，不得基于工作区瞬时状态**」，本次结论为**实质通过、待补提交后生效**——执行层补 `git add -A && git commit && git push`，管理层复核 hash 后补记终审。**这是第二次「完工未提交」（首次为 T-09C）**，建议在 AGENTS.md 收工清单加一条硬性三连：**WORKLOG → commit → push**
+- **五层验收（基于工作区，全部通过）**：
+  1. 记录核对：收工记录完整（做了什么/关键决策/遗留/DoD），主动上报 5 项遗留与 1 项文档矛盾——**其中「DESIGN §8 与 §4.2/§7 自相矛盾」是我的错，已当场修正**（见下）
+  2. 独立复验：flutter analyze → **No issues found**；flutter test → **All tests passed (153)**（144 → +9：`chart_slices_test` 5 + `home_page_test` 4）
+  3. 源码级审查：**同源落实**——`home_page` 饼图调用与统计页**同一个** `StatisticsService.chartSlices` + `expenseByCategory` + `AppColors.chartSliceColor`（差异仅在 `maxNamed`：主页 3 / 统计页全量），`CategorySlice.colorIndex` 保证同数据同色；固定底栏用 `Scaffold.bottomNavigationBar`（内容在其上滚动）；`预算 ≤ 0` 走专门分支（`home_page.dart:359/405`「本月预算已不可行：计划存款不低于收入」——**T-10a 管理层备注已消化**）
+  4. **独立 integration（管理层亲跑）**：`t10b_home_test.dart` → All tests passed；**4 帧 md5 与执行层证据逐字符相同**（1bfa2878d01f / 0ea7d4c5c762 / 07fc568c0a5f / 9d77089fbfa1，确定性复现）；前置条件自声明（`live_today_expenses=0`）；固定底栏断言 `record_bottom=673.0 / screen=681.0`（在屏内）✓
+  5. **UI 目检四帧 + 数学复核**：引导态（引导卡 + 进度位「设置预算后显示本月进度」**不放假数字** + 饼图位「今天还没有支出」不画空环）✓；已设置态 **¥186.65 = (5600−2000−53.6)÷19 天**、基准 **¥120 = 3600÷30**、比例 1% ✓、饼图 22.6+15+10+6 = 53.6 ✓ 四类金阶配色与统计页一致 ✓；超支态 Hero 归零、进度条满格转 `semanticExpense`、「已超支 ¥3.6」文案可读（预算 50 − 已花 53.6）✓；衬线金 Hero 数字与固定底栏（记一笔金渐变 + 明细金描边）全部到位 ✓
+- **管理层裁决（回应执行层 5 项遗留）**：
+  1. **DESIGN §8 矛盾 → 已修**（管理层失误：§4.2/§7 按用户裁决改成键面 Playfair，§8 漏改仍写「不许衬线」）——现 §8 与 §4.2/§7 一致：键面 Playfair 600/26px、符号保持 sans、分类 3×3 全显、垂直预算让位表
+  2. **IA 缺口（主页无 资产/统计 入口）→ 按帧实现正确，暂不改**；挂到 T-12：明细页落地时一并把 `资产/统计` 收进主页入口体系（避免现在自增范围外的图标）。**已向用户标注此 UX 观察，用户如要求立即补则改派**
+  3. **t09e 未改未跑（注释过时）→ 归 T-13** 触碰时订正，不阻塞
+  4. **t09b 回归帧 01/04 md5 相同 → 判定合法**：两者是**同一状态**（列表→详情→返回后的列表）在同一条件下拍摄，属「同态同帧」；本管理层此前的证据违规指的是**不同状态共用一帧**（T-03 假名事件），二者性质不同。执行层主动上报符合透明要求
+  5. **CPD 459→460 天自然漂移 → 非缺陷**，随行演进
+- **新增 P3（随 T-11/T-12 顺带）**：`预算不可行` 分支已实现但**无专属单测**（现有 4 条 home_page 测试未覆盖该分支）→ 补一条断言
+- **结论：T-10b 实质验收通过 ✅（待补提交后终审生效）**。下一票按序 T-11（快记重设计，规格已完全定稿）或 T-12（明细页）
+
+## 2026-09-12（T-10b 执行层施工记录：新主页 UI + IA 切换 + 今日饼图 + 固定底栏）
+### 做了什么
+1. **新主页 `lib/pages/home_page.dart`**（= 启动页 / 分析页，按用户确认的 `design/MAIN_preview.html` 第①屏）：
+   - 顶栏：`Budget` eyebrow + `2026 年 9 月` + `‹ › ⚙`（上/下月 + 预算入口）；**未来月箭头在当前月禁用**；切到历史月 = 只读（点 ⚙ 提示「历史月份只读，仅可查看」）
+   - Hero：eyebrow `今天还能花 · Today's Allowance` + **实时额度（Playfair 600 / 48px + 金渐变 + tabular）** + 副行 `基准 ¥X/天 · 剩余 ¥Y · 剩 N 天`
+   - 进度卡：`本月已花 ¥x / ¥y` + 金进度条（**超支/预算不可行 → 满格 `semanticExpense`**）+ 百分比 + 构成 `收入 − 计划存款`；`预算 ≤ 0` 走「本月预算已不可行」文案（消化 T-10a 管理层备注：负天花板 + 零支出不再误报「已超支 ¥0」）
+   - 今日行 `今日已花 ¥x · N 笔`；AI 卡位（`AI 分析与建议 / M2.0 上线`，无假数据）
+   - **今日支出构成环形图**：外径 104 / 环宽 14（centerSpace 38 + section 14），中心「合计 ¥x」；图例右侧竖排最多 3 类 + 「其他」；**空态只一行「今天还没有支出」不画空环**
+   - **引导态**（无预算）：Hero 换「先设置本月预算」卡 → 预算 sheet（收入 + 计划存款，数字键盘）+「沿用上月数值」一键（无上月记录则禁用）
+   - **底部固定操作条**（`Scaffold.bottomNavigationBar`，内容区在其上滚动）：`记一笔` 金渐变实心（key `home_record_cta`）+ `明细` 金描边（key `home_ledger_cta`）
+2. **IA 切换**：`app.dart` `home` 由 `QuickEntryPage` 改为 `HomePage`；新增 `budgetRepositoryProvider`；`QuickEntryPage` 降为二级（顶栏加返回键 `quick_back`），`回顾/资产/统计` 保留并加稳定 key（`quick_review/quick_assets/quick_stats`）
+3. **同源切面/配色**：`StatisticsService` 新增 `CategorySlice` + `chartSlices(totals, {maxNamed})`（尾部合并为「其他」，`colorIndex` 即调色板位次）；`AppColors` 新增 `chartPalette/chartColor/chartSliceColor(neutral:)`；**统计页饼图改为同一函数 + 同一色映射**（行为不变，仍全量分类）。home donut 与 stats pie 数据/配色现由**单一函数**产出
+4. **AGENTS.md 两处订正**（工单顺带项）：①工作流条款指向 `TICKETS_M2A.md`（注明 M1 存档）②UI 铁律「首页即速记键盘、无导航层」→「首页 = 分析页（A0），速记页为二级、[记一笔] 一键可达」
+5. **测试**：新增 `test/chart_slices_test.dart`（5）+ `test/home_page_test.dart`（4，引导态/Hero 推导/超支文案/合并「其他」）；`test/widget_test.dart` 改为直接 pump 二级快记页（并断言 `quick_back`）；新增 `integration_test/t10b_home_test.dart`（四帧 + 固定底栏 + 月导航只读 + 同源图例断言 + 前置条件声明 + 自播种清理）
+6. **受影响老 integration 按新 IA 更新**（导航改为 首页 →[记一笔]→ 二级页，或用稳定 key）：t03 / t04 / t05 / t09a / t09b / t09c / t09c2 / t09d；证据帧输出改落 `evidence/t10b/regression/`（**不覆盖原票 evidence**）
+
+### 关键决策
+- **按用户确认帧①落地顶栏**：帧里只有 `‹ › ⚙`，无「资产/统计」入口；故 `资产/统计` 仍由二级快记页顶栏进入（未自增首页图标）——此为 DESIGN §1 图示与§3/预审稿的不一致，已在「遗留」上报
+- **历史月只读语义**：当前月用 `now` 计算实时额度；历史月用该月最后一天作 `asOf`（剩余=月末结余，`remainingDays=1`），预算编辑入口在历史月只提示不改数据
+- **饼图「其他」用中性灰**：用户预审稿中「其他」画的是灰 `n1`，故 `chartSliceColor(neutral: true)` 走 `neutralChartScale`；命名切面仍按 `chartSlices.colorIndex` 取金阶——同源函数 + 同源色映射，禁彩虹
+- **`明细` 为分阶段占位**：T-12 未开工，按钮按帧存在但点击只弹「明细页即将上线」snackbar（不放假页面、不自建范围外功能）
+- **t09c 沉入断言改为自播种前提**：T-09E 已清空 dev 库，资产列表不再够长 → 断言前**播种 12 条资产**（收尾墓碑），而不是依赖历史累积数据（AGENTS 证据条款：先声明前提）
+- **老 integration 的 finder 收紧**：被压栈的下层路由仍会被 finder 命中（非 Offstage），故 t09c 沉入/帧率拖动、t09c2 资产拖动与详情按钮计数全部**限定到可见页**（`find.descendant(of: 具体页)…`）
+
+### 遗留问题 / 待管理层裁决
+1. **DESIGN 文档内部不一致（T-11 用）**：§4.2/§7 明确「键面 Playfair 600 / 26px（用户裁决②-3）」，但 §8 仍写「键面用系统 sans（不许顺手改成衬线）」——T-11 开工前请管理层统一（本票未碰 T-11）
+2. **IA 缺口**：DESIGN §1 图示把 `[资产]`/`[统计]` 画为主页分支，但用户确认的第①屏与 §3 顶栏只有 `‹ › ⚙` → 本票按帧实现，资产/统计经二级快记页可达；是否要在主页补入口（或随 T-12 明细页承载）请裁决
+3. **t09e 未改未跑**：其断言 `find.text('记一笔')` 在新主页底栏仍成立，为避免覆盖 t09e evidence 未重跑；但文件内注释/reason 仍写「keypad home」已过时——建议下次触碰 t09e 时一并订正
+4. **t09b 回归帧 01 与 04 md5 相同**（列表→详情→返回后的同一列表状态）；语义正确（同一状态同帧），非假证据，记录在案
+5. **CPD 天数自然漂移**：t09d 由 459→460 天（日期跨天），数值随行演进非缺陷
+
+### 下一步
+- 等管理层验收 T-10b；通过后按序 **T-11 快记重设计（方向已定稿 B+C）** 或 **T-12 明细页**（管理层定序）
+
+### DoD 证据
+- `flutter analyze` → **No issues found**
+- `flutter test` → **All tests passed（153）**，144 → **+9**（chartSlices 5 / home 4；widget_test 2 条随 IA 改写）
+- **T-10b Windows 实跑四帧（Dart PNG，magic 89504e47，md5 全唯一）**：`01_onboarding 1bfa2878d01f` ｜ `02_budget_set 0ea7d4c5c762` ｜ `03_overspent 07fc568c0a5f` ｜ `04_donut_empty 9d77089fbfa1`（manifest `evidence/t10b/.t10b_frame_md5.txt`）
+- **饼图与统计页同源断言**：单测 `chart_slices_test`（空/≤3/恰好3/>3 合并/全量=stats 路径）+ t10b integration 用 `StatisticsService.chartSlices(expenseByCategory(...), maxNamed:3)` 反查图例（餐饮/交通/购物/其他 + 金额）全中；5 类 → 4 切面且 `其他` 为 600 分
+- **固定底栏任意滚动位置可见**：t10b 断言底栏**不在 ListView 内**（`find.descendant(of: ListView)` = nothing）、底沿贴屏幕底（673 vs 681，差 8px = SafeArea）、滚动 240px 后 `getRect(home_record_cta)` **逐值不变**；`T10B_FIXEDBAR record_bottom=673.0 screen=681.0`
+- **受影响 integration（Windows 逐个单跑，全绿）**：t03 ✅（`DB_DRAFTS_BEFORE=0→AFTER_CREATE=1→AFTER_CONFIRM=0`）｜ t04 ✅（4 帧）｜ t05 ✅（3 帧）｜ t09a ✅（3 帧）｜ t09b ✅（5 帧）｜ t09c ✅（8 帧，`rise=40.8 opacity=0.600` 与历史验收同值）｜ t09c2 ✅（2 用例 6 帧，`confirm_haptic=ok`）｜ t09d ✅（2 用例 8 帧，`overlap=false`）；帧全部落 `evidence/t10b/regression/`，**原票 evidence 目录未被覆盖**（git status 仅新增 `evidence/t10b/`）
+- **release APK**：`build/app/outputs/flutter-apk/app-release.apk` **66,253,368 字节（63.2MB）**，md5 `abe5a2e3d619ab69176f38f29d3b0b2a`；已复制桌面 `gringotts-T10b-release.apk`（仓库外，供实机目测新主页）
+- **dev 库还原**：本轮实跑残留 live 13 行（tx 4 / assets 2 / photos 7）已按墓碑模型清理 → **live=0（分类 9 保留）**；备份 `gringotts.sqlite.pre-t10b-20260912-191255.bak`
+- **执行成本如实记录**：integration 共跑 **11 次**（t10b 首次因底栏底沿断言容差失败→修正容差后重跑；t09c 首次因 dev 库清空后资产列表不够长、沉入断言失败→改自播种前提后重跑；其余 7 个脚本一次过）。两次失败均由**前提/断言假设**驱动、修完即绿，**零盲目重跑**
+
 ## 2026-09-12（管理层验收记录：T-10a ✅ 通过 —— 含管理层独立对抗审计 21/21）
 - **五层验收**：
   1. 记录核对：commit `6733f65` 已 push，工作区干净

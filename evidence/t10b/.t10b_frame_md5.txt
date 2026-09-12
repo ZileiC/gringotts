@@ -1,0 +1,5 @@
+# T-10b home evidence frames (Dart PNG, md5 unique)
+.t10b_01_onboarding.png  md5=1bfa2878d01f  bytes=35248  magic=89504e47
+.t10b_02_budget_set.png  md5=0ea7d4c5c762  bytes=41795  magic=89504e47
+.t10b_03_overspent.png  md5=07fc568c0a5f  bytes=39070  magic=89504e47
+.t10b_04_donut_empty.png  md5=9d77089fbfa1  bytes=37201  magic=89504e47

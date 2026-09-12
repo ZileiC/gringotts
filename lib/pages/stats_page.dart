@@ -280,6 +280,9 @@ class _CategoryPieCard extends ConsumerWidget {
       );
     }
     final grand = totals.fold<int>(0, (sum, t) => sum + t.cents);
+    // Single shared slicing function (home donut uses the same one, capped at
+    // 3 named slices there); this page keeps every category.
+    final slices = StatisticsService.chartSlices(totals, maxNamed: totals.length);
 
     return FutureBuilder<List<Category>>(
       future: categoryRepo.watchAll().first,
@@ -292,12 +295,6 @@ class _CategoryPieCard extends ConsumerWidget {
           return '未分类';
         }
 
-        // Gold scale first (chart-only gold exemption), neutral grays after.
-        final colors = <Color>[
-          ...AppColors.goldChartScale,
-          ...AppColors.neutralChartScale,
-        ];
-
         return Card(
           child: Padding(
             padding: const EdgeInsets.all(AppSpacing.m),
@@ -308,16 +305,15 @@ class _CategoryPieCard extends ConsumerWidget {
                   child: PieChart(
                     PieChartData(
                       sections: [
-                        for (var i = 0; i < totals.length; i++)
+                        for (final slice in slices)
                           PieChartSectionData(
-                            value: totals[i].cents.toDouble(),
-                            title:
-                                '${(totals[i].cents * 100 ~/ grand)}%',
+                            value: slice.cents.toDouble(),
+                            title: '${(slice.cents * 100 ~/ grand)}%',
                             titleStyle: TextStyle(
                               fontSize: 11,
-                              color: AppColors.chartSliceLabel(i),
+                              color: AppColors.chartSliceLabel(slice.colorIndex),
                             ),
-                            color: colors[i % colors.length],
+                            color: AppColors.chartSliceColor(slice.colorIndex),
                             radius: 70,
                           ),
                       ],
@@ -329,18 +325,18 @@ class _CategoryPieCard extends ConsumerWidget {
                   spacing: AppSpacing.m,
                   runSpacing: AppSpacing.xs,
                   children: [
-                    for (var i = 0; i < totals.length; i++)
+                    for (final slice in slices)
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Container(
                             width: 10,
                             height: 10,
-                            color: colors[i % colors.length],
+                            color: AppColors.chartSliceColor(slice.colorIndex),
                           ),
                           const SizedBox(width: AppSpacing.xs),
                           Text(
-                            '${name(totals[i].categoryId)} ¥${totals[i].cents ~/ 100}',
+                            '${name(slice.categoryId)} ¥${slice.cents ~/ 100}',
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
                         ],

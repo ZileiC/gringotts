@@ -3,8 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/app_database.dart';
 import '../data/repositories/asset_photo_repository.dart';
+import '../data/repositories/budget_repository.dart';
 import '../data/repositories/repositories.dart';
-import '../pages/quick_entry_page.dart';
+import '../pages/home_page.dart';
 import '../ui/splash.dart';
 import '../ui/tokens.dart';
 
@@ -39,6 +40,12 @@ final Provider<AssetPhotoRepository> assetPhotoRepositoryProvider =
   return AssetPhotoRepository(ref.watch(databaseProvider));
 });
 
+/// Monthly budget repository (T-10).
+final Provider<BudgetRepository> budgetRepositoryProvider =
+    Provider<BudgetRepository>((ref) {
+  return BudgetRepository(ref.watch(databaseProvider));
+});
+
 /// Root widget of the app. Theme setup only; M1.0 skeleton page.
 class GringottsApp extends ConsumerWidget {
   const GringottsApp({super.key});
@@ -54,7 +61,9 @@ class GringottsApp extends ConsumerWidget {
       // home is mounted underneath from the first frame.
       builder: (context, child) =>
           SplashGate(child: child ?? const SizedBox.shrink()),
-      home: const QuickEntryPage(),
+      // T-10b IA change: the launch page is the analysis home; the speed-entry
+      // keypad is a secondary route reached from the fixed 记一笔 action.
+      home: const HomePage(),
     );
   }
 }

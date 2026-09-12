@@ -30,7 +30,7 @@ Android 为核心的 AI+ 账本 app：智能速记 + 资产档案（CPD 日均�
 ## UI 铁律
 - Material 3 结构 + **黑金品牌设计语言**（品牌资产 `brand/gringotts-logo.png`，用户定版 2026-09-08）：深黑层底 + 香槟金 accent；品牌衬线字仅品牌时刻；严禁深底霓虹渐变"AI 味"
 - 唯一主题（深色），不做切换入口
-- 首页即速记键盘，无导航层
+- **首页 = 分析页（A0）**：预算/今日可花/进度/今日饼图 + AI 位；速记页为二级（压栈），[记一笔] 一键可达（原「首页即速记键盘、无导航层」铁律已被用户 2026-09-11 推翻作废，T-10b 落地）
 - **Design token 铁律**：颜色/字体/间距一律经 `lib/ui/tokens.dart`，组件内禁止硬编码（唯一例外是 `tokens.dart` 自身）
 - **品牌皮肤已定版（订正 2026-09-11，T-09E）**：换肤窗口 **T-08 已退役并入 T-09A**，黑金 tokens 于 2026-09-10 验收通过并成为当前唯一皮肤；此后新增/修改 UI 一律改 `tokens.dart`，不要再逐屏铺贴皮肤（原「T-08 将整体换肤 / T-08 之前禁止提前铺贴」表述已过时）
 
@@ -58,7 +58,7 @@ Android 为核心的 AI+ 账本 app：智能速记 + 资产档案（CPD 日均�
 - 根目录的 .md 是管理文档：PROJECT_STATE / WORKLOG / FEATURES 按各自约定维护，代码文件勿动
 
 ## 工作流程约定
-1. 开工先读 PROJECT_STATE.md、FEATURES.md 与 **TICKETS_M1.md**（当前派工工单，按序施工）
+1. 开工先读 PROJECT_STATE.md、FEATURES.md 与 **TICKETS_M2A.md**（当前派工工单，按序施工）；`TICKETS_M1.md` = 已完成的 M1.0 工单存档
 2. 代码仓库就在本目录（github.com/jharayden/gringotts，private）
-3. 每次收工在 WORKLOG.md 顶部追加一段：做了什么 / 关键决策 / 遗留问题 / 下一步
+3. **收工三连（硬性，顺序固定，缺一不算完工）**：① 先重读最新版并在 `WORKLOG.md` 顶部追加一段（做了什么 / 关键决策 / 遗留问题 / 下一步）→ ② 本票 **commit**（`T-1x: <summary>`）→ ③ `git push`。**未 commit 或未 push 的「完工」一律视同未完工，管理层不予验收**（教训：T-09C、T-10b 两次完工未提交）
 4. PROJECT_STATE.md 的"已确定/待定/决策记录"只在阶段完成时更新（由管理层维护）

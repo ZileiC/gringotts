@@ -27,7 +27,8 @@ Future<void> snap(
       await image.toByteData(format: ui.ImageByteFormat.png);
   final bytes = data!.buffer.asUint8List();
   expect(bytes.sublist(0, 4), <int>[0x89, 0x50, 0x4e, 0x47]);
-  final file = File('evidence/t09a/.t09a_$name.png');
+  // T-10b IA update: reruns must not overwrite the original ticket evidence.
+  final file = File('evidence/t10b/regression/.t09a_$name.png');
   await file.create(recursive: true);
   await file.writeAsBytes(bytes, flush: true);
   // ignore: avoid_print
@@ -51,13 +52,17 @@ void main() {
     );
     await tester.pumpAndSettle(const Duration(seconds: 2));
 
+    // T-10b IA: launch = analysis home; the keypad is a secondary page.
+    await tester.tap(find.byKey(const Key('home_record_cta')));
+    await tester.pumpAndSettle(const Duration(seconds: 2));
     await snap(tester, '01_quick_entry', [
       find.text('GRINGOTTS'),
-      find.text('记一笔'),
+      find.byKey(const Key('confirm_cta')),
       find.text('支出'),
     ]);
 
-    await tester.tap(find.text('资产'));    await tester.pumpAndSettle(const Duration(seconds: 2));
+    await tester.tap(find.byKey(const Key('quick_assets')));
+    await tester.pumpAndSettle(const Duration(seconds: 2));
     await snap(tester, '02_assets', [
       find.text('资产档案'),
       find.text('总资产净值'),
@@ -65,7 +70,7 @@ void main() {
     await tester.pageBack();
     await tester.pumpAndSettle(const Duration(seconds: 1));
 
-    await tester.tap(find.text('统计'));
+    await tester.tap(find.byKey(const Key('quick_stats')));
     await tester.pumpAndSettle(const Duration(seconds: 2));
     await snap(tester, '03_stats', [
       find.text('净结余（收入 − 支出）'),

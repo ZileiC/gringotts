@@ -1,9 +1,12 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gringotts/app/app.dart';
 import 'package:gringotts/data/app_database.dart';
 import 'package:gringotts/data/repositories/repositories.dart';
 import 'package:gringotts/domain/models.dart';
+import 'package:gringotts/pages/quick_entry_page.dart';
+import 'package:gringotts/ui/tokens.dart';
 
 /// Fake category repository so the widget test never touches a real database
 /// (drift stream stores leave pending timers in the fake-async test zone).
@@ -82,20 +85,23 @@ class _FakeTransactionRepository implements TransactionRepository {
   Future<int> confirmDraft(String id) => throw UnimplementedError();
 }
 
+Widget _speedEntryHarness() => ProviderScope(
+      overrides: [
+        categoryRepositoryProvider.overrideWithValue(_FakeCategoryRepository()),
+        transactionRepositoryProvider
+            .overrideWithValue(_FakeTransactionRepository()),
+      ],
+      // T-10b: the keypad is a secondary page, so it is pumped directly here.
+      child: MaterialApp(
+        theme: buildAppTheme(),
+        home: const QuickEntryPage(),
+      ),
+    );
+
 void main() {
   testWidgets('quick entry page renders amount display and keypad',
       (WidgetTester tester) async {
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          categoryRepositoryProvider
-              .overrideWithValue(_FakeCategoryRepository()),
-          transactionRepositoryProvider
-              .overrideWithValue(_FakeTransactionRepository()),
-        ],
-        child: const GringottsApp(),
-      ),
-    );
+    await tester.pumpWidget(_speedEntryHarness());
     await tester.pumpAndSettle();
 
     // Amount display with zero placeholder.
@@ -105,21 +111,13 @@ void main() {
     // Numeric keypad keys exist.
     expect(find.text('1'), findsOneWidget);
     expect(find.text('9'), findsOneWidget);
+    // Secondary page: explicit back affordance to the analysis home.
+    expect(find.byKey(const Key('quick_back')), findsOneWidget);
   });
 
   testWidgets('keypad input updates the amount display',
       (WidgetTester tester) async {
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          categoryRepositoryProvider
-              .overrideWithValue(_FakeCategoryRepository()),
-          transactionRepositoryProvider
-              .overrideWithValue(_FakeTransactionRepository()),
-        ],
-        child: const GringottsApp(),
-      ),
-    );
+    await tester.pumpWidget(_speedEntryHarness());
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('1'));

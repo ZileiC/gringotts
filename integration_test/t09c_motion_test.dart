@@ -8,6 +8,9 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gringotts/app/app.dart';
+import 'package:gringotts/domain/models.dart';
+import 'package:gringotts/pages/assets_page.dart';
+import 'package:gringotts/pages/stats_page.dart';
 import 'package:gringotts/ui/motion.dart';
 import 'package:integration_test/integration_test.dart';
 
@@ -28,7 +31,8 @@ Future<void> snap(
   final bytes = data!.buffer.asUint8List();
   expect(bytes.sublist(0, 4), <int>[0x89, 0x50, 0x4e, 0x47],
       reason: 'frame $name must be PNG');
-  final file = File('evidence/t09c/.t09c_$name.png');
+  // T-10b IA update: reruns must not overwrite the original ticket evidence.
+  final file = File('evidence/t10b/regression/.t09c_$name.png');
   await file.create(recursive: true);
   await file.writeAsBytes(bytes, flush: true);
   // ignore: avoid_print
@@ -37,10 +41,18 @@ Future<void> snap(
 
 /// Reads the sink-away effect straight off the widget tree: scroll-driven
 /// motion is asserted with numbers, not with pixel guessing.
-({double rise, double opacity}) sinkState(WidgetTester tester) {
+///
+/// [page] scopes the lookup to the visible route (T-10b: the analysis home
+/// and the secondary keypad stay mounted underneath, so a global finder could
+/// resolve to a different route's ListView/SinkAwayHeader).
+({double rise, double opacity}) sinkState(WidgetTester tester, Finder page) {
+  final header = find.descendant(
+    of: page,
+    matching: find.byType(SinkAwayHeader),
+  );
   final rise = tester
       .widgetList<Transform>(find.descendant(
-        of: find.byType(SinkAwayHeader),
+        of: header,
         matching: find.byType(Transform),
       ))
       .first
@@ -49,7 +61,7 @@ Future<void> snap(
       .y;
   final opacity = tester
       .widgetList<Opacity>(find.descendant(
-        of: find.byType(SinkAwayHeader),
+        of: header,
         matching: find.byType(Opacity),
       ))
       .first
@@ -57,18 +69,23 @@ Future<void> snap(
   return (rise: rise, opacity: opacity);
 }
 
-double scrollPixels(WidgetTester tester) => tester
-    .state<ScrollableState>(find.byType(Scrollable).first)
+double scrollPixels(WidgetTester tester, Finder page) => tester
+    .state<ScrollableState>(
+      find.descendant(of: page, matching: find.byType(Scrollable)).first,
+    )
     .position
     .pixels;
 
-/// Scrolls, then proves the dashboard sink engaged and is still on screen.
-Future<void> snapSink(WidgetTester tester, String name) async {
-  await tester.drag(find.byType(ListView).first, const Offset(0, -100));
+/// Scrolls [page], then proves the dashboard sink engaged and is still on screen.
+Future<void> snapSink(WidgetTester tester, String name, Finder page) async {
+  await tester.drag(
+    find.descendant(of: page, matching: find.byType(ListView)).first,
+    const Offset(0, -100),
+  );
   await tester.pumpAndSettle(const Duration(seconds: 1));
-  final sink = sinkState(tester);
+  final sink = sinkState(tester, page);
   // ignore: avoid_print
-  print('T09C_SINK name=$name scroll_px=${scrollPixels(tester)} '
+  print('T09C_SINK name=$name scroll_px=${scrollPixels(tester, page)} '
       'rise=${sink.rise.toStringAsFixed(1)} '
       'opacity=${sink.opacity.toStringAsFixed(3)}');
   expect(sink.rise, greaterThan(1.0),
@@ -95,21 +112,38 @@ void main() {
     );
     await tester.pumpAndSettle(const Duration(seconds: 2));
 
-    // 1. Home with key + CTA press states (TouchedScale).
+    // Precondition (evidence rule): the assets list must overflow the viewport
+    // for the sink-away assertion to be meaningful. The dev DB was cleaned in
+    // T-09E, so seed a deterministic scrollable list; tombstone it at teardown.
+    final assetRepo = container.read(assetRepositoryProvider);
+    final runId = DateTime.now().millisecondsSinceEpoch % 1000000;
+    for (var i = 0; i < 12; i++) {
+      final asset = await assetRepo.create(
+        name: 'T09C资产$runId-$i',
+        category: AssetCategory.ordinary,
+        valueCents: 100000 + i * 1000,
+        purchasedAt: DateTime(2025, 1, 1).add(Duration(days: i)),
+      );
+      addTearDown(() => assetRepo.softDelete(asset.id));
+    }
     await tester.pumpAndSettle(const Duration(seconds: 1));
-    await snap(tester, '01_home_idle', [find.text('记一笔')]);
-    final gesture = await tester.startGesture(
-      tester.getCenter(find.text('记一笔')),
-    );
+
+    // 1. Speed-entry page with key + CTA press states (TouchedScale).
+    // T-10b IA: the keypad is a secondary page reached from the analysis home.
+    await tester.tap(find.byKey(const Key('home_record_cta')));
+    await tester.pumpAndSettle(const Duration(seconds: 1));
+    final ctaKey = find.byKey(const Key('confirm_cta'));
+    await snap(tester, '01_home_idle', [ctaKey]);
+    final gesture = await tester.startGesture(tester.getCenter(ctaKey));
     for (var i = 0; i < 12; i++) {
       await tester.pump(const Duration(milliseconds: 16));
     }
-    await snap(tester, '02_home_cta_pressed', [find.text('记一笔')]);
+    await snap(tester, '02_home_cta_pressed', [ctaKey]);
     await gesture.up();
     await tester.pumpAndSettle();
 
     // 2. Assets: stagger entrance mid-flight + settled.
-    await tester.tap(find.text('资产'));
+    await tester.tap(find.byKey(const Key('quick_assets')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 60));
     await snap(tester, '03_assets_stagger_mid', [find.text('总资产净值')]);
@@ -117,12 +151,18 @@ void main() {
     await snap(tester, '04_assets_settled', [find.text('总资产净值')]);
 
     // 3a. Sink-away net-value dashboard, engaged and still on screen.
-    await snapSink(tester, '05_assets_scrolled_sink');
+    await snapSink(tester, '05_assets_scrolled_sink', find.byType(AssetsPage));
 
     // 3b. Scroll drag frame-timing samples.
     final start = DateTime.now();
     for (var i = 0; i < 12; i++) {
-      await tester.drag(find.byType(ListView).first, const Offset(0, -80));
+      await tester.drag(
+        find.descendant(
+          of: find.byType(AssetsPage),
+          matching: find.byType(ListView),
+        ).first,
+        const Offset(0, -80),
+      );
       await tester.pump(const Duration(milliseconds: 16));
     }
     final elapsed = DateTime.now().difference(start);
@@ -136,16 +176,16 @@ void main() {
     await tester.pumpAndSettle();
 
     // 4. Stats: physics + sink header.
-    await tester.tap(find.text('统计'));
+    await tester.tap(find.byKey(const Key('quick_stats')));
     await tester.pumpAndSettle(const Duration(seconds: 1));
     await tester.pumpAndSettle(const Duration(seconds: 1));
     await snap(tester, '06_stats_idle', [find.text('支出类别占比')]);
-    await snapSink(tester, '07_stats_scrolled');
+    await snapSink(tester, '07_stats_scrolled', find.byType(StatsPage));
     await tester.pageBack();
     await tester.pumpAndSettle();
 
     // 5. Review: inertial physics page.
-    await tester.tap(find.text('回顾'));
+    await tester.tap(find.byKey(const Key('quick_review')));
     await tester.pumpAndSettle(const Duration(seconds: 1));
     await tester.pumpAndSettle(const Duration(seconds: 1));
     await snap(tester, '08_review', [find.text('待完善回顾')]);

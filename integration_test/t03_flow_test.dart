@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gringotts/app/app.dart';
+import 'package:gringotts/pages/quick_entry_page.dart';
 import 'package:integration_test/integration_test.dart';
 
 void main() {
@@ -22,18 +23,29 @@ void main() {
     // ignore: avoid_print
     print('DB_DRAFTS_BEFORE=${draftsBefore.length}');
 
+    // T-10b IA: the launch page is the analysis home; the keypad is secondary.
+    await tester.tap(find.byKey(const Key('home_record_cta')));
+    await tester.pumpAndSettle(const Duration(seconds: 2));
+    expect(find.byType(QuickEntryPage), findsOneWidget);
+
     await tester.tap(find.text('1'));
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(find.text('5'));
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('¥ 15'), findsOneWidget);
 
-    await tester.tap(find.text('记一笔'));
+    await tester.tap(find.byKey(const Key('confirm_cta')));
     await tester.pump(const Duration(milliseconds: 50));
     expect(find.textContaining('已记'), findsOneWidget);
     await tester.pumpAndSettle(const Duration(seconds: 2));
 
-    expect(find.textContaining('今日'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(QuickEntryPage),
+        matching: find.textContaining('今日'),
+      ),
+      findsOneWidget,
+    );
 
     // After creation: drafts = before + 1.
     final draftsAfterCreate = await repo

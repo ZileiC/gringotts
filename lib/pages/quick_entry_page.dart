@@ -211,9 +211,17 @@ class _QuickEntryPageState extends ConsumerState<QuickEntryPage> {
               ),
               child: Row(
                 children: [
+                  // Secondary page since T-10b: explicit back to the analysis home.
+                  IconButton(
+                    key: const Key('quick_back'),
+                    onPressed: () => Navigator.of(context).maybePop(),
+                    icon: const Icon(Icons.arrow_back),
+                    tooltip: '返回',
+                  ),
                   const _TodayDraftBadge(),
                   const Spacer(),
                   TextButton.icon(
+                    key: const Key('quick_review'),
                     onPressed: () => Navigator.of(context).push(
                       MaterialPageRoute<void>(
                         builder: (_) => const ReviewPage(),
@@ -223,6 +231,7 @@ class _QuickEntryPageState extends ConsumerState<QuickEntryPage> {
                     label: const Text('回顾'),
                   ),
                   TextButton.icon(
+                    key: const Key('quick_assets'),
                     onPressed: () => Navigator.of(context).push(
                       MaterialPageRoute<void>(
                         builder: (_) => const AssetsPage(),
@@ -232,6 +241,7 @@ class _QuickEntryPageState extends ConsumerState<QuickEntryPage> {
                     label: const Text('资产'),
                   ),
                   TextButton.icon(
+                    key: const Key('quick_stats'),
                     onPressed: () => Navigator.of(context).push(
                       MaterialPageRoute<void>(
                         builder: (_) => const StatsPage(),

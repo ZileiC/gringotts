@@ -30,6 +30,25 @@ class PeriodPoint {
   int get netCents => incomeCents - expenseCents;
 }
 
+/// One slice of a category chart (pie / donut).
+///
+/// [colorIndex] is the position of the slice in the canonical palette order,
+/// so every chart that consumes the same totals paints identical colors.
+/// [isOther] marks the merged remainder slice (beyond the named top N).
+class CategorySlice {
+  const CategorySlice({
+    required this.categoryId,
+    required this.cents,
+    required this.colorIndex,
+    this.isOther = false,
+  });
+
+  final String? categoryId;
+  final int cents;
+  final int colorIndex;
+  final bool isOther;
+}
+
 /// Aggregation engine.
 class StatisticsService {
   StatisticsService._();
@@ -50,6 +69,41 @@ class StatisticsService {
         .toList();
     result.sort((a, b) => b.cents.compareTo(a.cents));
     return result;
+  }
+
+  /// Builds chart slices from [totals] (expected sorted by cents desc).
+  ///
+  /// The first [maxNamed] categories keep their identity; everything after is
+  /// merged into a single "其他" slice. This is the single slicing function the
+  /// statistics pie and the home donut both consume, so their data and colour
+  /// order can never diverge.
+  static List<CategorySlice> chartSlices(
+    List<CategoryTotal> totals, {
+    int maxNamed = 3,
+  }) {
+    if (totals.isEmpty) return const <CategorySlice>[];
+    final namedCount = totals.length <= maxNamed ? totals.length : maxNamed;
+    final slices = <CategorySlice>[
+      for (var i = 0; i < namedCount; i++)
+        CategorySlice(
+          categoryId: totals[i].categoryId,
+          cents: totals[i].cents,
+          colorIndex: i,
+        ),
+    ];
+    if (namedCount < totals.length) {
+      var rest = 0;
+      for (var i = namedCount; i < totals.length; i++) {
+        rest += totals[i].cents;
+      }
+      slices.add(CategorySlice(
+        categoryId: null,
+        cents: rest,
+        colorIndex: namedCount,
+        isOther: true,
+      ));
+    }
+    return slices;
   }
 
   /// Builds period points for a day/month/year range.

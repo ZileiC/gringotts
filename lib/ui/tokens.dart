@@ -79,6 +79,26 @@ abstract final class AppColors {
   static Color chartSliceLabel(int index) =>
       index < goldChartScale.length ? onGold : ink;
 
+  /// Canonical chart palette: gold scale first, neutral grays beyond.
+  ///
+  /// The single colour mapping consumed by the statistics pie and the home
+  /// donut (via the shared `StatisticsService.chartSlices` color index), so no
+  /// chart can drift into an off-brand rainbow.
+  static const List<Color> chartPalette = <Color>[
+    ...goldChartScale,
+    ...neutralChartScale,
+  ];
+
+  /// Deterministic slice colour for a palette [index].
+  static Color chartColor(int index) =>
+      chartPalette[index % chartPalette.length];
+
+  /// Slice colour with the neutral-gray fallback for the merged "其他" slice
+  /// (de-emphasised on purpose, matching the approved home frame).
+  static Color chartSliceColor(int index, {bool neutral = false}) => neutral
+      ? neutralChartScale[index % neutralChartScale.length]
+      : chartColor(index);
+
   // Motion (§4): one-shot sheen highlight swept across the confirm CTA.
   // White-alpha highlight, deliberately NOT a gold gradient.
   /// Sheen band core (22% white) - DESIGN_T09 section 4.

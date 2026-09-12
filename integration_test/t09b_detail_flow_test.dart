@@ -33,7 +33,8 @@ Future<void> snap(
   final bytes = data!.buffer.asUint8List();
   expect(bytes.sublist(0, 4), <int>[0x89, 0x50, 0x4e, 0x47],
       reason: 'frame $name must be PNG');
-  final file = File('evidence/t09b/.t09b_$name.png');
+  // T-10b IA update: reruns must not overwrite the original ticket evidence.
+  final file = File('evidence/t10b/regression/.t09b_$name.png');
   await file.create(recursive: true);
   await file.writeAsBytes(bytes, flush: true);
   // ignore: avoid_print
@@ -79,7 +80,10 @@ void main() {
     await photoRepo.createAll(asset.id, [photoA, photoB]);
 
     // 1. Assets list shows the tile; tap into detail (Hero relay).
-    await tester.tap(find.text('资产'));
+    // T-10b IA: home -> speed entry -> 资产.
+    await tester.tap(find.byKey(const Key('home_record_cta')));
+    await tester.pumpAndSettle(const Duration(seconds: 2));
+    await tester.tap(find.byKey(const Key('quick_assets')));
     await tester.pumpAndSettle(const Duration(seconds: 2));
     expect(find.text(assetName), findsOneWidget);
     await snap(tester, '01_list_with_tile', [find.text(assetName)]);

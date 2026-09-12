@@ -11,6 +11,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gringotts/app/app.dart';
 import 'package:gringotts/data/app_database.dart';
 import 'package:gringotts/domain/models.dart';
+import 'package:gringotts/pages/asset_detail_page.dart';
+import 'package:gringotts/pages/assets_page.dart';
 import 'package:gringotts/services/photo_service.dart';
 import 'package:gringotts/ui/motion.dart';
 import 'package:gringotts/ui/tokens.dart';
@@ -28,7 +30,8 @@ Future<void> snap(WidgetTester tester, String name) async {
   final bytes = data!.buffer.asUint8List();
   expect(bytes.sublist(0, 4), <int>[0x89, 0x50, 0x4e, 0x47],
       reason: 'frame $name must be PNG');
-  final file = File('evidence/t09c2/.t09c2_$name.png');
+  // T-10b IA update: reruns must not overwrite the original ticket evidence.
+  final file = File('evidence/t10b/regression/.t09c2_$name.png');
   await file.create(recursive: true);
   await file.writeAsBytes(bytes, flush: true);
   // ignore: avoid_print
@@ -70,6 +73,10 @@ void main() {
     final container = ProviderContainer();
     addTearDown(container.dispose);
     await tester.pumpWidget(harness(container));
+    await tester.pumpAndSettle(const Duration(seconds: 2));
+
+    // T-10b IA: keypad motions live on the secondary speed-entry page.
+    await tester.tap(find.byKey(const Key('home_record_cta')));
     await tester.pumpAndSettle(const Duration(seconds: 2));
 
     // ---------- 1. category chip: 150 ms AnimatedContainer ----------
@@ -156,7 +163,7 @@ void main() {
     await tester.pumpAndSettle(const Duration(seconds: 1));
 
     // ---------- 4. net-value count-up (assets page) ----------
-    await tester.tap(find.byIcon(Icons.inventory_2));
+    await tester.tap(find.byKey(const Key('quick_assets')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 120));
     final counter =
@@ -199,8 +206,14 @@ void main() {
     await tester.pumpAndSettle(const Duration(milliseconds: 300));
     await tester.tap(find.text(assetName));
     await tester.pumpAndSettle(const Duration(seconds: 2));
-    expect(find.byType(OutlinedButton), findsNWidgets(4),
-        reason: 'the detail action row must be on screen');
+    expect(
+      find.descendant(
+        of: find.byType(AssetDetailPage),
+        matching: find.byType(OutlinedButton),
+      ),
+      findsNWidgets(4),
+      reason: 'the detail action row must be on screen',
+    );
     final detailHeroes = relayHeroes(tester);
     expect(detailHeroes, isNotEmpty, reason: 'hero relay must reach detail');
     for (final Hero h in detailHeroes) {
@@ -242,6 +255,10 @@ void main() {
     final container = ProviderContainer();
     addTearDown(container.dispose);
     await tester.pumpWidget(harness(container));
+    await tester.pumpAndSettle(const Duration(seconds: 2));
+
+    // T-10b IA: keypad motions live on the secondary speed-entry page.
+    await tester.tap(find.byKey(const Key('home_record_cta')));
     await tester.pumpAndSettle(const Duration(seconds: 2));
 
     // TouchedScale: no scale animation, haptic still delivered.
@@ -294,7 +311,7 @@ void main() {
     print('T09C2_REDUCED haptics=${haptics.length} confirm_haptic=ok snackbar=ok');
 
     // Count-up renders the target straight away.
-    await tester.tap(find.byIcon(Icons.inventory_2));
+    await tester.tap(find.byKey(const Key('quick_assets')));
     await tester.pumpAndSettle(const Duration(seconds: 1));
     final counter =
         tester.state<CountUpNumberState>(find.byType(CountUpNumber));
@@ -304,7 +321,13 @@ void main() {
     await snap(tester, '05_reduce_motion_assets');
 
     // Sink-away renders untransformed.
-    await tester.drag(find.byType(ListView).first, const Offset(0, -120));
+    await tester.drag(
+      find.descendant(
+        of: find.byType(AssetsPage),
+        matching: find.byType(ListView),
+      ).first,
+      const Offset(0, -120),
+    );
     await tester.pumpAndSettle(const Duration(seconds: 1));
     expect(
       find.descendant(

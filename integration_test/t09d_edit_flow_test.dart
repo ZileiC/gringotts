@@ -37,7 +37,8 @@ Future<void> snap(WidgetTester tester, String name) async {
   final bytes = data!.buffer.asUint8List();
   expect(bytes.sublist(0, 4), <int>[0x89, 0x50, 0x4e, 0x47],
       reason: 'frame $name must be PNG');
-  final file = File('evidence/t09d/.t09d_$name.png');
+  // T-10b IA update: reruns must not overwrite the original ticket evidence.
+  final file = File('evidence/t10b/regression/.t09d_$name.png');
   await file.create(recursive: true);
   await file.writeAsBytes(bytes, flush: true);
   // ignore: avoid_print
@@ -142,7 +143,10 @@ void main() {
     ImagePickerPlatform.instance = FakePicker(<XFile>[XFile(photoC), XFile(photoD)]);
 
     // ---------- 1. list cover = lowest sort in asset_photos ----------
-    await tester.tap(find.byIcon(Icons.inventory_2));
+    // T-10b IA: home -> speed entry -> 资产.
+    await tester.tap(find.byKey(const Key('home_record_cta')));
+    await tester.pumpAndSettle(const Duration(seconds: 2));
+    await tester.tap(find.byKey(const Key('quick_assets')));
     await tester.pumpAndSettle(const Duration(seconds: 2));
     await tester.ensureVisible(find.text(assetName));
     await tester.pumpAndSettle(const Duration(milliseconds: 300));
@@ -298,6 +302,9 @@ void main() {
     await tester.pumpWidget(harness(container));
     await tester.pumpAndSettle(const Duration(seconds: 2));
 
+    // T-10b IA: the keypad lives on the secondary speed-entry page.
+    await tester.tap(find.byKey(const Key('home_record_cta')));
+    await tester.pumpAndSettle(const Duration(seconds: 2));
     for (final String key in <String>['1', '2', '3']) {
       await tester.tap(find.text(key));
       await tester.pump();

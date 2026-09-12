@@ -142,8 +142,11 @@ void main() {
     await gesture.up();
     await tester.pumpAndSettle();
 
-    // 2. Assets: stagger entrance mid-flight + settled.
-    await tester.tap(find.byKey(const Key('quick_assets')));
+    // 2. Assets: stagger entrance mid-flight + settled. Pop back to the shell
+    // first, then switch to the assets peer tab (T-12c).
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('tab_assets')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 60));
     await snap(tester, '03_assets_stagger_mid', [find.text('总资产净值')]);
@@ -172,22 +175,18 @@ void main() {
     expect(avgFrameMs, lessThan(60),
         reason: 'drag loop should stay interactive (soft 60fps budget)');
     await tester.pumpAndSettle(const Duration(seconds: 1));
-    await tester.pageBack();
-    await tester.pumpAndSettle();
 
-    // 4. Stats: physics + sink header.
-    await tester.tap(find.byKey(const Key('quick_stats')));
+    // 4. Stats: physics + sink header (peer tab, T-12c).
+    await tester.tap(find.byKey(const Key('tab_stats')));
     await tester.pumpAndSettle(const Duration(seconds: 1));
     await tester.pumpAndSettle(const Duration(seconds: 1));
     await snap(tester, '06_stats_idle', [find.text('支出类别占比')]);
     await snapSink(tester, '07_stats_scrolled', find.byType(StatsPage));
-    await tester.pageBack();
-    await tester.pumpAndSettle();
 
-    // 5. Review: inertial physics page.
-    await tester.tap(find.byKey(const Key('quick_review')));
+    // 5. Ledger: the statistics page's child (T-12c Part A).
+    await tester.tap(find.byKey(const Key('stats_ledger_entry')));
     await tester.pumpAndSettle(const Duration(seconds: 1));
     await tester.pumpAndSettle(const Duration(seconds: 1));
-    await snap(tester, '08_review', [find.text('待完善回顾')]);
+    await snap(tester, '08_ledger', [find.byKey(const Key('ledger_back'))]);
   });
 }

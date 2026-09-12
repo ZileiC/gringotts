@@ -18,9 +18,9 @@ import 'package:integration_test/integration_test.dart';
 /// T-11 speed-entry evidence: idle / input / income frames, plus the retained
 /// capability assertions and the 3x3-grid invariants.
 ///
-/// Preconditions declared up front (AGENTS.md evidence clause): the draft
-/// count is read back before and after, and the draft this script creates is
-/// tombstoned at teardown.
+/// Preconditions declared up front (AGENTS.md evidence clause): the live row
+/// count is read back before and after, and the formal record this script
+/// creates is tombstoned at teardown.
 Future<void> snap(WidgetTester tester, String name, List<Finder> required) async {
   for (final f in required) {
     expect(f, findsWidgets, reason: 'missing before snap $name');
@@ -106,19 +106,20 @@ void main() {
     await tester.pumpAndSettle(const Duration(seconds: 2));
 
     final txRepo = container.read(transactionRepositoryProvider);
-    final draftsBefore = await txRepo.watchDrafts().first;
+    final liveBefore = await txRepo.watchAll().first;
     // ignore: avoid_print
-    print('T11_PRECONDITION drafts_before=${draftsBefore.length}');
+    print('T11_PRECONDITION live_tx_before=${liveBefore.length}');
 
-    // T-10b IA: launch = analysis home -> 记一笔 -> speed-entry page.
+    // T-12c IA: launch = tab shell -> 记一笔 -> speed-entry page (child).
     await tester.tap(find.byKey(const Key('home_record_cta')));
     await tester.pumpAndSettle(const Duration(seconds: 2));
 
-    // Retained capability: top bar keeps back + review/assets/stats entries.
+    // The top bar keeps back + the expense/income switch; the old
+    // review/assets/stats entries are gone (assets/stats are peer tabs).
     expect(find.byKey(const Key('quick_back')), findsOneWidget);
-    expect(find.byKey(const Key('quick_review')), findsOneWidget);
-    expect(find.byKey(const Key('quick_assets')), findsOneWidget);
-    expect(find.byKey(const Key('quick_stats')), findsOneWidget);
+    expect(find.byKey(const Key('quick_review')), findsNothing);
+    expect(find.byKey(const Key('quick_assets')), findsNothing);
+    expect(find.byKey(const Key('quick_stats')), findsNothing);
 
     // Layout: 12 keys with a decimal, no C key; nine grid cells.
     for (final key in <String>[
@@ -182,22 +183,24 @@ void main() {
     await tester.pumpAndSettle();
     await snap(tester, '03_income', [find.text('收入')]);
 
-    // ---- retained capability: draft 入库 ----
+    // ---- T-12c Part B: confirm writes a formal record directly ----
     await tester.tap(find.byKey(const Key('confirm_cta')));
     await tester.pump(const Duration(milliseconds: 50));
     expect(find.textContaining('已入账'), findsOneWidget);
     await tester.pumpAndSettle(const Duration(seconds: 2));
-    final draftsAfter = await txRepo
-        .watchDrafts()
-        .firstWhere((l) => l.length == draftsBefore.length + 1)
+    final liveAfter = await txRepo
+        .watchAll()
+        .firstWhere((l) => l.length == liveBefore.length + 1)
         .timeout(const Duration(seconds: 10));
-    final created = draftsAfter.firstWhere((t) => !draftsBefore.any((b) => b.id == t.id));
-    expect(created.isDraft, isTrue);
+    final created =
+        liveAfter.firstWhere((t) => !liveBefore.any((b) => b.id == t.id));
+    expect(created.isDraft, isFalse,
+        reason: '快记即正式: the record is formal, no confirmation step');
     expect(created.amountCents, 1500);
     expect(created.type.name, 'income');
     // ignore: avoid_print
-    print('T11_DRAFT id=${created.id} amount=${created.amountCents} '
-        'type=${created.type.name} merchant=${created.merchant}');
+    print('T11_RECORD id=${created.id} amount=${created.amountCents} '
+        'draft=${created.isDraft} type=${created.type.name}');
     addTearDown(() => txRepo.softDelete(created.id));
 
     // Confirm cleared the keypad (T-11: clear lives on the amount row).

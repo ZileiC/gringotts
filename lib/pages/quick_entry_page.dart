@@ -7,9 +7,6 @@ import '../data/app_database.dart';
 import '../data/repositories/repositories.dart';
 import '../domain/models.dart';
 import '../domain/seed_ids.dart';
-import '../pages/assets_page.dart';
-import '../pages/review_page.dart';
-import '../pages/stats_page.dart';
 import '../services/budget_engine.dart';
 import '../services/smart_parser.dart';
 import '../services/smart_prefill.dart';
@@ -20,9 +17,13 @@ import '../ui/tokens.dart';
 /// Speed-entry page (T-11, DESIGN_MAIN section 4): B+C hybrid.
 ///
 /// Two inputs (project name + keypad amount), a 3x3 always-visible category
-/// grid and a redesigned 4x3 keypad. Secondary page since T-10b: the top bar
-/// carries a back action plus the review/assets/stats entries.
-/// Record action never blocks on category selection (draft-first workflow).
+/// grid and a redesigned 4x3 keypad. It is the analysis page's child (T-12c):
+/// pushed from the shell's 记一笔 button, with a back action returning to it.
+///
+/// T-12c Part B: the confirm key writes a formal record directly
+/// (`is_draft = false`), so the entry lands in statistics / budget / ledger
+/// immediately. The draft pipeline was abolished; category selection is
+/// optional and never blocks the record.
 class QuickEntryPage extends ConsumerStatefulWidget {
   const QuickEntryPage({super.key, this.now});
 
@@ -147,7 +148,7 @@ class _QuickEntryPageState extends ConsumerState<QuickEntryPage> {
       categoryId: categoryId,
       merchant: trimmedName.isEmpty ? null : trimmedName,
       occurredAt: _now(),
-      isDraft: true,
+      isDraft: false,
       source: TransactionSource.manual,
     );
 
@@ -329,15 +330,6 @@ class _QuickEntryPageState extends ConsumerState<QuickEntryPage> {
       _onKey('backspace');
     } else if (key == LogicalKeyboardKey.escape) {
       _clearAmount();
-    } else if (key == LogicalKeyboardKey.f3) {
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => const StatsPage()),
-      );
-    } else if (key == LogicalKeyboardKey.f2) {
-      // Debug navigation shortcut (Windows preview only).
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => const AssetsPage()),
-      );
     } else if (key == LogicalKeyboardKey.enter ||
         key == LogicalKeyboardKey.numpadEnter) {
       _confirm(_effectiveCategoryId(
@@ -371,26 +363,8 @@ class _TopBar extends StatelessWidget {
           ),
           Text('记一笔', style: Theme.of(context).textTheme.titleLarge),
           const Spacer(),
-          // T-10b must-keep entries; compact so the row still fits a phone.
-          _CompactEntry(
-            buttonKey: const Key('quick_review'),
-            icon: Icons.history,
-            tooltip: '回顾',
-            builder: (_) => const ReviewPage(),
-          ),
-          _CompactEntry(
-            buttonKey: const Key('quick_assets'),
-            icon: Icons.inventory_2,
-            tooltip: '资产',
-            builder: (_) => const AssetsPage(),
-          ),
-          _CompactEntry(
-            buttonKey: const Key('quick_stats'),
-            icon: Icons.bar_chart,
-            tooltip: '统计',
-            builder: (_) => const StatsPage(),
-          ),
-          const SizedBox(width: AppSpacing.xs),
+          // T-12c: assets/stats are peer tabs now and the review page is gone,
+          // so the top bar keeps only the expense/income switch.
           SegmentedButton<bool>(
             segments: const [
               ButtonSegment(value: false, label: Text('支出')),
@@ -404,36 +378,6 @@ class _TopBar extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-/// Compact icon entry to the secondary pages (top-bar real estate is tight).
-class _CompactEntry extends StatelessWidget {
-  const _CompactEntry({
-    required this.buttonKey,
-    required this.icon,
-    required this.tooltip,
-    required this.builder,
-  });
-
-  final Key buttonKey;
-  final IconData icon;
-  final String tooltip;
-  final WidgetBuilder builder;
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      key: buttonKey,
-      onPressed: () => Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: builder),
-      ),
-      icon: Icon(icon, size: 20),
-      tooltip: tooltip,
-      visualDensity: VisualDensity.compact,
-      padding: EdgeInsets.zero,
-      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
     );
   }
 }

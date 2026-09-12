@@ -1,14 +1,11 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/app.dart';
 import '../data/app_database.dart';
 import '../data/repositories/budget_repository.dart';
 import '../domain/models.dart';
-import '../pages/ledger_page.dart';
-import '../pages/quick_entry_page.dart';
 import '../services/budget_engine.dart';
 import '../services/statistics_service.dart';
 import '../ui/motion.dart';
@@ -16,10 +13,10 @@ import '../ui/tokens.dart';
 
 /// Home = analysis / guidance page (M2.0 pre-wave, DESIGN_MAIN §3).
 ///
-/// The launch page. It answers "how much can I still spend today" from the
-/// monthly budget and the confirmed expense records, and hosts the AI slot
-/// (placeholder until M2.0). The speed-entry keypad moved to a secondary page
-/// reached by the fixed [记一笔] action.
+/// One of the three peer tabs hosted by [HomeShell]. It answers "how much can
+/// I still spend today" from the monthly budget and the confirmed expense
+/// records, and hosts the AI slot (placeholder until M2.0). The month title is
+/// a button that opens the calendar sheet (T-12c Part D).
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
@@ -49,10 +46,6 @@ class _HomePageState extends ConsumerState<HomePage> {
     return _month.year == now.year && _month.month == now.month;
   }
 
-  void _shiftMonth(int delta) {
-    setState(() => _month = DateTime(_month.year, _month.month + delta, 1));
-  }
-
   Future<void> _openBudgetSheet(BudgetMonth? current) async {
     if (!_isCurrentMonth) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -70,15 +63,44 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 
-  void _openQuickEntry() {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => const QuickEntryPage()),
-    );
-  }
+  /// Opens the month calendar sheet; selecting a month switches the page data.
+  Future<void> _openMonthSheet() async {
+    final today = DateTime.now();
+    void select(DateTime month) => setState(() => _month = month);
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
 
-  void _openLedger() {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => const LedgerPage()),
+    if (!reduceMotion) {
+      await showModalBottomSheet<void>(
+        context: context,
+        builder: (_) => _MonthSheet(
+          selected: _month,
+          today: today,
+          onSelected: select,
+        ),
+      );
+      return;
+    }
+    // reduce-motion: a fade replaces the sheet's vertical displacement
+    // (DESIGN_MAIN §3.1).
+    await showGeneralDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: '月份选择',
+      barrierColor: AppColors.canvas.withValues(alpha: 0.6),
+      transitionDuration: const Duration(milliseconds: 180),
+      pageBuilder: (_, _, _) => Align(
+        alignment: Alignment.bottomCenter,
+        child: Material(
+          color: Colors.transparent,
+          child: _MonthSheet(
+            selected: _month,
+            today: today,
+            onSelected: select,
+          ),
+        ),
+      ),
+      transitionBuilder: (_, animation, _, child) =>
+          FadeTransition(opacity: animation, child: child),
     );
   }
 
@@ -100,9 +122,7 @@ class _HomePageState extends ConsumerState<HomePage> {
           children: [
             _MonthBar(
               month: _month,
-              canGoForward: !_isCurrentMonth,
-              onPrev: () => _shiftMonth(-1),
-              onNext: () => _shiftMonth(1),
+              onMonthTap: _openMonthSheet,
               onBudget: () => _openBudgetSheet(null),
             ),
             Expanded(
@@ -135,28 +155,21 @@ class _HomePageState extends ConsumerState<HomePage> {
           ],
         ),
       ),
-      bottomNavigationBar: _BottomActionBar(
-        onRecord: _openQuickEntry,
-        onLedger: _openLedger,
-      ),
     );
   }
 }
 
-/// Top bar: `Budget` eyebrow + month title, with prev/next/gear actions.
+/// Top bar: month button (left, opens the calendar sheet) + budget gear
+/// (right). The old ‹ › arrows were removed by user ruling (DESIGN_MAIN §3.1).
 class _MonthBar extends StatelessWidget {
   const _MonthBar({
     required this.month,
-    required this.canGoForward,
-    required this.onPrev,
-    required this.onNext,
+    required this.onMonthTap,
     required this.onBudget,
   });
 
   final DateTime month;
-  final bool canGoForward;
-  final VoidCallback onPrev;
-  final VoidCallback onNext;
+  final VoidCallback onMonthTap;
   final VoidCallback onBudget;
 
   @override
@@ -166,29 +179,40 @@ class _MonthBar extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(AppSpacing.m, AppSpacing.s, AppSpacing.s, 0),
       child: Row(
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Budget', style: theme.textTheme.bodySmall),
-              Text(
-                '${month.year} 年 ${month.month} 月',
-                style: theme.textTheme.titleLarge,
+          SizedBox(
+            height: 40,
+            child: OutlinedButton(
+              key: const Key('home_month_button'),
+              onPressed: onMonthTap,
+              style: OutlinedButton.styleFrom(
+                backgroundColor: AppColors.elevated,
+                foregroundColor: AppColors.ink,
+                side: const BorderSide(color: AppColors.hairline),
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
+                minimumSize: const Size(0, 40),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.m),
+                ),
               ),
-            ],
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '${month.year} 年 ${month.month} 月',
+                    style: theme.textTheme.bodyLarge,
+                  ),
+                  const SizedBox(width: AppSpacing.xs),
+                  const Icon(
+                    Icons.arrow_drop_down,
+                    size: 18,
+                    color: AppColors.inkSecondary,
+                  ),
+                ],
+              ),
+            ),
           ),
           const Spacer(),
-          IconButton(
-            key: const Key('home_month_prev'),
-            onPressed: onPrev,
-            icon: const Icon(Icons.chevron_left),
-            tooltip: '上一个月',
-          ),
-          IconButton(
-            key: const Key('home_month_next'),
-            onPressed: canGoForward ? onNext : null,
-            icon: const Icon(Icons.chevron_right),
-            tooltip: '下一个月',
-          ),
           IconButton(
             key: const Key('home_budget_entry'),
             onPressed: onBudget,
@@ -196,6 +220,217 @@ class _MonthBar extends StatelessWidget {
             tooltip: '预算设置',
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Month calendar sheet (DESIGN_MAIN §3.1): year row + a 3x4 month grid.
+///
+/// No gradient, no shadow - flat overlay surface with hairline borders, in the
+/// same visual language as the category grid. Future months are disabled.
+class _MonthSheet extends StatefulWidget {
+  const _MonthSheet({
+    required this.selected,
+    required this.today,
+    required this.onSelected,
+  });
+
+  /// The month currently displayed on the home page (highlighted in the grid).
+  final DateTime selected;
+
+  /// Real "now" (future months and the next year are disabled against it).
+  final DateTime today;
+
+  final ValueChanged<DateTime> onSelected;
+
+  @override
+  State<_MonthSheet> createState() => _MonthSheetState();
+}
+
+class _MonthSheetState extends State<_MonthSheet> {
+  late int _year;
+
+  @override
+  void initState() {
+    super.initState();
+    _year = widget.selected.year;
+  }
+
+  bool get _yearCanAdvance => _year < widget.today.year;
+
+  bool _isFutureMonth(int month) =>
+      _year > widget.today.year ||
+      (_year == widget.today.year && month > widget.today.month);
+
+  void _select(int month) {
+    widget.onSelected(DateTime(_year, month, 1));
+    Navigator.of(context).pop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final bottomInset = MediaQuery.of(context).viewPadding.bottom;
+    return Container(
+      key: const Key('home_month_sheet'),
+      decoration: const BoxDecoration(
+        color: AppColors.overlay,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      padding: EdgeInsets.fromLTRB(
+        AppSpacing.m, AppSpacing.s, AppSpacing.m, AppSpacing.l + bottomInset,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Drag handle.
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: AppColors.hairline,
+              borderRadius: BorderRadius.circular(AppRadius.pill),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.m),
+          // Year row: ‹ 2026 › (the next year is disabled against "now").
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _CircleIconButton(
+                key: const Key('month_sheet_year_prev'),
+                icon: Icons.chevron_left,
+                onTap: () => setState(() => _year--),
+              ),
+              SizedBox(
+                width: 96,
+                child: Text(
+                  '$_year',
+                  key: const Key('month_sheet_year'),
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.titleLarge,
+                ),
+              ),
+              _CircleIconButton(
+                key: const Key('month_sheet_year_next'),
+                icon: Icons.chevron_right,
+                onTap: _yearCanAdvance
+                    ? () => setState(() => _year++)
+                    : null,
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.m),
+          for (var row = 0; row < 4; row++) ...[
+            if (row > 0) const SizedBox(height: AppSpacing.categoryGap),
+            Row(
+              children: [
+                for (var col = 0; col < 3; col++) ...[
+                  if (col > 0) const SizedBox(width: AppSpacing.categoryGap),
+                  Expanded(
+                    child: _MonthCell(
+                      month: row * 3 + col + 1,
+                      selected: _year == widget.selected.year &&
+                          row * 3 + col + 1 == widget.selected.month,
+                      disabled: _isFutureMonth(row * 3 + col + 1),
+                      onTap: () => _select(row * 3 + col + 1),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Circular hairline button for the year row.
+class _CircleIconButton extends StatelessWidget {
+  const _CircleIconButton({
+    super.key,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onTap != null;
+    return SizedBox(
+      width: 48,
+      height: 48,
+      child: TouchedScale(
+        pressedScale: 0.94,
+        onTap: onTap,
+        child: Container(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: AppColors.hairline),
+          ),
+          child: Icon(
+            icon,
+            color: enabled
+                ? AppColors.ink
+                : AppColors.inkSecondary.withValues(alpha: 0.4),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// One month cell: hairline border; selected = gold border + faint gold fill +
+/// gold text; future = muted and disabled.
+class _MonthCell extends StatelessWidget {
+  const _MonthCell({
+    required this.month,
+    required this.selected,
+    required this.disabled,
+    required this.onTap,
+  });
+
+  final int month;
+  final bool selected;
+  final bool disabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color textColor;
+    if (disabled) {
+      textColor = AppColors.inkSecondary.withValues(alpha: 0.4);
+    } else if (selected) {
+      textColor = AppColors.goldAccent;
+    } else {
+      textColor = AppColors.ink;
+    }
+    return TouchedScale(
+      pressedScale: 0.97,
+      onTap: disabled ? null : onTap,
+      child: Container(
+        key: Key('month_sheet_cell_$month'),
+        height: 52,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: selected ? AppColors.goldContainer : Colors.transparent,
+          borderRadius: BorderRadius.circular(AppRadius.m),
+          border: Border.all(
+            color: selected ? AppColors.goldAccent : AppColors.hairline,
+          ),
+        ),
+        child: Text(
+          '$month月',
+          style: TextStyle(
+            fontSize: AppFont.body,
+            color: textColor,
+            fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+          ),
+        ),
       ),
     );
   }
@@ -644,114 +879,6 @@ class _AiCard extends StatelessWidget {
               child: Text('AI 分析与建议', style: theme.textTheme.titleMedium),
             ),
             Text('M2.0 上线', style: theme.textTheme.bodySmall),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Fixed bottom action bar: 记一笔 (gold gradient) + 明细 (gold outline).
-///
-/// The 明细 entry carries the "今日 N 笔待完善" draft badge (T-11 acceptance
-/// ruling: the old quick-entry badge moves to the home ledger entry).
-class _BottomActionBar extends ConsumerWidget {
-  const _BottomActionBar({required this.onRecord, required this.onLedger});
-
-  final VoidCallback onRecord;
-  final VoidCallback onLedger;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final draftCount = ref
-        .watch(transactionRepositoryProvider)
-        .watchTodayDraftCount();
-    return SafeArea(
-      top: false,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(
-          AppSpacing.m, AppSpacing.s, AppSpacing.m, AppSpacing.s,
-        ),
-        decoration: const BoxDecoration(
-          color: AppColors.canvas,
-          border: Border(top: BorderSide(color: AppColors.hairline)),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: SizedBox(
-                key: const Key('home_record_cta'),
-                height: 52,
-                child: TouchedScale(
-                  pressedScale: 0.96,
-                  onPressHaptic: () => HapticFeedback.mediumImpact(),
-                  child: DecoratedBox(
-                    decoration: const BoxDecoration(
-                      borderRadius: BorderRadius.all(Radius.circular(AppRadius.m)),
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [AppColors.goldAccent, AppColors.goldDeep],
-                      ),
-                    ),
-                    child: TextButton(
-                      onPressed: onRecord,
-                      style: TextButton.styleFrom(
-                        foregroundColor: AppColors.onGold,
-                        textStyle: const TextStyle(
-                          fontSize: AppFont.title,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      child: const Text('记一笔'),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.s),
-            Expanded(
-              child: SizedBox(
-                key: const Key('home_ledger_cta'),
-                height: 52,
-                child: OutlinedButton(
-                  onPressed: onLedger,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.goldAccent,
-                    side: const BorderSide(color: AppColors.goldDeep),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.m),
-                    ),
-                    textStyle: const TextStyle(
-                      fontSize: AppFont.title,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  child: StreamBuilder<int>(
-                    stream: draftCount,
-                    builder: (context, snapshot) {
-                      final count = snapshot.data ?? 0;
-                      if (count <= 0) return const Text('明细');
-                      return Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text('明细'),
-                          Text(
-                            '今日 $count 笔待完善',
-                            key: const Key('home_draft_badge'),
-                            style: const TextStyle(
-                              fontSize: AppFont.caption,
-                              height: 1.1,
-                              color: AppColors.onGoldContainer,
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ),
           ],
         ),
       ),

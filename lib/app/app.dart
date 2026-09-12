@@ -5,7 +5,7 @@ import '../data/app_database.dart';
 import '../data/repositories/asset_photo_repository.dart';
 import '../data/repositories/budget_repository.dart';
 import '../data/repositories/repositories.dart';
-import '../pages/home_page.dart';
+import '../pages/home_shell.dart';
 import '../ui/splash.dart';
 import '../ui/tokens.dart';
 
@@ -61,9 +61,9 @@ class GringottsApp extends ConsumerWidget {
       // home is mounted underneath from the first frame.
       builder: (context, child) =>
           SplashGate(child: child ?? const SizedBox.shrink()),
-      // T-10b IA change: the launch page is the analysis home; the speed-entry
-      // keypad is a secondary route reached from the fixed 记一笔 action.
-      home: const HomePage(),
+      // T-12c IA: the launch route is the tab shell (analysis / assets /
+      // stats peers); the speed-entry keypad is pushed from the 记一笔 action.
+      home: const HomeShell(),
     );
   }
 }

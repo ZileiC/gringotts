@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../app/app.dart';
 import '../data/app_database.dart';
 import '../data/repositories/repositories.dart';
+import '../pages/ledger_page.dart';
 import '../services/export_service.dart';
 import '../services/statistics_service.dart';
 import '../ui/motion.dart';
@@ -37,6 +38,13 @@ class _StatsPageState extends ConsumerState<StatsPage>
   }
   CategoryRepository get _categoryRepo =>
       ref.read(categoryRepositoryProvider);
+
+  /// T-12c Part A: the ledger is the statistics page's child (明细 ›).
+  void _openLedger() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const LedgerPage()),
+    );
+  }
 
   List<PeriodPoint> _trend(List<Transaction> transactions) {
     switch (_range) {
@@ -75,7 +83,23 @@ class _StatsPageState extends ConsumerState<StatsPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('统计')),
+      appBar: AppBar(
+        title: const Text('统计'),
+        actions: [
+          TextButton(
+            key: const Key('stats_ledger_entry'),
+            onPressed: _openLedger,
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('明细'),
+                Icon(Icons.chevron_right, size: 18, color: AppColors.inkSecondary),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.s),
+        ],
+      ),
       body: StreamBuilder<List<Transaction>>(
         stream: _txRepo.watchAll(),
         builder: (context, snapshot) {

@@ -101,6 +101,9 @@ void main() {
     addTearDown(() => budgetRepo.softDelete(budget.id));
 
     final seeded = <Transaction>[];
+    // Fixed time-of-day for the seeded rows (AGENTS.md evidence clause): keeps
+    // the frame md5 stable across runs instead of drifting with wall-clock now.
+    final seededAt = DateTime(now.year, now.month, now.day, 12, 0);
     for (final (categoryId, cents) in <(String, int)>[
       (categoryIdDining, 2260),
       (categoryIdTransport, 1500),
@@ -112,7 +115,7 @@ void main() {
         amountCents: cents,
         type: TransactionType.expense,
         categoryId: categoryId,
-        occurredAt: now,
+        occurredAt: seededAt,
       ));
     }
     for (final t in seeded) {
@@ -140,35 +143,38 @@ void main() {
     }
     await snap(tester, '02_budget_set', [find.text('本月已花')]);
 
-    // ---- fixed action bar stays put and on screen while content scrolls ----
+    // ---- fixed bottom bar (record CTA + peer tabs) stays put while scrolling
     final record = find.byKey(const Key('home_record_cta'));
-    final ledger = find.byKey(const Key('home_ledger_cta'));
+    final tab = find.byKey(const Key('tab_home'));
     final barBefore = tester.getRect(record);
-    expect(find.descendant(of: find.byType(ListView), matching: record), findsNothing,
-        reason: 'the action bar lives outside the scroll content');
+    expect(find.descendant(of: find.byType(ListView), matching: record),
+        findsNothing,
+        reason: 'the shell bottom bar lives outside the scroll content');
     expect(barBefore.bottom, lessThanOrEqualTo(_screenHeight(tester) + 0.5));
-    expect(barBefore.bottom, greaterThan(_screenHeight(tester) - 80),
-        reason: 'the action bar is pinned at the bottom of the screen');
     await tester.drag(find.byType(ListView).first, const Offset(0, -240));
     await tester.pumpAndSettle(const Duration(seconds: 1));
     expect(tester.getRect(record), barBefore,
-        reason: 'fixed bar does not move with the scroll');
-    expect(tester.getRect(ledger).bottom, lessThanOrEqualTo(_screenHeight(tester) + 0.5));
-    expect(tester.getRect(ledger).bottom, greaterThan(_screenHeight(tester) - 80));
+        reason: 'the record CTA does not move with the scroll');
+    final tabRect = tester.getRect(tab);
+    expect(tabRect.bottom, lessThanOrEqualTo(_screenHeight(tester) + 0.5));
+    expect(tabRect.bottom, greaterThan(_screenHeight(tester) - 80),
+        reason: 'the tab bar is pinned at the bottom of the screen');
     // ignore: avoid_print
     print('T10B_FIXEDBAR record_bottom=${barBefore.bottom.toStringAsFixed(1)} '
+        'tab_bottom=${tabRect.bottom.toStringAsFixed(1)} '
         'screen=${_screenHeight(tester).toStringAsFixed(1)}');
 
-    // Month navigation is read-only: the future arrow is disabled on the
-    // current month and enables once a history month is shown.
-    final next = find.byKey(const Key('home_month_next'));
-    expect(tester.widget<IconButton>(next).onPressed, isNull,
-        reason: 'cannot move past the current month');
-    await tester.tap(find.byKey(const Key('home_month_prev')));
+    // Month selection is a button + calendar sheet (T-12c Part D): the arrows
+    // are removed, and choosing a month switches the page data.
+    expect(find.byKey(const Key('home_month_prev')), findsNothing);
+    expect(find.byKey(const Key('home_month_next')), findsNothing);
+    await tester.tap(find.byKey(const Key('home_month_button')));
     await tester.pumpAndSettle(const Duration(seconds: 1));
-    expect(tester.widget<IconButton>(next).onPressed, isNotNull);
-    await tester.tap(next);
+    expect(find.byKey(const Key('home_month_sheet')), findsOneWidget);
+    final nowMonth = DateTime.now().month;
+    await tester.tap(find.byKey(Key('month_sheet_cell_$nowMonth')));
     await tester.pumpAndSettle(const Duration(seconds: 1));
+    expect(find.byKey(const Key('home_month_sheet')), findsNothing);
 
     // ---- frame 3: overspent (spent ¥53.6 > budget ¥50) ----
     await budgetRepo.upsert(

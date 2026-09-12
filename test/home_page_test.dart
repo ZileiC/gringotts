@@ -63,10 +63,9 @@ class _FakeCategoryRepository implements CategoryRepository {
 }
 
 class _FakeTransactionRepository implements TransactionRepository {
-  _FakeTransactionRepository(this.transactions, {this.draftCount = 0});
+  _FakeTransactionRepository(this.transactions);
 
   final List<Transaction> transactions;
-  final int draftCount;
 
   @override
   Stream<List<Transaction>> watchAll() => Stream.value(transactions);
@@ -95,21 +94,6 @@ class _FakeTransactionRepository implements TransactionRepository {
       throw UnimplementedError();
 
   @override
-  Stream<List<Transaction>> watchDrafts() => Stream.value(const []);
-
-  @override
-  Stream<int> watchTodayDraftCount() => Stream.value(draftCount);
-
-  @override
-  Future<int> updateFields(
-    String id, {
-    String? categoryId,
-    String? merchant,
-    String? note,
-  }) =>
-      throw UnimplementedError();
-
-  @override
   Future<int> updateTransaction({
     required String id,
     required int amountCents,
@@ -129,9 +113,6 @@ class _FakeTransactionRepository implements TransactionRepository {
 
   @override
   Future<int> restore(String id) => throw UnimplementedError();
-
-  @override
-  Future<int> confirmDraft(String id) => throw UnimplementedError();
 }
 
 Category _cat(String id, String name) => Category(
@@ -184,13 +165,12 @@ Widget harness({
   BudgetMonth? budget,
   List<Transaction> transactions = const [],
   List<Category> categories = const [],
-  int draftCount = 0,
 }) =>
     ProviderScope(
       overrides: [
         budgetRepositoryProvider.overrideWithValue(_FakeBudgetRepository(budget)),
         transactionRepositoryProvider.overrideWithValue(
-            _FakeTransactionRepository(transactions, draftCount: draftCount)),
+            _FakeTransactionRepository(transactions)),
         categoryRepositoryProvider
             .overrideWithValue(_FakeCategoryRepository(categories)),
       ],
@@ -210,7 +190,7 @@ void main() {
     _cat(categoryIdStudy, '学习'),
   ];
 
-  testWidgets('no budget -> onboarding card, empty donut, fixed action bar',
+  testWidgets('no budget -> onboarding card + empty donut, month button present',
       (tester) async {
     await tester.pumpWidget(harness(categories: categories));
     await tester.pumpAndSettle();
@@ -218,10 +198,11 @@ void main() {
     expect(find.text('先设置本月预算'), findsOneWidget);
     expect(find.text('今天还没有支出'), findsOneWidget,
         reason: 'empty donut shows one line, not an empty ring');
-    expect(find.byKey(const Key('home_record_cta')), findsOneWidget);
-    expect(find.byKey(const Key('home_ledger_cta')), findsOneWidget);
-    expect(find.text('记一笔'), findsOneWidget);
-    expect(find.text('明细'), findsOneWidget);
+    // T-12c Part D: the month title is a button; the ‹ › arrows are gone.
+    expect(find.byKey(const Key('home_month_button')), findsOneWidget);
+    expect(find.byKey(const Key('home_budget_entry')), findsOneWidget);
+    expect(find.byKey(const Key('home_month_prev')), findsNothing);
+    expect(find.byKey(const Key('home_month_next')), findsNothing);
   });
 
   testWidgets('budget set -> hero shows derived live quota', (tester) async {
@@ -271,22 +252,44 @@ void main() {
         reason: 'the hero still renders (derived figures exist, just negative)');
   });
 
-  testWidgets('ledger entry opens the real ledger page (T-12 wiring)',
+  testWidgets('month button opens the calendar sheet and switching a month works',
       (tester) async {
     await tester.pumpWidget(harness(categories: categories));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('home_ledger_cta')));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('ledger_back')), findsOneWidget);
-    expect(find.byKey(const Key('ledger_month_label')), findsOneWidget);
-  });
 
-  testWidgets('draft badge on the ledger entry reads 今日 N 笔待完善',
-      (tester) async {
-    await tester.pumpWidget(harness(categories: categories, draftCount: 2));
+    await tester.tap(find.byKey(const Key('home_month_button')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('home_draft_badge')), findsOneWidget);
-    expect(find.text('今日 2 笔待完善'), findsOneWidget);
+    expect(find.byKey(const Key('home_month_sheet')), findsOneWidget);
+
+    final now = DateTime.now();
+    expect(find.byKey(const Key('month_sheet_year')), findsOneWidget);
+    expect(find.text('${now.year}'), findsOneWidget);
+
+    // The next year is disabled: tapping does not advance the year label.
+    await tester.tap(find.byKey(const Key('month_sheet_year_next')));
+    await tester.pumpAndSettle();
+    expect(find.text('${now.year}'), findsOneWidget,
+        reason: 'future year is disabled');
+
+    // A future month in the current year is disabled (sheet stays open).
+    if (now.month < 12) {
+      await tester.tap(find.byKey(Key('month_sheet_cell_${now.month + 1}')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('home_month_sheet')), findsOneWidget,
+          reason: 'future month must not be selectable');
+    }
+
+    // A guaranteed past month closes the sheet and switches the home data.
+    final target = now.month == 1 ? 12 : 1;
+    final targetYear = now.month == 1 ? now.year - 1 : now.year;
+    if (now.month == 1) {
+      await tester.tap(find.byKey(const Key('month_sheet_year_prev')));
+      await tester.pumpAndSettle();
+    }
+    await tester.tap(find.byKey(Key('month_sheet_cell_$target')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('home_month_sheet')), findsNothing);
+    expect(find.text('$targetYear 年 $target 月'), findsOneWidget);
   });
 
   testWidgets('donut merges beyond 3 categories into 其他', (tester) async {

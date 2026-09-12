@@ -15,8 +15,9 @@ import 'package:gringotts/services/statistics_service.dart';
 import 'package:integration_test/integration_test.dart';
 
 /// T-12 ledger evidence: month->day->entry hierarchy, type filters that keep
-/// the grouping, full-field edit (draft stays a draft), tombstone deletion,
-/// and the edit -> stats/allowance linkage.
+/// the grouping, full-field edit, tombstone deletion, and the edit ->
+/// stats/allowance linkage. Entry is the statistics tab's 明细 › action
+/// (T-12c Part A).
 ///
 /// Preconditions declared up front (AGENTS.md evidence clause): the live row
 /// count is read back before seeding, every seeded row is tombstoned at
@@ -92,7 +93,6 @@ void main() {
       type: TransactionType.expense,
       categoryId: categoryIdShopping,
       occurredAt: yesterday,
-      isDraft: true,
     );
     final e2 = await txRepo.create(
       amountCents: 800,
@@ -129,8 +129,10 @@ void main() {
     );
     await tester.pumpAndSettle(const Duration(seconds: 2));
 
-    // T-12 entry: the home 明细 button now opens the real ledger page.
-    await tester.tap(find.byKey(const Key('home_ledger_cta')));
+    // T-12c entry: the statistics tab's 明细 › action opens the ledger.
+    await tester.tap(find.byKey(const Key('tab_stats')));
+    await tester.pumpAndSettle(const Duration(seconds: 1));
+    await tester.tap(find.byKey(const Key('stats_ledger_entry')));
     await tester.pumpAndSettle(const Duration(seconds: 2));
     expect(find.byKey(const Key('ledger_back')), findsOneWidget);
 
@@ -148,7 +150,6 @@ void main() {
     for (final id in <String>[e1.id, i1.id, d1.id, e2.id]) {
       expect(find.byKey(Key('ledger_row_$id')), findsOneWidget);
     }
-    expect(find.byKey(Key('ledger_draft_${d1.id}')), findsOneWidget);
     await snap(tester, '01_list', [
       find.byKey(const Key('ledger_list')),
       find.byKey(Key('ledger_row_${e1.id}')),
@@ -226,25 +227,6 @@ void main() {
     expect(StatisticsService.totals(afterEdit).expenseCents,
         expensesBefore + 450,
         reason: 'statistics consumes the same edited rows');
-
-    // ---- draft edit keeps the draft state ----
-    await tester.tap(find.byKey(Key('ledger_row_${d1.id}')));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('ledger_edit_draft_notice')), findsOneWidget);
-    await tester.ensureVisible(find.byKey(const Key('ledger_edit_amount')));
-    await tester.pumpAndSettle();
-    await tester.enterText(find.byKey(const Key('ledger_edit_amount')), '30');
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.byKey(const Key('ledger_edit_save')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('ledger_edit_save')));
-    await tester.pumpAndSettle(const Duration(seconds: 1));
-    final keptDraft = await (db.select(db.transactions)
-          ..where((t) => t.id.equals(d1.id)))
-        .getSingle();
-    expect(keptDraft.amountCents, 3000);
-    expect(keptDraft.isDraft, isTrue,
-        reason: 'editing a draft never promotes it (promotion stays in review)');
 
     // ---- tombstone deletion: raw row remains, live list drops it ----
     await tester.tap(find.byKey(Key('ledger_row_${e2.id}')));

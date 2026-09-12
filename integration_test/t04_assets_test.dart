@@ -64,16 +64,14 @@ void main() {
     // ignore: avoid_print
     print('ASSETS_BEFORE=${assetsBefore.length}');
 
-    // 1. Home state frame (T-10b: launch page = analysis home).
+    // 1. Home state frame (T-12c: launch page = tab shell, analysis tab).
     await snapState(tester, 'state1_home', [
       find.text('记一笔'),
-      find.text('明细'),
+      find.byKey(const Key('tab_assets')),
     ]);
 
-    // 2. Navigate to the assets page: home -> speed entry -> 资产.
-    await tester.tap(find.byKey(const Key('home_record_cta')));
-    await tester.pumpAndSettle(const Duration(seconds: 2));
-    await tester.tap(find.byKey(const Key('quick_assets')));
+    // 2. Navigate to the assets page: tap its peer tab (no push).
+    await tester.tap(find.byKey(const Key('tab_assets')));
     await tester.pumpAndSettle(const Duration(seconds: 2));
     final assetsPageState = <Finder>[
       find.text('资产档案'),

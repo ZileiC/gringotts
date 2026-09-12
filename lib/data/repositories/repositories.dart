@@ -60,29 +60,6 @@ class TransactionRepository {
         .write(TransactionsCompanion(deletedAt: const Value(null)));
   }
 
-  /// Stream of all live draft transactions (for the review page).
-  Stream<List<Transaction>> watchDrafts() {
-    return (_db.select(_db.transactions)
-          ..where((t) => t.deletedAt.isNull() & t.isDraft.equals(true))
-          ..orderBy([(u) => OrderingTerm.desc(u.occurredAt)]))
-        .watch();
-  }
-
-  /// Count of live drafts that occurred today (home badge).
-  Stream<int> watchTodayDraftCount() {
-    final now = DateTime.now();
-    final startOfDay = DateTime(now.year, now.month, now.day);
-    final endOfDay = startOfDay.add(const Duration(days: 1));
-    final countExpr = _db.transactions.id.count();
-    final query = _db.selectOnly(_db.transactions)
-      ..addColumns([countExpr])
-      ..where(_db.transactions.deletedAt.isNull() &
-          _db.transactions.isDraft.equals(true) &
-          _db.transactions.occurredAt.isBiggerOrEqualValue(startOfDay) &
-          _db.transactions.occurredAt.isSmallerThanValue(endOfDay));
-    return query.map((row) => row.read(countExpr) ?? 0).watchSingle();
-  }
-
   /// Sum of non-draft expense cents for a local day range (T-03 test hook).
   Future<int> confirmedExpenseCentsInRange(DateTime start, DateTime end) async {
     final sumExpr = _db.transactions.amountCents.sum();
@@ -150,29 +127,11 @@ class TransactionRepository {
     });
     return best;
   }
-  /// Updates mutable fields on a transaction (category/merchant/note).
-  Future<int> updateFields(
-    String id, {
-    String? categoryId,
-    String? merchant,
-    String? note,
-  }) {
-    final now = DateTime.now().toUtc();
-    return (_db.update(_db.transactions)..where((t) => t.id.equals(id)))
-        .write(TransactionsCompanion(
-      categoryId: Value(categoryId),
-      merchant: Value(merchant),
-      note: Value(note),
-      updatedAt: Value(now),
-    ));
-  }
-
   /// Full-field edit for the ledger sheet (T-12).
   ///
   /// Every editable column is written explicitly, so a `null` merchant/note
-  /// actually clears the field (unlike a partial update). `is_draft` and
-  /// `source` are deliberately untouched: editing a draft keeps it a draft
-  /// (promotion stays in the review page), and `updated_at` is refreshed.
+  /// actually clears the field. `is_draft` and `source` are deliberately
+  /// untouched (the draft pipeline is abolished; `updated_at` is refreshed).
   Future<int> updateTransaction({
     required String id,
     required int amountCents,
@@ -194,15 +153,6 @@ class TransactionRepository {
       occurredAt: Value(occurredAt),
       updatedAt: Value(now),
     ));
-  }
-  /// Permanently marks a draft transaction as a confirmed record.
-  Future<int> confirmDraft(String id) {
-    return (_db.update(_db.transactions)
-          ..where((t) => t.id.equals(id) & t.isDraft.equals(true)))
-        .write(TransactionsCompanion(
-          isDraft: const Value(false),
-          updatedAt: Value(DateTime.now().toUtc()),
-        ));
   }
 }
 

@@ -62,21 +62,6 @@ class _TxRepo implements TransactionRepository {
       throw UnimplementedError();
 
   @override
-  Stream<List<Transaction>> watchDrafts() => Stream.value(const []);
-
-  @override
-  Stream<int> watchTodayDraftCount() => Stream.value(0);
-
-  @override
-  Future<int> updateFields(
-    String id, {
-    String? categoryId,
-    String? merchant,
-    String? note,
-  }) =>
-      throw UnimplementedError();
-
-  @override
   Future<int> updateTransaction({
     required String id,
     required int amountCents,
@@ -96,9 +81,6 @@ class _TxRepo implements TransactionRepository {
 
   @override
   Future<int> restore(String id) => throw UnimplementedError();
-
-  @override
-  Future<int> confirmDraft(String id) => throw UnimplementedError();
 }
 
 class _BudgetRepo implements BudgetRepository {
@@ -452,15 +434,17 @@ void main() {
     );
   });
 
-  testWidgets('top bar keeps back + review/assets/stats entries',
+  testWidgets('top bar keeps back + expense/income switch, peer entries gone',
       (tester) async {
     await tester.pumpWidget(harness(now: midday));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('quick_back')), findsOneWidget);
-    expect(find.byKey(const Key('quick_review')), findsOneWidget);
-    expect(find.byKey(const Key('quick_assets')), findsOneWidget);
-    expect(find.byKey(const Key('quick_stats')), findsOneWidget);
+    // T-12c Part A: assets/stats are peer tabs and the review page is removed,
+    // so the speed-entry top bar carries no secondary-page entries.
+    expect(find.byKey(const Key('quick_review')), findsNothing);
+    expect(find.byKey(const Key('quick_assets')), findsNothing);
+    expect(find.byKey(const Key('quick_stats')), findsNothing);
     // Expense/income switch lives in the top bar (default expense).
     expect(find.text('支出'), findsOneWidget);
     expect(find.text('收入'), findsOneWidget);

@@ -52,7 +52,7 @@ void main() {
     );
     await tester.pumpAndSettle(const Duration(seconds: 2));
 
-    // T-10b IA: launch = analysis home; the keypad is a secondary page.
+    // T-12c IA: launch = tab shell; 记一笔 pushes the speed-entry child.
     await tester.tap(find.byKey(const Key('home_record_cta')));
     await tester.pumpAndSettle(const Duration(seconds: 2));
     await snap(tester, '01_quick_entry', [
@@ -60,17 +60,17 @@ void main() {
       find.byKey(const Key('confirm_cta')),
       find.text('支出'),
     ]);
+    await tester.pageBack();
+    await tester.pumpAndSettle(const Duration(seconds: 1));
 
-    await tester.tap(find.byKey(const Key('quick_assets')));
+    await tester.tap(find.byKey(const Key('tab_assets')));
     await tester.pumpAndSettle(const Duration(seconds: 2));
     await snap(tester, '02_assets', [
       find.text('资产档案'),
       find.text('总资产净值'),
     ]);
-    await tester.pageBack();
-    await tester.pumpAndSettle(const Duration(seconds: 1));
 
-    await tester.tap(find.byKey(const Key('quick_stats')));
+    await tester.tap(find.byKey(const Key('tab_stats')));
     await tester.pumpAndSettle(const Duration(seconds: 2));
     await snap(tester, '03_stats', [
       find.text('净结余（收入 − 支出）'),

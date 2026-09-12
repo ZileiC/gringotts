@@ -67,21 +67,6 @@ class _TxRepo implements TransactionRepository {
       throw UnimplementedError();
 
   @override
-  Stream<List<Transaction>> watchDrafts() => Stream.value(const []);
-
-  @override
-  Stream<int> watchTodayDraftCount() => Stream.value(0);
-
-  @override
-  Future<int> updateFields(
-    String id, {
-    String? categoryId,
-    String? merchant,
-    String? note,
-  }) =>
-      throw UnimplementedError();
-
-  @override
   Future<int> updateTransaction({
     required String id,
     required int amountCents,
@@ -101,9 +86,6 @@ class _TxRepo implements TransactionRepository {
 
   @override
   Future<int> restore(String id) => throw UnimplementedError();
-
-  @override
-  Future<int> confirmDraft(String id) => throw UnimplementedError();
 }
 
 Category _cat(String id, String name, String icon) => Category(
@@ -278,7 +260,6 @@ void main() {
             amountCents: 2500,
             occurredAt: yesterday,
             categoryId: categoryIdShopping,
-            isDraft: true,
           ),
           _tx(
             id: 'e2',
@@ -336,7 +317,7 @@ void main() {
       expect(find.byKey(const Key('ledger_row_i1')), findsOneWidget);
     });
 
-    testWidgets('income is semanticIncome and drafts carry the 待完善 badge',
+    testWidgets('amounts colour by type: expense ink, income semanticIncome',
         (tester) async {
       await tester.pumpWidget(harness(now: now, transactions: rows()));
       await tester.pumpAndSettle();
@@ -345,9 +326,6 @@ void main() {
       expect(incomeAmount.style?.color, AppColors.semanticIncome);
       final expenseAmount = tester.widget<Text>(find.text('¥15.5'));
       expect(expenseAmount.style?.color, AppColors.ink);
-
-      expect(find.byKey(const Key('ledger_draft_d1')), findsOneWidget);
-      expect(find.byKey(const Key('ledger_draft_e1')), findsNothing);
     });
 
     testWidgets('empty month shows the empty copy', (tester) async {
@@ -406,7 +384,7 @@ void main() {
       expect(updated.note, isNull, reason: 'null clears the field');
       expect(updated.occurredAt, newAt);
       expect(updated.isDraft, isTrue,
-          reason: 'editing a draft keeps it a draft (promotion stays in review)');
+          reason: 'is_draft is retained (column kept for legacy rows)');
       expect(updated.updatedAt.isAfter(created.updatedAt) ||
           updated.updatedAt == created.updatedAt, isTrue);
     });

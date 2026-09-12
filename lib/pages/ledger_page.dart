@@ -365,8 +365,8 @@ class _DayHeader extends StatelessWidget {
       '${day.day.toString().padLeft(2, '0')}';
 }
 
-/// One entry row: category icon, merchant/note (category name as fallback),
-/// amount coloured by type, plus the draft badge.
+/// One entry row: category icon, merchant/note (category name as fallback)
+/// and the amount coloured by type.
 class _LedgerRow extends StatelessWidget {
   const _LedgerRow({
     required this.transaction,
@@ -432,38 +432,12 @@ class _LedgerRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: AppSpacing.s),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  '¥${_money(transaction.amountCents)}',
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    color: isIncome ? AppColors.semanticIncome : AppColors.ink,
-                    fontFeatures: AppFont.tabularFigures,
-                  ),
-                ),
-                if (transaction.isDraft) ...[
-                  const SizedBox(height: 2),
-                  Container(
-                    key: Key('ledger_draft_${transaction.id}'),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.xs,
-                      vertical: 1,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.goldContainer,
-                      borderRadius: BorderRadius.circular(AppRadius.s),
-                    ),
-                    child: Text(
-                      '待完善',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontSize: AppFont.caption - 1,
-                        color: AppColors.onGoldContainer,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
+            Text(
+              '¥${_money(transaction.amountCents)}',
+              style: theme.textTheme.bodyLarge?.copyWith(
+                color: isIncome ? AppColors.semanticIncome : AppColors.ink,
+                fontFeatures: AppFont.tabularFigures,
+              ),
             ),
           ],
         ),
@@ -474,8 +448,9 @@ class _LedgerRow extends StatelessWidget {
 
 /// Bottom sheet for full-field editing plus tombstone deletion.
 ///
-/// Editing a draft keeps `is_draft` untouched: the row stays "待完善" and is
-/// only promoted from the review page's batch confirmation flow.
+/// Every editable column is written explicitly. `is_draft` / `source` are
+/// deliberately untouched by [TransactionRepository.updateTransaction] (the
+/// draft pipeline is abolished, but legacy rows keep their flag).
 class _LedgerEditSheet extends ConsumerStatefulWidget {
   const _LedgerEditSheet({
     required this.transaction,
@@ -611,14 +586,6 @@ class _LedgerEditSheetState extends ConsumerState<_LedgerEditSheet> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text('编辑记录', style: theme.textTheme.titleLarge),
-          if (widget.transaction.isDraft) ...[
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              '待完善 · 修改后仍为草稿',
-              key: const Key('ledger_edit_draft_notice'),
-              style: theme.textTheme.bodySmall,
-            ),
-          ],
           const SizedBox(height: AppSpacing.m),
           TextField(
             key: const Key('ledger_edit_amount'),

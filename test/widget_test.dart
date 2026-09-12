@@ -83,21 +83,6 @@ class _FakeTransactionRepository implements TransactionRepository {
       throw UnimplementedError();
 
   @override
-  Stream<List<Transaction>> watchDrafts() => Stream.value(const <Transaction>[]);
-
-  @override
-  Stream<int> watchTodayDraftCount() => Stream.value(0);
-
-  @override
-  Future<int> updateFields(
-    String id, {
-    String? categoryId,
-    String? merchant,
-    String? note,
-  }) =>
-      throw UnimplementedError();
-
-  @override
   Future<int> updateTransaction({
     required String id,
     required int amountCents,
@@ -119,9 +104,6 @@ class _FakeTransactionRepository implements TransactionRepository {
 
   @override
   Future<int> restore(String id) => throw UnimplementedError();
-
-  @override
-  Future<int> confirmDraft(String id) => throw UnimplementedError();
 }
 
 Widget _speedEntryHarness() => ProviderScope(

@@ -52,10 +52,8 @@ void main() {
     );
     await tester.pumpAndSettle(const Duration(seconds: 2));
 
-    // 1. Navigate to stats: home -> speed entry -> 统计 (T-10b IA).
-    await tester.tap(find.byKey(const Key('home_record_cta')));
-    await tester.pumpAndSettle(const Duration(seconds: 2));
-    await tester.tap(find.byKey(const Key('quick_stats')));
+    // 1. Navigate to stats: tap its peer tab (T-12c IA, no push).
+    await tester.tap(find.byKey(const Key('tab_stats')));
     await tester.pumpAndSettle(const Duration(seconds: 2));
     await snapState(tester, 'state1_stats_daily', [
       find.text('净结余（收入 − 支出）'),

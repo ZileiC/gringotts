@@ -143,10 +143,8 @@ void main() {
     ImagePickerPlatform.instance = FakePicker(<XFile>[XFile(photoC), XFile(photoD)]);
 
     // ---------- 1. list cover = lowest sort in asset_photos ----------
-    // T-10b IA: home -> speed entry -> 资产.
-    await tester.tap(find.byKey(const Key('home_record_cta')));
-    await tester.pumpAndSettle(const Duration(seconds: 2));
-    await tester.tap(find.byKey(const Key('quick_assets')));
+    // T-12c IA: the assets tab is a top-level peer.
+    await tester.tap(find.byKey(const Key('tab_assets')));
     await tester.pumpAndSettle(const Duration(seconds: 2));
     await tester.ensureVisible(find.text(assetName));
     await tester.pumpAndSettle(const Duration(milliseconds: 300));

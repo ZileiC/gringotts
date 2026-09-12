@@ -80,10 +80,8 @@ void main() {
     await photoRepo.createAll(asset.id, [photoA, photoB]);
 
     // 1. Assets list shows the tile; tap into detail (Hero relay).
-    // T-10b IA: home -> speed entry -> 资产.
-    await tester.tap(find.byKey(const Key('home_record_cta')));
-    await tester.pumpAndSettle(const Duration(seconds: 2));
-    await tester.tap(find.byKey(const Key('quick_assets')));
+    // T-12c IA: the assets tab is a top-level peer.
+    await tester.tap(find.byKey(const Key('tab_assets')));
     await tester.pumpAndSettle(const Duration(seconds: 2));
     expect(find.text(assetName), findsOneWidget);
     await snap(tester, '01_list_with_tile', [find.text(assetName)]);

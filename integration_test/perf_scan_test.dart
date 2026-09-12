@@ -75,7 +75,10 @@ void main() {
 
     // ---- phase 2: assets list scroll (dashboard sink + tiles + CPD) ----
     await binding.watchPerformance(() async {
-      await tester.tap(find.byKey(const Key('quick_assets')));
+      // T-12c: leave the speed-entry child, then switch to the assets tab.
+      await tester.pageBack();
+      await tester.pumpAndSettle(const Duration(seconds: 1));
+      await tester.tap(find.byKey(const Key('tab_assets')));
       await tester.pumpAndSettle(const Duration(seconds: 2));
       for (var i = 0; i < 8; i++) {
         await tester.drag(find.byType(ListView).first, const Offset(0, -160));

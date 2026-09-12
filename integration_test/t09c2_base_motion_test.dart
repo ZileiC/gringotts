@@ -83,18 +83,18 @@ Future<void> enterSpeedEntry(WidgetTester tester) async {
   await tester.pumpAndSettle(const Duration(seconds: 2));
 }
 
-/// Tombstones drafts this test creates (evidence clause: a script cleans up
-/// the rows it seeds). The confirm taps below create drafts; they used to leak
-/// into later runs and show on the home 待完善 badge (T-12 finding).
-Future<void> captureDraftsForCleanup(
+/// Tombstones the records this test creates (evidence clause: a script cleans
+/// up the rows it seeds). The confirm taps below now write formal records
+/// (T-12c), which are tombstoned here so they cannot leak into later runs.
+Future<void> captureRecordsForCleanup(
   WidgetTester tester,
   ProviderContainer container,
 ) async {
   final repo = container.read(transactionRepositoryProvider);
-  final before = (await repo.watchDrafts().first).map((t) => t.id).toSet();
+  final before = (await repo.watchAll().first).map((t) => t.id).toSet();
   addTearDown(() async {
-    for (final draft in await repo.watchDrafts().first) {
-      if (!before.contains(draft.id)) await repo.softDelete(draft.id);
+    for (final row in await repo.watchAll().first) {
+      if (!before.contains(row.id)) await repo.softDelete(row.id);
     }
   });
 }
@@ -106,7 +106,7 @@ void main() {
       'count-up spring, hero easeOutCubic', (tester) async {
     final container = ProviderContainer();
     addTearDown(container.dispose);
-    await captureDraftsForCleanup(tester, container);
+    await captureRecordsForCleanup(tester, container);
     await tester.pumpWidget(harness(container));
     await tester.pumpAndSettle(const Duration(seconds: 2));
 
@@ -173,7 +173,9 @@ void main() {
     await tester.pumpAndSettle(const Duration(seconds: 1));
 
     // ---------- 4. net-value count-up (assets page) ----------
-    await tester.tap(find.byKey(const Key('quick_assets')));
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('tab_assets')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 120));
     final counter =
@@ -264,7 +266,7 @@ void main() {
 
     final container = ProviderContainer();
     addTearDown(container.dispose);
-    await captureDraftsForCleanup(tester, container);
+    await captureRecordsForCleanup(tester, container);
     await tester.pumpWidget(harness(container));
     await tester.pumpAndSettle(const Duration(seconds: 2));
 
@@ -315,7 +317,9 @@ void main() {
     print('T09C2_REDUCED haptics=${haptics.length} confirm_haptic=ok snackbar=ok');
 
     // Count-up renders the target straight away.
-    await tester.tap(find.byKey(const Key('quick_assets')));
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('tab_assets')));
     await tester.pumpAndSettle(const Duration(seconds: 1));
     final counter =
         tester.state<CountUpNumberState>(find.byType(CountUpNumber));

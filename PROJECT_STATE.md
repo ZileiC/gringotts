@@ -2,11 +2,11 @@
 
 > 每个 session 先读本文件；细节以档案为准。新的管理层 session 另读 `HANDOFF_MANAGEMENT.md`（协议/成本/路线图详情，只需读一次）。
 
-## 状态（2026-09-13）
-- **M2.0 前置波**：T-10a 预算引擎 ✅ / T-10b 新主页(=启动页) ✅ / T-11 快记页重设计 ✅ / T-11b 补口 ✅ / T-12 明细页 ✅ / **T-12c 四部分已施工未验收**（WIP 保全 `cc26215`，执行层掉线）
-- **下一票**：**T-12c 续工**（修 3 个失败用例 + 返回落分析页 + 月历断言 + 证据 + APK）→ **T-13a**（资产字体回归/照片 GC）→ **T-13b**（wordmark 裁决/全量回归/APK/完工报告）；明细见 `TICKETS_M2A.md`，续工 prompt 见 `SESSION_PROMPTS.md` §B
-- **交付物**：桌面 `gringotts-T11-release.apk`（md5 `3754a60a…`，待 T-12c 出包刷新）；仓库 github.com/jharayden/gringotts（private）
-- **质量基线**：179 单测 + 3 个待修用例（`home_shell_test` 挂死整轮 `flutter test`，基线 commit `cc26215`）+ integration 全绿（t04/t05/t09a~e/t10b/t11/t12）；profile 0 missed frames；零硬编码色值
+## 状态（2026-09-13，T-12c 验收通过）
+- **M2.0 前置波**：T-10a ✅ / T-10b ✅ / T-11 ✅ / T-11b ✅ / T-12 ✅ / **T-12c ✅（`a394df6`+`ce43036`，续工完工，186 全绿）**——结构性改造全部关闭
+- **下一票**：**T-13a**（资产页净值字体回归 / 照片孤儿 GC / M1.x 清账 / 月历横屏 342dp 边界）→ **T-13b**（wordmark 裁决 + 全量回归 + APK + 完工报告）；工单见 `TICKETS_M2A.md`，prompt 见 `SESSION_PROMPTS.md` §C
+- **交付物**：桌面 `gringotts-T12c-release.apk`（62.8MB，md5 `8e508b6b83d138ec8eac9e818c2d8e03`）；仓库 github.com/jharayden/gringotts（private）
+- **质量基线**：**186 单测全绿且整轮正常退出**；integration 全绿（t04/t05/t09a~e/t10b/t11/t12/**t12c**）；证据帧 md5 唯一（15 帧无碰撞）；零硬编码色值
 
 ## 用户已定调（要点）
 - 定位：AI+ 账本 app；**Android 手机为核心，Windows 辅助**；最终形态 = AI 理财提示 + 经济状况智能分析
@@ -35,9 +35,8 @@
 - **M4.0**：Windows 端（镜像 + 分析工作台）+ 同步
 
 ## 开放项
-1. **T-12c 续工（下一票）**：四部分已施工并保全 `cc26215`（未验收）→ 剩余 = 修 3 个失败用例（含 `home_shell_test` 挂死整轮 test）+ 「记一笔」返回落分析页 + 月历未来月断言 + 证据帧 + release APK + 收工三连
-2. **T-13a**：资产页净值字体回归 / 照片孤儿文件 GC（先 dry-run）/ M1.x 清账
-3. **T-13b**：启动画面 wordmark 去重（⚠️ 待用户裁决）/ 全量回归 + APK / 完工报告
-4. ✅ 2026-09-13 用户「权限全开」：`AGENTS.md` 已订正（快记即正式 / 三 tab IA / 金渐变例外 / 掉线保险 WIP 提交）；启动画面 wordmark 裁决延后（不阻塞）
-5. 备用裁决池：截屏记账（M1.0 实测后定生死）、语音记账、剪贴板捕获
-6. **流程条款**：验收记录里的挂账项必须写入下一张工单才算出账；发现执行层遗留的未提交施工 → 先 commit 保全（见 `HANDOFF_MANAGEMENT.md` §7 第 9 条）
+1. **T-13a（下一票）**：资产页净值字体回归（Playfair + 金渐变）/ 照片孤儿文件 GC（先 dry-run 后 apply）/ M1.x 清账 / **月历 sheet 横屏 342dp 边界**（T-12c 验收挂账，P3）
+2. **T-13b**：启动画面 wordmark 去重（⚠️ 待用户裁决，不阻塞）/ 全量回归（覆盖三 tab + 记一笔压栈 + 明细挂统计页）/ release APK / 完工报告
+3. ✅ 2026-09-13 用户「权限全开」：`AGENTS.md` 已订正（快记即正式 / 三 tab IA / 金渐变例外 / 掉线保险 WIP 提交）；T-12c 已验收通过（`a394df6`+`ce43036`）
+4. 备用裁决池：截屏记账（M1.0 实测后定生死）、语音记账、剪贴板捕获
+5. **流程条款**：验收记录里的挂账项必须写入下一张工单才算出账（T-12c 的月历边界 → T-13a 第 4 项）；发现执行层遗留的未提交施工 → 先 commit 保全（`HANDOFF_MANAGEMENT.md` §7 第 9 条）

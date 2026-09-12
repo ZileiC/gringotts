@@ -67,3 +67,8 @@ app.*.map.json
 .ui_dump*.xml
 .tile_value.txt
 .tile_cmd.sh
+
+# Evidence frames: dot-prefixed PNGs are kept local for eyeballing; what goes
+# into git is always the md5 manifest + run log. (Ruling 2026-09-13, T-12c
+# acceptance - replaces the earlier per-ticket patterns.)
+evidence/**/*.png

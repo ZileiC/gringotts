@@ -3,6 +3,20 @@
 > 执行层（Codex）每次收工在顶部追加一段：做了什么 / 关键决策 / 遗留问题 / 下一步。管理层（Hermes）通过本文件验收进度。
 > ⚠️ 并发写入约定：追加前先重新读取文件最新版，在头部插入自己的段落，不要重建文件横幅；管理层 patch 前同样先重读。
 
+## 2026-09-13（管理层验收记录：T-12c ✅ 通过 —— 续工完工，186 全绿；含 1 处诊断订正 + 1 项挂账出账）
+- **验收基线**：`a394df6`（本轮施工 + 证据 + APK 记录）+ `ce43036`（收工 WORKLOG 条目）；`f26bc0e..ce43036` 已 push，工作区干净（仅证据 PNG 未跟踪 → 见裁决①）
+- **五层验收**：
+  1. **记录核对** ✓ 双提交存在、hash 与申报一致、已 push；`a394df6` 变更面 = `lib/pages/home_shell.dart`(+4) / `lib/pages/home_page.dart`(+4) / `test/home_shell_test.dart`(+75/-8) / `test/home_page_test.dart`(+35) / 新增 `integration_test/t12c_shell_test.dart`(185) / 证据与记录 8 文件
+  2. **独立复验** ✓（管理层亲跑）`flutter analyze` → **No issues found**；`flutter test` → **All tests passed (186)** 且**整轮正常退出**（上轮 179 passed/3 failed + 不退出不复现）——与申报逐位一致
+  3. **源码级审查** ✓ ① `home_shell.dart` `_openQuickEntry` push 前 `setState(() => _index = 0)`（管理层裁决落地）② `home_page.dart` 仅 `_MonthSheet` 调用点加 `isScrollControlled: true` ③ 月历逐值对照 `DESIGN_MAIN §3.1`：格高 52 / `AppRadius.m`=12 / 当前月 goldAccent 边+goldContainer 底+goldAccent 字 / 未来月 `inkSecondary.withValues(alpha:0.4)` 且 `onTap: null` / 年份 48 圆钮+未来年禁用 / 把手 40×4 + `overlay` 面 + 顶部圆角 18——逐项符合
+  4. **独立 integration** ✓（管理层亲跑 `t12c_shell_test.dart -d windows`，27s）**All tests passed**；前置自声明 `seeded=0 now=2026-9`；**我重生成的 4 帧 md5 与申报逐位相同**（`8e544e66869d / c9330abf629d / 497284de0898 / ab3efb6fd6cd`）⇒ 不仅 run 内唯一，**跨 run / 跨操作者可复现**；15 帧 md5 全局无碰撞（管理层独立 md5 复核：15 值全互异）
+  5. **UI 目检 + 数学复核** ✓ 帧 01/03/04 逐项核对（资产 tab 高亮 + 记一笔 CTA 常驻不压栈 / 月历 3×4 + 9 月金边金字 + 10-12 月灰显 + 无裁切 / 历史月按钮「2026 年 1 月」+ 引导态）；**手算复核溢出结论**：sheet 内容 = 8(s)+4(把手)+16(m)+48(年份行)+16(m)+4×52(格)+3×6(categoryGap)+24(l) = **342dp**，600dp 画布 9/16 = **337.5dp** ⇒ 溢出 **4.5px**，与执行层结论逐位吻合
+- **✅ 诊断订正（管理层自我纠正，记录在案）**：我在续工 prompt 给的 `home_page_test` 月历失败根因「sheet pop 后 setState 时序」**不成立**；实测真因 = modal 默认高上限 9/16 ⇒ `RenderFlex overflowed by 4.5 pixels`（日志里的 `deactivated widget ancestor` 是 inspector 解释该溢出的二次报错）。**执行层推翻管理层判断且证据成立**（HANDOFF §7 第 4 条：分歧以源码+帧+数值裁决，不以角色服从）——后续票勿沿用旧结论
+- **执行层行为肯定**：① 严格区分「产品语义改动」与「测试侧改动」——产品只动 2 处（均为工单字面/裁决），其余全在测试与 1 处布局修复 ② 挂死根因定位到 flutter_test 源码行号（`binding.dart:1960-1963`）+ drift `StreamQueryStore.markAsClosed`，并给出确定性修法（30 分钟挂死 → 2 秒全绿）③ 证据 03 帧保守声明「不跨 run 可复现」（实测可复现，宁少不虚）④ 未经批准不擅改 `.gitignore`，走提问——符合项目纪律
+- **⚠️ 申报措辞不符（实质成立，已订正）**：申报称「沉淀为 skill `flutter-test-hang-triage`」——实测**该 skill 不存在**；知识实际落在 `flutter-drift-development/references/test-suite-triage.md`（+ `project-continuity/references/executor-dropout-recovery.md`），内容与本案一致（含 timeout 逐文件 bisect、sqlite3.dll 占用、CPU≈0 判死锁）。**结论：知识沉淀成立、命名不符**，后续申报请写实际路径
+- **管理层裁决**：① **证据 PNG 不入 git（口径固定）**：新增 `.gitignore` 规则 `evidence/**/*.png`——帧本体只留本地供目检，入库的永远是 md5 清单 + 运行日志；把此前逐票加 ignore 的写法统一为一条通配，消除 `git status` 噪声 ② **P3 挂账出账**：月历 sheet 在可用高 < 342dp（真机横屏）仍会溢出 → **写入 T-13a 第 4 项**（按项目条款：挂账必须进工单才算数）
+- **结论：T-12c ✅ 验收通过**（M2.0 前置波结构票全部关闭）。下一票 **T-13a**（资产字体回归 / 照片孤儿 GC / M1.x 清账 / 月历横屏边界）→ 随后 **T-13b**（wordmark 裁决 + 全量回归 + APK + 完工报告）
+
 ## 2026-09-13（**执行层 T-12c 续工完工**：3 失败用例清零 + 返回落分析页 + 月历断言重建 + t12c 证据 + APK）
 - **基线/结果**：`cc26215`（管理层 WIP 保全）→ 本轮 WIP 提交 `a394df6`（本地）；`flutter analyze` → **No issues found**；`flutter test` → **All tests passed (186)，整轮正常退出**（上轮：179 passed / 3 failed 且挂死不退出）
 - **① 三个失败用例全部清零**（产品语义只按 ②/③ 工单字面改动，其余只改测试与一处布局）

@@ -3,227 +3,207 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gringotts — 主页面重设计 + 快记三方向</title>
+<title>Gringotts — 主页/快记/明细 v2 定稿稿</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
   --canvas:#0C0B09; --surface:#14120E; --elevated:#1D1A13; --overlay:#262117;
   --hairline:#2C271C; --ink:#F4EFE2; --ink2:#A69C86;
-  --gold:#E3C36B; --gold-deep:#9C7A24; --gold-container:#2A2314; --on-gold-container:#EDD9A3; --on-gold:#171204;
+  --gold:#E3C36B; --gold-deep:#9C7A24; --gold-container:#2A2314; --on-gold-container:#EDD9A3;
   --expense:#E5484D; --income:#46A758;
   --serif:'Playfair Display',serif; --sans:'Inter',system-ui,sans-serif;
+  /* chart gold ramp (与统计页同源 6 阶) */
+  --g1:#9C7A24; --g2:#C9A54E; --g3:#E3C36B; --g4:#F0E0AC; --g5:#D4AF37; --n1:#6E6A5E; --n2:#484439;
 }
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#080706;font-family:var(--sans);color:var(--ink);padding:40px 20px 60px}
+body{background:#080706;font-family:var(--sans);color:var(--ink);padding:40px 20px 56px}
 h1.board{font:600 14px/1 var(--sans);letter-spacing:.5px;color:var(--ink2);text-transform:uppercase;text-align:center;margin-bottom:8px}
-p.sub{text-align:center;color:#6E6552;font-size:12px;margin-bottom:34px;line-height:1.8}
-.board-row{display:flex;gap:26px;justify-content:center;flex-wrap:wrap;align-items:flex-start}
+p.sub{text-align:center;color:#6E6552;font-size:12px;margin-bottom:32px;line-height:1.9}
+.row{display:flex;gap:28px;justify-content:center;flex-wrap:wrap;align-items:flex-start}
 .phone{width:376px;background:var(--canvas);border:1px solid var(--hairline);border-radius:34px;padding:12px;flex-shrink:0}
-.screen{border-radius:24px;overflow:hidden;height:744px;display:flex;flex-direction:column;background:var(--canvas);position:relative}
-.cap{width:376px;text-align:center;margin-top:12px;font:600 11.5px/1.6 var(--sans);letter-spacing:.4px;color:var(--ink2)}
+.screen{border-radius:24px;overflow:hidden;height:748px;display:flex;flex-direction:column;background:var(--canvas);position:relative}
+.cap{width:376px;text-align:center;margin-top:12px;font:600 11.5px/1.7 var(--sans);letter-spacing:.3px;color:var(--ink2)}
 .cap b{color:var(--gold)}
 .gold-grad-text{background:linear-gradient(180deg,var(--gold) 0%,var(--gold-deep) 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
 .serif{font-family:var(--serif)}
 .tnum{font-feature-settings:'tnum'}
-/* top bars */
-.bar{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 12px;border-bottom:1px solid rgba(44,39,28,.6)}
+.bar{display:flex;align-items:center;justify-content:space-between;padding:17px 20px 12px;border-bottom:1px solid rgba(44,39,28,.6);flex-shrink:0}
 .bar .t{font-size:15px;font-weight:600}
 .bar .s{font-size:11px;color:var(--ink2);letter-spacing:1.4px;text-transform:uppercase}
 .icobtn{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;border:1px solid var(--hairline);background:var(--elevated);color:var(--gold);font-size:13px}
-/* ---------------- HOME ---------------- */
-.home-body{flex:1;padding:16px 20px 18px;display:flex;flex-direction:column;gap:13px}
-.hero{background:var(--surface);border:1px solid var(--hairline);border-radius:18px;padding:20px 20px 18px}
+/* ---------- HOME ---------- */
+.home-scroll{flex:1;overflow:hidden;padding:15px 20px 0;display:flex;flex-direction:column;gap:12px}
+.hero{background:var(--surface);border:1px solid var(--hairline);border-radius:18px;padding:18px 20px 16px}
 .eyebrow{font-size:11px;letter-spacing:1.6px;color:var(--ink2);text-transform:uppercase;font-weight:600}
-.hero .big{font-size:58px;line-height:1.05;letter-spacing:-2px;margin-top:8px;display:flex;align-items:baseline;gap:6px}
-.hero .big .cur{font-size:24px;letter-spacing:0}
-.hero .sub{display:flex;gap:16px;margin-top:12px;font-size:11.5px;color:var(--ink2)}
+.hero .big{font-size:56px;line-height:1.04;letter-spacing:-2px;margin-top:7px;display:flex;align-items:baseline;gap:5px}
+.hero .big .cur{font-size:23px}
+.hero .sub{display:flex;gap:15px;margin-top:11px;font-size:11.5px;color:var(--ink2)}
 .hero .sub b{color:var(--ink);font-weight:600}
-.progcard{background:var(--surface);border:1px solid var(--hairline);border-radius:16px;padding:15px 18px}
-.progcard .row1{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;color:var(--ink2)}
-.progcard .row1 b{font-size:16px;color:var(--ink);font-weight:600}
-.pbar{height:4px;background:rgba(44,39,28,.9);border-radius:99px;margin-top:11px;overflow:hidden}
+.progcard{background:var(--surface);border:1px solid var(--hairline);border-radius:16px;padding:14px 18px}
+.progcard .r1{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;color:var(--ink2)}
+.progcard .r1 b{font-size:15.5px;color:var(--ink);font-weight:600}
+.pbar{height:4px;background:rgba(44,39,28,.9);border-radius:99px;margin-top:10px;overflow:hidden}
 .pbar i{display:block;height:100%;width:65%;background:var(--gold);border-radius:99px}
 .todayrow{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;color:var(--ink2);padding:0 2px}
 .todayrow b{color:var(--ink);font-weight:600;font-size:15px}
-.cta{margin-top:auto;display:flex;gap:10px}
-.cta .go{flex:2;height:56px;border-radius:14px;background:linear-gradient(180deg,var(--gold) 0%,var(--gold-deep) 100%);color:var(--on-gold);font-weight:700;font-size:16px;letter-spacing:1.5px;display:grid;place-items:center}
-.cta .ledger{flex:1;height:56px;border-radius:14px;border:1px solid var(--gold-deep);color:var(--gold);font-weight:600;font-size:14px;display:grid;place-items:center;letter-spacing:.5px}
-.aicard{border:1px dashed rgba(44,39,28,.95);border-radius:14px;padding:12px 15px;display:flex;justify-content:space-between;align-items:center}
-.aicard .a{font-size:12.5px;color:var(--ink2)}
-.aicard .b{font-size:10.5px;color:#6E6552;letter-spacing:.6px}
-/* ---------------- QUICK ENTRY shared ---------------- */
-.qe{flex:1;display:flex;flex-direction:column;padding:14px 20px 18px;gap:12px}
-.mixed{background:var(--elevated);border:1px solid var(--hairline);border-radius:12px;padding:11px 14px;font-size:13px;color:#6E6552;display:flex;justify-content:space-between}
-.amount{display:flex;align-items:baseline;justify-content:center;gap:6px;padding:6px 0 2px}
-.amount .c{font-size:22px;color:var(--ink2)}
-.amount .n{font-size:60px;font-weight:700;letter-spacing:-2.5px;line-height:1;font-feature-settings:'tnum'}
-.keys{margin-top:auto;display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
-.key{height:58px;border-radius:13px;display:grid;place-items:center;font-size:21px;font-weight:600}
-.key.fn{font-size:15px;color:var(--ink2)}
-/* A — 素净计算器 */
-.A .key{background:transparent;border:1px solid var(--hairline);color:var(--ink)}
-.A .confirm{grid-column:span 3;height:56px;border-radius:13px;background:var(--ink);color:var(--canvas);font-weight:700;font-size:16.5px;letter-spacing:2px;display:grid;place-items:center}
-.A .chips{display:flex;gap:7px;flex-wrap:wrap;justify-content:center}
-.A .chip{font-size:12.5px;padding:7px 14px;border-radius:8px;color:var(--ink2)}
-.A .chip.on{border:1px solid var(--ink);color:var(--ink);font-weight:600}
-/* B — 额度联动 */
-.B .key{background:var(--elevated);border:1px solid rgba(44,39,28,.55);color:var(--ink)}
-.B .link{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--ink2);border-top:1px solid var(--hairline);border-bottom:1px solid var(--hairline);padding:9px 2px}
-.B .link b{color:var(--gold);font-weight:600;font-family:var(--sans)}
-.B .chips{display:flex;gap:7px;overflow:hidden}
-.B .chip{font-size:12.5px;padding:7px 13px;border-radius:999px;border:1px solid var(--hairline);color:var(--ink2);white-space:nowrap}
-.B .chip.on{background:var(--gold-container);border-color:transparent;color:var(--on-gold-container);font-weight:600}
-.B .confirm{grid-column:span 3;height:56px;border-radius:13px;border:1px solid var(--gold-deep);background:rgba(156,122,36,.14);color:var(--gold);font-weight:700;font-size:16.5px;letter-spacing:2px;display:grid;place-items:center}
-/* C — 类别优先 */
-.C .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
-.C .cat{aspect-ratio:1.45;border-radius:12px;border:1px solid var(--hairline);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;font-size:11.5px;color:var(--ink2)}
-.C .cat .gl{font-size:19px;filter:saturate(0) brightness(1.6)}
-.C .cat.on{border-color:var(--gold-deep);color:var(--gold)}
-.C .key{background:transparent;border:1px solid var(--hairline);color:var(--ink);height:52px;font-size:19px}
-.C .confirm{grid-column:span 3;height:52px;border-radius:13px;background:var(--amberless,#1D1A13);border:1px solid var(--gold-deep);color:var(--gold);font-weight:700;font-size:16px;letter-spacing:2px;display:grid;place-items:center}
-/* ---------------- LEDGER ---------------- */
-.led-body{flex:1;display:flex;flex-direction:column;overflow:hidden}
-.filters{display:flex;gap:7px;padding:12px 20px 10px;align-items:center}
-.filters .m{font-size:12.5px;color:var(--ink2);display:flex;align-items:center;gap:8px;margin-right:auto}
-.filters .f{font-size:12px;padding:6px 12px;border-radius:999px;border:1px solid var(--hairline);color:var(--ink2)}
-.filters .f.on{background:var(--gold-container);border-color:transparent;color:var(--on-gold-container);font-weight:600}
-.daygroup{padding:8px 20px 0}
-.daygroup .dh{font-size:11px;letter-spacing:1.4px;color:var(--ink2);text-transform:uppercase;padding:8px 0 6px}
-.lrow{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid rgba(44,39,28,.5)}
-.lrow .dot{width:30px;height:30px;border-radius:9px;background:var(--elevated);display:grid;place-items:center;font-size:14px;filter:saturate(0) brightness(1.6)}
-.lrow .mid{flex:1;min-width:0}
-.lrow .t1{font-size:13.5px;font-weight:500}
-.lrow .t2{font-size:11px;color:#6E6552;margin-top:2px}
-.lrow .amt{font-size:14.5px;font-weight:600;font-feature-settings:'tnum'}
-.amt.exp{color:var(--ink)} .amt.inc{color:var(--income)}
-.badge{font-size:9.5px;letter-spacing:.5px;padding:2px 6px;border-radius:5px;background:var(--gold-container);color:var(--on-gold-container);margin-left:6px}
-.hint{padding:14px 20px 20px;font-size:11.5px;color:#6E6552;text-align:center;border-top:1px solid var(--hairline);margin-top:auto}
+/* NEW: today pie */
+.piecard{background:var(--surface);border:1px solid var(--hairline);border-radius:16px;padding:14px 18px}
+.piecard .hd{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:11px}
+.piecard .hd .t{font-size:12.5px;font-weight:600}
+.piecard .hd .n{font-size:11px;color:var(--ink2)}
+.pie-wrap{display:flex;gap:16px;align-items:center}
+.donut{width:104px;height:104px;border-radius:50%;flex-shrink:0;position:relative;
+  background:conic-gradient(var(--g1) 0 42%, var(--g3) 42% 68%, var(--g2) 68% 86%, var(--n1) 86% 100%)}
+.donut::after{content:'';position:absolute;inset:14px;border-radius:50%;background:var(--surface)}
+.donut .c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:2}
+.donut .c .l{font-size:9.5px;color:var(--ink2);letter-spacing:.6px}
+.donut .c .v{font-size:14px;font-weight:600;margin-top:2px}
+.legend{flex:1;display:flex;flex-direction:column;gap:7px;font-size:12px;color:var(--ink2)}
+.legend .li{display:flex;align-items:center;gap:8px}
+.legend .sw{width:7px;height:7px;border-radius:2px;flex-shrink:0}
+.legend b{margin-left:auto;color:var(--ink);font-weight:600}
+.aicard{border:1px dashed rgba(44,39,28,.95);border-radius:14px;padding:11px 15px;display:flex;justify-content:space-between;align-items:center}
+.aicard .a{font-size:12px;color:var(--ink2)} .aicard .b{font-size:10.5px;color:#6E6552}
+/* sticky bottom bar */
+.stickybar{flex-shrink:0;display:flex;gap:10px;padding:12px 20px 16px;border-top:1px solid rgba(44,39,28,.6);background:rgba(12,11,9,.92)}
+.stickybar .go{flex:2;height:54px;border-radius:15px;background:linear-gradient(180deg,var(--gold) 0%,var(--gold-deep) 100%);color:#171204;font-weight:700;font-size:16px;letter-spacing:1.5px;display:grid;place-items:center}
+.stickybar .led{flex:1;height:54px;border-radius:15px;border:1px solid var(--gold-deep);color:var(--gold);font-weight:600;font-size:14px;display:grid;place-items:center}
+/* ---------- QUICK ENTRY v2 ---------- */
+.qe{flex:1;display:flex;flex-direction:column;padding:13px 20px 16px;gap:10px}
+.namefield{height:46px;border-radius:12px;background:var(--elevated);border:1px solid var(--hairline);display:flex;align-items:center;padding:0 15px;font-size:13.5px;color:var(--ink2);justify-content:space-between}
+.namefield .ph{color:#6E6552}
+.amountrow{display:flex;align-items:baseline;justify-content:space-between;padding:4px 2px 2px}
+.amountrow .n{font-size:44px;letter-spacing:-1.5px;line-height:1.1;font-feature-settings:'tnum'}
+.amountrow .n .c{font-size:20px;color:var(--ink2);margin-right:3px}
+.amountrow .clr{font-size:12px;color:var(--ink2)}
+.linkrow{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--ink2);border-top:1px solid var(--hairline);border-bottom:1px solid var(--hairline);padding:8px 2px}
+.linkrow b{color:var(--gold);font-weight:600}
+.catrow{display:flex;gap:8px;overflow:hidden}
+.cat{display:flex;align-items:center;gap:6px;height:46px;padding:0 13px;border-radius:12px;border:1px solid var(--hairline);font-size:12.5px;color:var(--ink2);white-space:nowrap;flex-shrink:0}
+.cat .gl{font-size:15px;filter:saturate(0) brightness(1.7)}
+.cat.on{border-color:var(--gold-deep);background:rgba(156,122,36,.16);color:var(--gold);font-weight:600}
+.cat.on .gl{filter:none}
+/* NEW keypad: 4x3, tiers, decimal */
+.kp{margin-top:auto;display:grid;grid-template-columns:repeat(3,1fr);gap:12px 16px}
+.k{height:64px;border-radius:18px;display:grid;place-items:center;font-size:24px;font-weight:500;background:var(--elevated);color:var(--ink);font-feature-settings:'tnum'}
+.k.fn{background:transparent;border:1px solid var(--hairline);color:var(--ink2);font-size:22px}
+.confirm{grid-column:span 3;height:56px;border-radius:16px;border:1px solid var(--gold-deep);background:rgba(156,122,36,.16);color:var(--gold);font-weight:700;font-size:16.5px;letter-spacing:2px;display:grid;place-items:center;margin-top:2px}
+/* ---------- LEDGER v2 (time-first) ---------- */
+.led{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.monthrow{display:flex;align-items:center;gap:9px;padding:12px 20px 8px;font-size:12.5px;color:var(--ink2)}
+.monthrow .mm{margin-right:auto;display:flex;align-items:center;gap:9px;font-size:13.5px;color:var(--ink);font-weight:600}
+.fchip{font-size:11.5px;padding:5px 11px;border-radius:999px;border:1px solid var(--hairline);color:var(--ink2)}
+.fchip.on{background:var(--gold-container);border-color:transparent;color:var(--on-gold-container);font-weight:600}
+.grp{padding:0 20px}
+.gh{display:flex;justify-content:space-between;align-items:baseline;padding:11px 0 7px;font-size:11px;letter-spacing:1.3px;color:var(--ink2);text-transform:uppercase;border-top:1px solid rgba(44,39,28,.45)}
+.gh b{font-size:11.5px;letter-spacing:0;color:var(--ink2)}
+.it{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(44,39,28,.5)}
+.it .d{width:30px;height:30px;border-radius:9px;background:var(--elevated);display:grid;place-items:center;font-size:14px;filter:saturate(0) brightness(1.7);flex-shrink:0}
+.it .m{flex:1;min-width:0}
+.it .t1{font-size:13.5px}
+.it .t2{font-size:11px;color:#6E6552;margin-top:2px}
+.it .a{font-size:14.5px;font-weight:600;font-feature-settings:'tnum'}
+.a.exp{color:var(--ink)} .a.inc{color:var(--income)}
+.badge{font-size:9.5px;padding:2px 6px;border-radius:5px;background:var(--gold-container);color:var(--on-gold-container);margin-left:6px}
+.hint{padding:12px 20px 16px;font-size:11.5px;color:#6E6552;text-align:center;border-top:1px solid var(--hairline);margin-top:auto}
 </style>
 </head>
 <body>
-<h1 class="board">Gringotts · 主页面重设计 + 快记三方向（待用户选型）</h1>
-<p class="sub">① 新主页（分析/指导）＝启动页 ② 快记页三方向选一 ③ 明细页（全字段可改）· 衬线金＝品牌时刻（主页额度 / 资产净值 / wordmark）</p>
+<h1 class="board">Gringotts · v2 定稿稿（主页加饼图 / 快记混合方向 / 明细时间优先）</h1>
+<p class="sub">键盘按 apple-design「默认系统字体，覆盖须有理由」+ designer「留白即材料」重设计：4×3 含小数点、功能键降为描边层、衬线只给金额行</p>
 
-<div class="board-row">
+<div class="row">
 
-<!-- ============ 1. HOME ============ -->
+<!-- ===== 1. HOME ===== -->
 <div><div class="phone"><div class="screen">
   <div class="bar">
     <div><div class="s">Budget</div><div class="t tnum">2026 年 9 月</div></div>
     <div style="display:flex;gap:8px"><div class="icobtn">‹</div><div class="icobtn">›</div><div class="icobtn">⚙</div></div>
   </div>
-  <div class="home-body">
+  <div class="home-scroll">
     <div class="hero">
       <div class="eyebrow">今天还能花 · Today's Allowance</div>
       <div class="big serif gold-grad-text"><span class="cur">¥</span><span class="tnum">86.4</span></div>
-      <div class="sub">
-        <span>基准 <b class="tnum">¥120.0/天</b></span>
-        <span>剩余额度 <b class="tnum">¥1,260</b></span>
-        <span>剩 <b class="tnum">12</b> 天</span>
-      </div>
+      <div class="sub"><span>基准 <b class="tnum">¥120.0/天</b></span><span>剩余 <b class="tnum">¥1,260</b></span><span>剩 <b class="tnum">12</b> 天</span></div>
     </div>
     <div class="progcard">
-      <div class="row1"><span>本月已花</span><b class="tnum">¥2,340 / ¥3,600</b></div>
+      <div class="r1"><span>本月已花</span><b class="tnum">¥2,340 / ¥3,600</b></div>
       <div class="pbar"><i></i></div>
-      <div class="row1" style="margin-top:8px;font-size:11.5px"><span>预算可花（收入 ¥5,600 − 计划存款 ¥2,000）</span><span class="tnum">65%</span></div>
+      <div class="r1" style="margin-top:7px;font-size:11.5px"><span>收入 ¥5,600 − 计划存款 ¥2,000</span><span class="tnum">65%</span></div>
     </div>
     <div class="todayrow"><span>今日已花</span><span><b class="tnum">¥53.6</b> · 3 笔</span></div>
+    <!-- NEW pie -->
+    <div class="piecard">
+      <div class="hd"><span class="t">今日支出构成</span><span class="n">3 笔 · ¥53.6</span></div>
+      <div class="pie-wrap">
+        <div class="donut"><div class="c"><span class="l">合计</span><span class="v tnum">¥53.6</span></div></div>
+        <div class="legend">
+          <div class="li"><span class="sw" style="background:var(--g1)"></span>餐饮<b class="tnum">¥22.6</b></div>
+          <div class="li"><span class="sw" style="background:var(--g3)"></span>交通<b class="tnum">¥15.0</b></div>
+          <div class="li"><span class="sw" style="background:var(--g2)"></span>购物<b class="tnum">¥10.0</b></div>
+          <div class="li"><span class="sw" style="background:var(--n1)"></span>其他<b class="tnum">¥6.0</b></div>
+        </div>
+      </div>
+    </div>
     <div class="aicard"><span class="a">AI 分析与建议</span><span class="b">M2.0 上线</span></div>
-    <div class="cta">
-      <div class="go">记一笔</div>
-      <div class="ledger">明细</div>
-    </div>
   </div>
-</div><div class="cap"><b>① 新主页</b> — 启动页；今日可花＝实时额度（衬线金），记一笔在主 CTA</div></div></div>
+  <div class="stickybar"><div class="go">记一笔</div><div class="led">明细</div></div>
+</div><div class="cap"><b>① 主页</b> — 新增「今日支出构成」环形图（金阶同源统计页）+ 底栏固定，图表再多也不挡主操作</div></div></div>
 
-<!-- ============ 2. QUICK ENTRY A ============ -->
+<!-- ===== 2. QUICK ENTRY v2 ===== -->
 <div><div class="phone"><div class="screen">
-  <div class="bar"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:17px">‹</span><span class="t">记一笔</span></div><span class="s">支出</span></div>
-  <div class="qe A">
-    <div class="mixed"><span>瑞幸 15 / 15.5 午餐</span><span style="font-size:11.5px;color:var(--ink2)">解析</span></div>
-    <div class="amount"><span class="c">¥</span><span class="n">15.00</span></div>
-    <div class="chips">
-      <span class="chip on">餐饮</span><span class="chip">交通</span><span class="chip">购物</span><span class="chip">娱乐</span><span class="chip">学习</span>
+  <div class="bar">
+    <div style="display:flex;align-items:center;gap:10px"><span style="font-size:17px">‹</span><span class="t">记一笔</span></div>
+    <div style="display:flex;gap:6px"><span style="font-size:11.5px;padding:5px 11px;border-radius:8px;background:var(--gold-container);color:var(--on-gold-container);font-weight:600">支出</span><span style="font-size:11.5px;padding:5px 11px;border-radius:8px;color:var(--ink2)">收入</span></div>
+  </div>
+  <div class="qe">
+    <div class="namefield"><span class="ph">项目名称 · 如 瑞幸咖啡</span><span style="font-size:11.5px;color:#6E6552">联想</span></div>
+    <div class="amountrow">
+      <span class="n serif tnum"><span class="c">¥</span>15.00</span>
+      <span class="clr">清空</span>
     </div>
-    <div class="keys">
-      <div class="key">1</div><div class="key">2</div><div class="key">3</div>
-      <div class="key">4</div><div class="key">5</div><div class="key">6</div>
-      <div class="key">7</div><div class="key">8</div><div class="key">9</div>
-      <div class="key fn">C</div><div class="key">0</div><div class="key fn">⌫</div>
+    <div class="linkrow"><span>记这笔后，今天还能花</span><b class="tnum">¥71.4</b></div>
+    <div class="catrow">
+      <span class="cat on"><span class="gl">🍜</span>餐饮</span>
+      <span class="cat"><span class="gl">🚇</span>交通</span>
+      <span class="cat"><span class="gl">🛍</span>购物</span>
+      <span class="cat"><span class="gl">🎬</span>娱乐</span>
+    </div>
+    <div class="kp">
+      <div class="k">7</div><div class="k">8</div><div class="k">9</div>
+      <div class="k">4</div><div class="k">5</div><div class="k">6</div>
+      <div class="k">1</div><div class="k">2</div><div class="k">3</div>
+      <div class="k fn">.</div><div class="k">0</div><div class="k fn">⌫</div>
       <div class="confirm">记 一 笔</div>
     </div>
   </div>
-</div><div class="cap"><b>方向 A · 素净计算器</b> — 零金零渐变零扫光；键=描边、确认键=暖白实心，像一把好算盘</div></div></div>
+</div><div class="cap"><b>② 快记（定稿方向）</b> — 两个输入（名称+数值）· 带图标类别条（金边描边选中）· 额度联动 · <b>新键盘 4×3 含小数点</b>，功能键降级描边、圆角 18、间距 16/12</div></div></div>
 
-<!-- ============ 3. QUICK ENTRY B ============ -->
-<div><div class="phone"><div class="screen">
-  <div class="bar"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:17px">‹</span><span class="t">记一笔</span></div><span class="s">支出</span></div>
-  <div class="qe B">
-    <div class="amount"><span class="c">¥</span><span class="n">15.00</span></div>
-    <div class="link"><span>记这笔后，今天还能花</span><b class="tnum">¥71.4</b></div>
-    <div class="chips">
-      <span class="chip on">餐饮</span><span class="chip">交通</span><span class="chip">购物</span><span class="chip">娱乐</span>
-    </div>
-    <div class="keys">
-      <div class="key">1</div><div class="key">2</div><div class="key">3</div>
-      <div class="key">4</div><div class="key">5</div><div class="key">6</div>
-      <div class="key">7</div><div class="key">8</div><div class="key">9</div>
-      <div class="key fn">C</div><div class="key">0</div><div class="key fn">⌫</div>
-      <div class="confirm">记 一 笔</div>
-    </div>
-  </div>
-</div><div class="cap"><b>方向 B · 额度联动</b> — 记账即反馈：金额下方实时显示「记这笔后今天剩多少」；确认键金描边</div></div></div>
-
-<!-- ============ 4. QUICK ENTRY C ============ -->
-<div><div class="phone"><div class="screen">
-  <div class="bar"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:17px">‹</span><span class="t">记一笔</span></div><span class="s">支出</span></div>
-  <div class="qe C">
-    <div class="grid">
-      <div class="cat on"><span class="gl">🍜</span>餐饮</div>
-      <div class="cat"><span class="gl">🚇</span>交通</div>
-      <div class="cat"><span class="gl">🛍</span>购物</div>
-      <div class="cat"><span class="gl">🏠</span>居住</div>
-      <div class="cat"><span class="gl">🎬</span>娱乐</div>
-      <div class="cat"><span class="gl">📚</span>学习</div>
-    </div>
-    <div class="amount"><span class="c">¥</span><span class="n">15.00</span></div>
-    <div class="keys">
-      <div class="key">1</div><div class="key">2</div><div class="key">3</div>
-      <div class="key">4</div><div class="key">5</div><div class="key">6</div>
-      <div class="key">7</div><div class="key">8</div><div class="key">9</div>
-      <div class="key fn">C</div><div class="key">0</div><div class="key fn">⌫</div>
-      <div class="confirm">记 一 笔</div>
-    </div>
-  </div>
-</div><div class="cap"><b>方向 C · 类别优先</b> — 先点类别再输金额；无渐变，选中＝描边+淡金字</div></div></div>
-
-<!-- ============ 5. LEDGER ============ -->
+<!-- ===== 3. LEDGER v2 ===== -->
 <div><div class="phone"><div class="screen">
   <div class="bar"><div style="display:flex;align-items:center;gap:10px"><span style="font-size:17px">‹</span><span class="t">明细</span></div><span class="s tnum">42 笔</span></div>
-  <div class="led-body">
-    <div class="filters">
-      <div class="m"><span>‹</span><span class="tnum">2026-09</span><span>›</span></div>
-      <span class="f on">全部</span><span class="f">支出</span><span class="f">收入</span>
+  <div class="led">
+    <div class="monthrow">
+      <span class="mm"><span>‹</span><span class="tnum">2026-09</span><span>›</span></span>
+      <span class="fchip on">全部</span><span class="fchip">支出</span><span class="fchip">收入</span>
     </div>
-    <div class="daygroup">
-      <div class="dh">今天 · 9月11日</div>
-      <div class="lrow"><span class="dot">🍜</span><div class="mid"><div class="t1">瑞幸咖啡</div><div class="t2">餐饮 · 12:40</div></div><span class="amt exp tnum">−¥15.00</span></div>
-      <div class="lrow"><span class="dot">🚇</span><div class="mid"><div class="t1">地铁</div><div class="t2">交通 · 08:12<span class="badge">待完善</span></div></div><span class="amt exp tnum">−¥6.00</span></div>
-      <div class="lrow"><span class="dot">💼</span><div class="mid"><div class="t1">实习工资</div><div class="t2">收入 · 09:00</div></div><span class="amt inc tnum">+¥3,200</span></div>
+    <div class="grp">
+      <div class="gh"><span>今天 · 9月11日</span><b class="tnum">−¥21.0 / +¥3,200</b></div>
+      <div class="it"><span class="d">🍜</span><div class="m"><div class="t1">瑞幸咖啡</div><div class="t2">餐饮 · 12:40</div></div><span class="a exp tnum">−¥15.00</span></div>
+      <div class="it"><span class="d">🚇</span><div class="m"><div class="t1">地铁</div><div class="t2">交通 · 08:12<span class="badge">待完善</span></div></div><span class="a exp tnum">−¥6.00</span></div>
+      <div class="it"><span class="d">💼</span><div class="m"><div class="t1">实习工资</div><div class="t2">收入 · 09:00</div></div><span class="a inc tnum">+¥3,200</span></div>
+      <div class="gh"><span>昨天 · 9月10日</span><b class="tnum">−¥283.6</b></div>
+      <div class="it"><span class="d">🛍</span><div class="m"><div class="t1">山姆会员店</div><div class="t2">购物 · 19:22</div></div><span class="a exp tnum">−¥238.60</span></div>
+      <div class="it"><span class="d">🎬</span><div class="m"><div class="t1">电影票</div><div class="t2">娱乐 · 20:05</div></div><span class="a exp tnum">−¥45.00</span></div>
     </div>
-    <div class="daygroup">
-      <div class="dh">昨天 · 9月10日</div>
-      <div class="lrow"><span class="dot">🛍</span><div class="mid"><div class="t1">山姆会员店</div><div class="t2">购物 · 19:22</div></div><span class="amt exp tnum">−¥238.60</span></div>
-      <div class="lrow"><span class="dot">🎬</span><div class="mid"><div class="t1">电影票</div><div class="t2">娱乐 · 20:05</div></div><span class="amt exp tnum">−¥45.00</span></div>
-    </div>
-    <div class="hint">点任意一条 → 改金额 / 类别 / 商户 / 备注 / 日期，或删除</div>
+    <div class="hint">结构 = 月 → 日 → 条目（时间倒序为唯一默认层级；筛选只过滤、不改分组）· 点行可改全字段或删除</div>
   </div>
-</div><div class="cap"><b>⑤ 明细页</b> — 按月分组、类型筛选；每条可点开全字段编辑 + 删除（墓碑）</div></div></div>
+</div><div class="cap"><b>③ 明细</b> — <b>先按时间分类</b>：月份行 → 日期分组（含当日合计）→ 条目；类型筛选不动分组</div></div></div>
 
 </div>
-<p style="text-align:center;color:#6E6552;font-size:12px;margin-top:40px;line-height:2">
-完整规格见 DESIGN_MAIN.md（信息架构 / 预算引擎公式与边界 / 主页 / 三方向 / 明细页 / 字体更正 / 金色章程修订）<br>
-本轮唯一需要你拍板的：<b style="color:#E3C36B">快记页选 A / B / C 哪个方向</b>
+<p style="text-align:center;color:#6E6552;font-size:12px;margin-top:38px;line-height:2">
+完整规格见 DESIGN_MAIN.md v2（§3 主页含饼图与固定底栏 / §4.2 键盘设计规格与依据 / §5 时间优先明细）<br>
+三屏如无异议：T-10b 与 T-11 可同时派工（T-12 明细页已可开工）
 </p>
 </body>
 </html>

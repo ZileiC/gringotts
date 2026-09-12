@@ -34,7 +34,7 @@
 3. **「返回落分析页」语义（管理层裁决，按工单字面实现）**：`_HomeShellState._openQuickEntry` 当前不改 `_index`，从统计/资产 tab 进快记返回后停在原 tab → 改为 push 前 `setState(() => _index = 0)`，并补导航断言
 4. **月历禁用断言重建**：原 `home_month_next` 未来箭头断言随 Part D 删除 → 语义须在月历 sheet 上重建（未来月灰显不可点 + 箭头无残余 key）
 5. **证据**：受影响 integration 逐个跑通（t10b/t11/t12 属回归，帧落 `evidence/regression/`，不覆盖原票 evidence）；新增 t12c 专属 integration（tab 切换不压栈 / 记一笔压栈 / 月历切换）+ 帧 md5 唯一
-6. **`AGENTS.md` 数据铁律订正**（原票指定的文档顺带）：⚠️ 该文件受防护栏约束、需用户当次批准；未获批就跳过并在 WORKLOG 记一笔，不要自行改。`DESIGN_MAIN.md` §1/§4.1/§5/§7/§8 **已由管理层订正完毕，勿重复改**
+6. **`AGENTS.md` 数据铁律订正**：✅ **管理层已于 2026-09-13 按用户授权完成**（draft → 快记即正式 + UI 结构行 + 金渐变例外 + 工作流程新增第 4 条掉线保险），执行层勿重复改。`DESIGN_MAIN.md` §1/§4.1/§5/§7/§8 **同样已由管理层订正完毕，勿重复改**
 7. **收工**：release APK 重建（`gringotts-T12c-release.apk`）交付用户；申报「删了哪些测试 / 改了哪些 / 各自结果」与测试数量变化
 
 ### 原票正文（Part A–D，语义不变）

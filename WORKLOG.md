@@ -11,9 +11,10 @@
   2. `flutter test` → **179 passed / 3 failed，且整轮不退出（挂死）**；确定性定位（逐文件 90s 上限）：**`test/home_shell_test.dart` 超时挂起**（EXIT=124），其余可疑文件单独跑全绿（quick_entry_defaults / smart_parser / smart_prefill / statistics_service / tombstone / quick_entry_layout）。失败根因已定：Finder 未设 `skipOffstage: false`（IndexedStack 非选中子页 offstage ⇒ `AssetsPage` 找不到）、drift `StreamQueryStore` 流未释放（pending Timer）；另 `test/home_page_test.dart` 月历切换 1 例失败（sheet pop 后 setState 时序）
 - **保全动作**：管理层立即 `git add lib test integration_test` → commit `cc26215` → push（工作区随即干净，执行层可无缝续工）；**未改动任何代码**
 - **管理层裁决（技术）**：① 原 T-13 拆为 **T-13a**（资产字体回归 + 照片 GC + M1.x 清账）/ **T-13b**（wordmark 裁决 + 全量回归 + APK + 完工报告）——掉线风险下小票更省、损失面更小，原票语义不变仅分两轮 ② 「记一笔」从统计/资产 tab 进入后返回**必须落回分析页**（工单字面：快记页 = 分析页下一级）⇒ push 前 `_index = 0` + 补断言 ③ 月历「未来月禁用」断言随箭头删除而丢失 ⇒ 必须在 sheet 上重建，不得只靠实现
-- **管理层文档订正（本轮已做，仅 .md）**：`DESIGN_MAIN.md` §1 IA 升 v3（导航壳 + 三 tab 平级 + 快记即正式）、§4.1 保留清单、§5 草稿标记、§7 金渐变处（新增底栏「记一笔」主按钮，仍 ≤4）、§8 新增 T-12c 验收条目；`TICKETS_M2A.md` 重开为续工票 + 拆 T-13；`SESSION_PROMPTS.md` §B 改续工 prompt。⚠️ `AGENTS.md` 数据铁律订正（draft → 快记即正式）**写入被防护栏拦下（需用户当次批准）**，仍待批
-- **待用户决策**：① 是否批准 `AGENTS.md` 该行订正（现为**错误规则**，每回合注入执行层上下文，有误导成本）② 是否新增派工条款「执行层每完成一个 Part 立即 `WIP T-xx: Part N` 提交」（掉线最多损失一个 Part）③ T-13b 的「启动画面 wordmark 去重」裁决
+- **管理层文档订正（本轮已做，仅 .md）**：`DESIGN_MAIN.md` §1 IA 升 v3（导航壳 + 三 tab 平级 + 快记即正式）、§4.1 保留清单、§5 草稿标记、§7 金渐变处（新增底栏「记一笔」主按钮，仍 ≤4）、§8 新增 T-12c 验收条目；`TICKETS_M2A.md` 重开为续工票 + 拆 T-13；`SESSION_PROMPTS.md` §B 改续工 prompt；`AGENTS.md` 数据铁律订正（draft → 快记即正式）首次写入被防护栏拦下，**已由用户在当轮「权限全开」授权后落地**（见下条）
+- **~~待用户决策~~（已裁决）**：① `AGENTS.md` 该行订正 → 已批准落地 ② 「每完成一个 Part 立即 `WIP T-xx: Part N` 提交」条款 → 已批准并写入 `AGENTS.md` 工作流程第 4 条 ③ T-13b「启动画面 wordmark 去重」→ 用户延后裁决（不阻塞）
 - **下一步**：派 T-12c 续工（prompt = `SESSION_PROMPTS.md` §B）→ 验收 → T-13a → T-13b
+- **用户裁决（2026-09-13 当轮，三项）**：① **权限全开** → `AGENTS.md` 已按授权订正完毕（数据铁律 draft → 快记即正式；UI 结构行 → 三 tab 平级 IA；补金渐变例外处；**工作流程新增第 4 条「掉线保险」= 每完成一个 Part 立即 `WIP T-xx: Part N` 提交**）② 批准该 WIP 提交条款（已入 `AGENTS.md`，`HANDOFF` §7 第 9 条同步）③ 启动画面 wordmark 去重裁决**延后**（不阻塞 T-12c / T-13a）
 
 ## 2026-09-12（管理层验收记录：T-12 ✅ 通过 —— 附 1 项 P1 缺陷立票 + 1 项口径裁决）
 - **五层验收**：

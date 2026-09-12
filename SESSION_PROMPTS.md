@@ -32,8 +32,8 @@
 ⑤ 证据：受影响 integration 逐个跑通（t10b/t11/t12 属回归，帧落 evidence/regression/，不覆盖原票 evidence）；新增 t12c 专属 integration（tab 切换不压栈 / 记一笔压栈 / 月历切换），帧 md5 唯一。反浪费：脚本先声明前提，播种用固定时间戳，失败不盲目重跑。
 ⑥ 收工：重建 release APK（gringotts-T12c-release.apk）交付用户；申报「删了哪些测试 / 改了哪些 / 各自结果」与测试数量变化。
 
-不要改 DESIGN_MAIN.md（管理层已订正）与 AGENTS.md（受防护栏约束，未获用户批准就跳过并在 WORKLOG 记一笔）。
-规则：收工三连 WORKLOG → commit（T-12c: …）→ push；停下等验收。
+不要改 DESIGN_MAIN.md 与 AGENTS.md（管理层已按用户 2026-09-13 授权订正完毕，你改了会冲突）。
+规则：每完成一个 Part 立即 `git commit -m "WIP T-12c: Part X"`（掉线保险，AGENTS.md 工作流程第 4 条）；收工三连 WORKLOG → commit（T-12c: …）→ push；停下等验收。
 ```
 
 ## C. 备查：T-13a / T-13b 施工 prompt（T-12c 验收通过后派工）

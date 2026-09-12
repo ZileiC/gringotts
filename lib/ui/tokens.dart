@@ -137,6 +137,37 @@ abstract final class AppSpacing {
   /// clears the 56 pt confirm button (plus its 16 pt padding) so the snackbar
   /// never covers the one-shot sheen (T-09C2 ruling, landed in T-09D).
   static const double snackBarCtaInset = 88;
+
+  // Speed-entry page geometry (T-11 / DESIGN_MAIN section 4.1-4.2).
+  /// Project-name input height.
+  static const double entryNameHeight = 44;
+
+  /// Confirm button height.
+  static const double entryConfirmHeight = 54;
+
+  /// Category grid cell height (3x3, all nine visible).
+  static const double categoryCellHeight = 58;
+
+  /// Keypad horizontal gap between keys.
+  static const double keypadGapX = 16;
+
+  /// Keypad vertical gap between rows (row-gap > col-gap optic balance).
+  static const double keypadGapY = 10;
+
+  /// Horizontal/vertical gap inside the category grid.
+  static const double categoryGap = 6;
+
+  /// Vertical padding of the budget-link row.
+  static const double linkRowPadding = 6;
+
+  /// Breathing room above and below the key block ("ma", not leftover space).
+  static const double keypadVertMargin = 12;
+
+  /// Speed-entry page horizontal padding.
+  static const double entryPagePadH = 14;
+
+  /// Speed-entry page vertical padding.
+  static const double entryPagePadV = 11;
 }
 
 /// Corner radius scale.
@@ -145,6 +176,10 @@ abstract final class AppRadius {
   static const double m = 12;
   static const double l = 16;
   static const double pill = 999;
+
+  /// Keypad key corner radius (T-11 section 4.2: softer than a card, more
+  /// restrained than a pill - "soft slate", not a toy key).
+  static const double key = 17;
 }
 
 /// Typography scale (Perfect Fourth, base 16; DESIGN_T09.md section 2).
@@ -172,6 +207,22 @@ abstract final class AppFont {
 
   /// Keypad key caps.
   static const double keypad = 22;
+
+  // Speed-entry typography (T-11 / DESIGN_MAIN section 4.2 / section 7).
+  /// Amount display on the speed-entry page (Playfair 600, serif moment 4).
+  static const double amountEntry = 42;
+
+  /// Keypad number glyphs (Playfair 600; serif moment 5).
+  static const double keyNumber = 26;
+
+  /// Keypad symbol glyphs (`.` / backspace) stay sans for legibility.
+  static const double keySymbol = 21;
+
+  /// Category grid icon size.
+  static const double categoryIcon = 19;
+
+  /// Category grid label size.
+  static const double categoryLabel = 11.5;
 
   /// Page titles / buttons.
   static const double title = 18;

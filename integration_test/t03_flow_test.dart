@@ -28,9 +28,12 @@ void main() {
     await tester.pumpAndSettle(const Duration(seconds: 2));
     expect(find.byType(QuickEntryPage), findsOneWidget);
 
-    await tester.tap(find.text('1'));
+    // The speed-entry page scrolls on short surfaces: bring keys into view.
+    await tester.ensureVisible(find.byKey(const Key('key_1')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('key_1')));
     await tester.pump(const Duration(milliseconds: 100));
-    await tester.tap(find.text('5'));
+    await tester.tap(find.byKey(const Key('key_5')));
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('¥ 15'), findsOneWidget);
 
@@ -39,13 +42,8 @@ void main() {
     expect(find.textContaining('已记'), findsOneWidget);
     await tester.pumpAndSettle(const Duration(seconds: 2));
 
-    expect(
-      find.descendant(
-        of: find.byType(QuickEntryPage),
-        matching: find.textContaining('今日'),
-      ),
-      findsOneWidget,
-    );
+    // Confirm clears the amount (T-11: no C key, clear is a text action).
+    expect(find.text('¥ 0'), findsOneWidget);
 
     // After creation: drafts = before + 1.
     final draftsAfterCreate = await repo
@@ -55,7 +53,7 @@ void main() {
     // ignore: avoid_print
     print('DB_DRAFTS_AFTER_CREATE=${draftsAfterCreate.length}');
 
-    await tester.tap(find.text('回顾'));
+    await tester.tap(find.byKey(const Key('quick_review')));
     await tester.pumpAndSettle(const Duration(seconds: 3));
 
     await tester.tap(find.byType(Checkbox).first);
@@ -63,6 +61,8 @@ void main() {
 
     await tester.tap(find.text('批量补类别'));
     await tester.pumpAndSettle();
+    // The picker menu renders in the root overlay (above the speed-entry grid's
+    // 餐饮 cell), so the last match is the menu item being chosen.
     await tester.tap(find.text('餐饮').last);
     await tester.pumpAndSettle();
 

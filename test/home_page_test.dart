@@ -243,6 +243,20 @@ void main() {
     expect(find.text('¥2000'), findsWidgets);
   });
 
+  testWidgets('budget <= 0 -> 本月预算已不可行 (not 已超支 ¥0)',
+      (tester) async {
+    // Savings exceed income: the plan itself is infeasible, even with zero
+    // spending (T-10a management note, carried into T-11 as P3).
+    final budget = _budget(incomeCents: 50000, savingsTargetCents: 80000);
+    await tester.pumpWidget(harness(budget: budget, categories: categories));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('本月预算已不可行'), findsOneWidget);
+    expect(find.textContaining('已超支'), findsNothing);
+    expect(find.textContaining('基准 ¥'), findsOneWidget,
+        reason: 'the hero still renders (derived figures exist, just negative)');
+  });
+
   testWidgets('donut merges beyond 3 categories into 其他', (tester) async {
     final budget = _budget(incomeCents: 500000, savingsTargetCents: 200000);
     await tester.pumpWidget(harness(

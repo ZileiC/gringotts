@@ -38,7 +38,7 @@ Future<void> snap(WidgetTester tester, String name) async {
   expect(bytes.sublist(0, 4), <int>[0x89, 0x50, 0x4e, 0x47],
       reason: 'frame $name must be PNG');
   // T-10b IA update: reruns must not overwrite the original ticket evidence.
-  final file = File('evidence/t10b/regression/.t09d_$name.png');
+  final file = File('evidence/regression/.t09d_$name.png');
   await file.create(recursive: true);
   await file.writeAsBytes(bytes, flush: true);
   // ignore: avoid_print
@@ -305,8 +305,11 @@ void main() {
     // T-10b IA: the keypad lives on the secondary speed-entry page.
     await tester.tap(find.byKey(const Key('home_record_cta')));
     await tester.pumpAndSettle(const Duration(seconds: 2));
+    // The page scrolls on short surfaces: bring the keypad into view first.
+    await tester.ensureVisible(find.byKey(const Key('key_1')));
+    await tester.pumpAndSettle();
     for (final String key in <String>['1', '2', '3']) {
-      await tester.tap(find.text(key));
+      await tester.tap(find.byKey(Key('key_$key')));
       await tester.pump();
     }
     final cta = find.byKey(const Key('confirm_cta'));

@@ -8,56 +8,61 @@ import '../data/repositories/repositories.dart';
 import '../domain/models.dart';
 import '../domain/seed_ids.dart';
 import '../pages/assets_page.dart';
-import '../pages/stats_page.dart';
 import '../pages/review_page.dart';
+import '../pages/stats_page.dart';
+import '../services/budget_engine.dart';
 import '../services/smart_parser.dart';
 import '../services/smart_prefill.dart';
+import '../ui/category_icons.dart';
 import '../ui/motion.dart';
 import '../ui/tokens.dart';
 
-/// Speed-entry home page: numeric keypad + mixed input, no navigation layer.
+/// Speed-entry page (T-11, DESIGN_MAIN section 4): B+C hybrid.
 ///
+/// Two inputs (project name + keypad amount), a 3x3 always-visible category
+/// grid and a redesigned 4x3 keypad. Secondary page since T-10b: the top bar
+/// carries a back action plus the review/assets/stats entries.
 /// Record action never blocks on category selection (draft-first workflow).
 class QuickEntryPage extends ConsumerStatefulWidget {
-  const QuickEntryPage({super.key});
+  const QuickEntryPage({super.key, this.now});
+
+  /// Injectable clock (tests pin time-of-day prefill deterministically).
+  final DateTime Function()? now;
 
   @override
   ConsumerState<QuickEntryPage> createState() => _QuickEntryPageState();
 }
 
 class _QuickEntryPageState extends ConsumerState<QuickEntryPage> {
+  final TextEditingController _nameController = TextEditingController();
+  String _name = '';
   String _input = '';
-  String? _selectedCategoryId;
-  String? _timeDefaultCategoryId;
+  String? _manualCategoryId;
   bool _lunchHintVisible = false;
   bool _isIncome = false;
-  /// Bumped on every confirm so the CTA sheen sweeps exactly once per record.
-  int _sheenTick = 0;
   final FocusNode _focusNode = FocusNode();
 
   TransactionRepository get _txRepo => ref.read(transactionRepositoryProvider);
+
+  DateTime _now() => widget.now?.call() ?? DateTime.now();
+
+  /// Amount is parsed with the shared parser so `.5` / `15.5` behave exactly
+  /// as they did in the old mixed-input line.
   int? get _amountCents {
     if (_input.isEmpty) return null;
-    // Mixed-input form: run the local parser so `.5`, `瑞幸 15` etc. work.
-    final parsed = SmartParser.parse(_input, history: const []);
-    return parsed.amountCents;
+    return SmartParser.parse(_input, history: const []).amountCents;
   }
 
-  SmartParseResult get _mixedParse =>
-      SmartParser.parse(_input, history: const []);
+  bool get _showClear {
+    final amount = _amountCents;
+    return amount != null && amount > 0;
+  }
 
   @override
   void dispose() {
+    _nameController.dispose();
     _focusNode.dispose();
     super.dispose();
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _timeDefaultCategoryId =
-        TimeOfDayDefaults.defaultCategoryId(DateTime.now());
-    _updateLunchHint();
   }
 
   void _onKey(String key) {
@@ -67,14 +72,19 @@ class _QuickEntryPageState extends ConsumerState<QuickEntryPage> {
           if (_input.isNotEmpty) {
             _input = _input.substring(0, _input.length - 1);
           }
-        case 'C':
-          _input = '';
-          _selectedCategoryId = null;
-          _lunchHintVisible = false;
+        case '.':
+          if (!_input.contains('.')) _input += '.';
         default:
-          if (_input.length < 30) _input += key;
+          if (_input.length < 10) _input += key;
       }
       _updateLunchHint();
+    });
+  }
+
+  void _clearAmount() {
+    setState(() {
+      _input = '';
+      _lunchHintVisible = false;
     });
   }
 
@@ -85,30 +95,58 @@ class _QuickEntryPageState extends ConsumerState<QuickEntryPage> {
       return;
     }
     _lunchHintVisible = LunchPattern.matches(
-      now: DateTime.now(),
+      now: _now(),
       amountCents: amount,
     );
   }
 
-  Future<void> _confirm() async {
+  /// Effective category for the current inputs (see [QuickEntryDefaults]).
+  String? _effectiveCategoryId(
+    List<Transaction> transactions,
+    DateTime now,
+  ) {
+    final history = _historyEntries(transactions);
+    final trimmedName = _name.trim();
+    final nameSuggestion = trimmedName.isEmpty
+        ? null
+        : SmartParser.parse(trimmedName, history: history).categoryId;
+    final ranked = HighFrequencyCategories.ranked(
+      transactions.map((t) => (categoryId: t.categoryId, occurredAt: t.occurredAt)),
+      now: now,
+    );
+    return QuickEntryDefaults.resolve(
+      explicitId: _manualCategoryId,
+      nameSuggestionId: nameSuggestion,
+      // Income mode carries no time-of-day prefill (management addendum).
+      timeDefaultId: _isIncome ? null : TimeOfDayDefaults.defaultCategoryId(now),
+      topFrequencyId: ranked.isEmpty ? null : ranked.first,
+    );
+  }
+
+  List<MerchantHistoryEntry> _historyEntries(List<Transaction> transactions) {
+    final seen = <String>{};
+    final entries = <MerchantHistoryEntry>[];
+    for (final t in transactions) {
+      final merchant = t.merchant;
+      if (merchant == null || merchant.isEmpty) continue;
+      if (seen.add(merchant)) {
+        entries.add(MerchantHistoryEntry(merchant, t.categoryId));
+      }
+    }
+    return entries;
+  }
+
+  Future<void> _confirm(String? categoryId) async {
     final amount = _amountCents;
     if (amount == null || amount <= 0) return;
 
-    // One-shot sheen sweep on the confirm CTA (DESIGN_T09 section 4).
-    setState(() => _sheenTick++);
-
-    final parse = _mixedParse;
-    // Income mode: no time-of-day prefill, no lunch pattern (management
-    // addendum). Category may still be picked via chips.
-    final categoryId =
-        _isIncome ? _selectedCategoryId : (_selectedCategoryId ?? _timeDefaultCategoryId);
-
+    final trimmedName = _name.trim();
     await _txRepo.create(
       amountCents: amount,
       type: _isIncome ? TransactionType.income : TransactionType.expense,
       categoryId: categoryId,
-      merchant: parse.merchant,
-      occurredAt: DateTime.now(),
+      merchant: trimmedName.isEmpty ? null : trimmedName,
+      occurredAt: _now(),
       isDraft: true,
       source: TransactionSource.manual,
     );
@@ -121,8 +159,7 @@ class _QuickEntryPageState extends ConsumerState<QuickEntryPage> {
         SnackBar(
           content: Text('${_isIncome ? '已入账' : '已记'} ¥$display'),
           duration: const Duration(seconds: 1),
-          // T-09C2 ruling: floating with a bottom inset that lifts the bar
-          // above the confirm CTA, so it never covers the one-shot sheen.
+          // Floating with a bottom inset so it never covers the confirm key.
           behavior: SnackBarBehavior.floating,
           margin: const EdgeInsets.fromLTRB(
             AppSpacing.m,
@@ -135,7 +172,9 @@ class _QuickEntryPageState extends ConsumerState<QuickEntryPage> {
     }
     setState(() {
       _input = '';
-      _selectedCategoryId = null;
+      _name = '';
+      _nameController.clear();
+      _manualCategoryId = null;
       _lunchHintVisible = false;
     });
   }
@@ -146,7 +185,113 @@ class _QuickEntryPageState extends ConsumerState<QuickEntryPage> {
       focusNode: _focusNode,
       autofocus: true,
       onKeyEvent: _handleKeyEvent,
-      child: _buildScaffold(context),
+      child: Scaffold(
+        body: SafeArea(
+          child: StreamBuilder<List<Transaction>>(
+            stream: ref.watch(transactionRepositoryProvider).watchAll(),
+            builder: (context, txSnapshot) {
+              final transactions = txSnapshot.data ?? const <Transaction>[];
+              return StreamBuilder<BudgetMonth?>(
+                stream: ref
+                    .watch(budgetRepositoryProvider)
+                    .watchByMonth(BudgetEngine.monthKey(_now())),
+                builder: (context, budgetSnapshot) {
+                  final budget = budgetSnapshot.data;
+                  return StreamBuilder<List<Category>>(
+                    stream: ref.watch(categoryRepositoryProvider).watchAll(),
+                    builder: (context, catSnapshot) {
+                      final categories = catSnapshot.data ?? const <Category>[];
+                      return _buildBody(
+                        context,
+                        transactions,
+                        budget,
+                        categories,
+                      );
+                    },
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBody(
+    BuildContext context,
+    List<Transaction> transactions,
+    BudgetMonth? budget,
+    List<Category> categories,
+  ) {
+    final now = _now();
+    final amount = _amountCents;
+    final effectiveId = _effectiveCategoryId(transactions, now);
+
+    return Column(
+      children: [
+        _TopBar(
+          isIncome: _isIncome,
+          onModeChanged: (income) => setState(() {
+            _isIncome = income;
+            _updateLunchHint();
+          }),
+        ),
+        Expanded(
+          child: SingleChildScrollView(
+            physics: const InertialScrollPhysics(),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.entryPagePadH,
+              vertical: AppSpacing.entryPagePadV,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _NameField(
+                  controller: _nameController,
+                  onChanged: (value) => setState(() => _name = value),
+                ),
+                const SizedBox(height: AppSpacing.s),
+                _AmountRow(
+                  input: _input,
+                  showClear: _showClear,
+                  onClear: _clearAmount,
+                ),
+                const SizedBox(height: AppSpacing.s),
+                if (budget != null)
+                  _BudgetLinkRow(
+                    budget: budget,
+                    transactions: transactions,
+                    amountCents: amount ?? 0,
+                    now: now,
+                  ),
+                if (budget != null) const SizedBox(height: AppSpacing.s),
+                _CategoryGrid(
+                  categories: categories,
+                  selectedId: effectiveId,
+                  onSelected: (id) =>
+                      setState(() => _manualCategoryId = id),
+                ),
+                if (_lunchHintVisible)
+                  Padding(
+                    padding: const EdgeInsets.only(top: AppSpacing.s),
+                    child: _LunchHint(
+                      onConfirm: () => setState(
+                          () => _manualCategoryId = categoryIdDining),
+                    ),
+                  ),
+                const SizedBox(height: AppSpacing.keypadVertMargin),
+                _Keypad(onKey: _onKey),
+                const SizedBox(height: AppSpacing.keypadVertMargin),
+              ],
+            ),
+          ),
+        ),
+        _ConfirmBar(
+          enabled: amount != null && amount > 0,
+          onPressed: () => _confirm(effectiveId),
+        ),
+      ],
     );
   }
 
@@ -177,10 +322,13 @@ class _QuickEntryPageState extends ConsumerState<QuickEntryPage> {
     };
     if (digitKeys.containsKey(key)) {
       _onKey(digitKeys[key]!);
+    } else if (key == LogicalKeyboardKey.period ||
+        key == LogicalKeyboardKey.numpadDecimal) {
+      _onKey('.');
     } else if (key == LogicalKeyboardKey.backspace) {
       _onKey('backspace');
     } else if (key == LogicalKeyboardKey.escape) {
-      _onKey('C');
+      _clearAmount();
     } else if (key == LogicalKeyboardKey.f3) {
       Navigator.of(context).push(
         MaterialPageRoute<void>(builder: (_) => const StatsPage()),
@@ -192,183 +340,231 @@ class _QuickEntryPageState extends ConsumerState<QuickEntryPage> {
       );
     } else if (key == LogicalKeyboardKey.enter ||
         key == LogicalKeyboardKey.numpadEnter) {
-      _confirm();
+      _confirm(_effectiveCategoryId(
+        const <Transaction>[],
+        _now(),
+      ));
     }
   }
+}
 
-  Widget _buildScaffold(BuildContext context) {
-    final theme = Theme.of(context);
-    final amount = _amountCents;
+/// Top bar: back + title + expense/income switch.
+class _TopBar extends StatelessWidget {
+  const _TopBar({required this.isIncome, required this.onModeChanged});
 
-    return Scaffold(
-      body: SafeArea(
-        child: Column(
+  final bool isIncome;
+  final ValueChanged<bool> onModeChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.s, 15, AppSpacing.m, 11,
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            key: const Key('quick_back'),
+            onPressed: () => Navigator.of(context).maybePop(),
+            icon: const Icon(Icons.arrow_back),
+            tooltip: '返回',
+          ),
+          Text('记一笔', style: Theme.of(context).textTheme.titleLarge),
+          const Spacer(),
+          // T-10b must-keep entries; compact so the row still fits a phone.
+          _CompactEntry(
+            buttonKey: const Key('quick_review'),
+            icon: Icons.history,
+            tooltip: '回顾',
+            builder: (_) => const ReviewPage(),
+          ),
+          _CompactEntry(
+            buttonKey: const Key('quick_assets'),
+            icon: Icons.inventory_2,
+            tooltip: '资产',
+            builder: (_) => const AssetsPage(),
+          ),
+          _CompactEntry(
+            buttonKey: const Key('quick_stats'),
+            icon: Icons.bar_chart,
+            tooltip: '统计',
+            builder: (_) => const StatsPage(),
+          ),
+          const SizedBox(width: AppSpacing.xs),
+          SegmentedButton<bool>(
+            segments: const [
+              ButtonSegment(value: false, label: Text('支出')),
+              ButtonSegment(value: true, label: Text('收入')),
+            ],
+            selected: {isIncome},
+            onSelectionChanged: (selection) => onModeChanged(selection.first),
+            style: const ButtonStyle(
+              visualDensity: VisualDensity.compact,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Compact icon entry to the secondary pages (top-bar real estate is tight).
+class _CompactEntry extends StatelessWidget {
+  const _CompactEntry({
+    required this.buttonKey,
+    required this.icon,
+    required this.tooltip,
+    required this.builder,
+  });
+
+  final Key buttonKey;
+  final IconData icon;
+  final String tooltip;
+  final WidgetBuilder builder;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      key: buttonKey,
+      onPressed: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: builder),
+      ),
+      icon: Icon(icon, size: 20),
+      tooltip: tooltip,
+      visualDensity: VisualDensity.compact,
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+    );
+  }
+}
+
+/// Project-name input (the parser's new home; amount lives on the keypad).
+class _NameField extends StatelessWidget {
+  const _NameField({required this.controller, required this.onChanged});
+
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: AppSpacing.entryNameHeight,
+      child: TextField(
+        key: const Key('entry_name'),
+        controller: controller,
+        onChanged: onChanged,
+        textInputAction: TextInputAction.done,
+        style: Theme.of(context).textTheme.bodyLarge,
+        decoration: const InputDecoration(
+          hintText: '项目名称 · 如 瑞幸咖啡',
+          isDense: true,
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: AppSpacing.m,
+            vertical: AppSpacing.s,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Amount display (Playfair 600 / 42) + the "clear" text action.
+class _AmountRow extends StatelessWidget {
+  const _AmountRow({
+    required this.input,
+    required this.showClear,
+    required this.onClear,
+  });
+
+  final String input;
+  final bool showClear;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Expanded(
+          child: Text(
+            '¥ ${input.isEmpty ? '0' : input}',
+            style: const TextStyle(
+              fontFamily: 'PlayfairDisplay',
+              fontWeight: FontWeight.w600,
+              fontSize: AppFont.amountEntry,
+              color: AppColors.ink,
+              fontFeatures: AppFont.tabularFigures,
+            ),
+          ),
+        ),
+        if (showClear)
+          TextButton(
+            key: const Key('entry_clear'),
+            onPressed: onClear,
+            child: Text(
+              '清空',
+              style: TextStyle(
+                fontSize: AppFont.caption,
+                color: AppColors.inkSecondary,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// Budget link: what today's allowance becomes once this amount is recorded.
+class _BudgetLinkRow extends StatelessWidget {
+  const _BudgetLinkRow({
+    required this.budget,
+    required this.transactions,
+    required this.amountCents,
+    required this.now,
+  });
+
+  final BudgetMonth budget;
+  final List<Transaction> transactions;
+  final int amountCents;
+  final DateTime now;
+
+  @override
+  Widget build(BuildContext context) {
+    final snapshot = BudgetEngine.compute(
+      budget: budget,
+      transactions: transactions,
+      now: now,
+    );
+    final remaining = snapshot.remainingCents;
+    if (remaining == null) return const SizedBox.shrink();
+    final after = BudgetEngine.liveDailyCents(
+      remainingCents: remaining - amountCents,
+      remainingDays: snapshot.remainingDays,
+    );
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        vertical: AppSpacing.linkRowPadding,
+      ),
+      decoration: const BoxDecoration(
+        border: Border(
+          top: BorderSide(color: AppColors.hairline),
+          bottom: BorderSide(color: AppColors.hairline),
+        ),
+      ),
+      child: Text.rich(
+        TextSpan(
+          style: const TextStyle(
+            fontSize: AppFont.caption + 1,
+            color: AppColors.inkSecondary,
+          ),
           children: [
-            // Top row: badge + review entry.
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.m, AppSpacing.s, AppSpacing.m, 0,
-              ),
-              child: Row(
-                children: [
-                  // Secondary page since T-10b: explicit back to the analysis home.
-                  IconButton(
-                    key: const Key('quick_back'),
-                    onPressed: () => Navigator.of(context).maybePop(),
-                    icon: const Icon(Icons.arrow_back),
-                    tooltip: '返回',
-                  ),
-                  const _TodayDraftBadge(),
-                  const Spacer(),
-                  TextButton.icon(
-                    key: const Key('quick_review'),
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const ReviewPage(),
-                      ),
-                    ),
-                    icon: const Icon(Icons.history),
-                    label: const Text('回顾'),
-                  ),
-                  TextButton.icon(
-                    key: const Key('quick_assets'),
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const AssetsPage(),
-                      ),
-                    ),
-                    icon: const Icon(Icons.inventory_2),
-                    label: const Text('资产'),
-                  ),
-                  TextButton.icon(
-                    key: const Key('quick_stats'),
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const StatsPage(),
-                      ),
-                    ),
-                    icon: const Icon(Icons.bar_chart),
-                    label: const Text('统计'),
-                  ),
-                ],
-              ),
-            ),
-            // Amount display + mixed input field + mode toggle.
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.m, AppSpacing.m, AppSpacing.m, AppSpacing.s,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Brand wordmark: the only serif moment on this page.
-                  ShaderMask(
-                    shaderCallback: (bounds) => const LinearGradient(
-                      colors: [AppColors.goldAccent, AppColors.goldDeep],
-                    ).createShader(bounds),
-                    child: const Text(
-                      'GRINGOTTS',
-                      style: TextStyle(
-                        fontFamily: 'PlayfairDisplay',
-                        fontWeight: FontWeight.w600,
-                        fontSize: AppFont.caption + 2,
-                        letterSpacing: 1.6,
-                        color: AppColors.goldAccent,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.s),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        '¥ ${_input.isEmpty ? '0' : _input}',
-                        style: theme.textTheme.displayLarge,
-                      ),
-                      const Spacer(),
-                      SegmentedButton<bool>(
-                        segments: const [
-                          ButtonSegment(value: false, label: Text('支出')),
-                          ButtonSegment(value: true, label: Text('收入')),
-                        ],
-                        selected: {_isIncome},
-                        onSelectionChanged: (selection) => setState(() {
-                          _isIncome = selection.first;
-                          _updateLunchHint();
-                        }),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.m),
-                  TextField(
-                    decoration: const InputDecoration(
-                      hintText: '混合输入：瑞幸 15 / 15.5 午餐 / .5',
-                      border: OutlineInputBorder(),
-                      isDense: true,
-                    ),
-                    onChanged: (value) => setState(() {
-                      _input = value;
-                      _updateLunchHint();
-                    }),
-                  ),
-                  const SizedBox(height: AppSpacing.s),
-                  _CategoryPrefillRow(
-                    selectedCategoryId: _selectedCategoryId,
-                    timeDefaultCategoryId:
-                        _isIncome ? null : _timeDefaultCategoryId,
-                    onCategorySelected: (id) =>
-                        setState(() => _selectedCategoryId = id),
-                  ),
-                ],
-              ),
-            ),
-            if (_lunchHintVisible)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
-                child: _LunchHint(
-                  onConfirm: () =>
-                      setState(() => _selectedCategoryId = categoryIdDining),
-                ),
-              ),
-            _HighFrequencyChipBar(
-              selectedCategoryId: _selectedCategoryId,
-              onSelected: (id) => setState(() => _selectedCategoryId = id),
-            ),
-            Expanded(child: _Keypad(onKey: _onKey)),
-            Padding(
-              padding: const EdgeInsets.all(AppSpacing.m),
-              child: SizedBox(
-                key: const Key('confirm_cta'),
-                width: double.infinity,
-                height: 56,
-                child: TouchedScale(
-                  pressedScale: 0.96,
-                  onPressHaptic: () => HapticFeedback.mediumImpact(),
-                  child: SheenSweep(
-                    trigger: _sheenTick,
-                    child: DecoratedBox(
-                  decoration: const BoxDecoration(
-                    borderRadius: BorderRadius.all(Radius.circular(AppRadius.m)),
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [AppColors.goldAccent, AppColors.goldDeep],
-                    ),
-                  ),
-                  child: TextButton(
-                    onPressed: amount == null || amount <= 0 ? null : _confirm,
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.onGold,
-                      textStyle: TextStyle(
-                        fontSize: AppFont.title,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    child: const Text('记一笔'),
-                  ),
-                ),
-                  ),
-                ),
+            const TextSpan(text: '记这笔后，今天还能花 '),
+            TextSpan(
+              text: '¥${_money(after)}',
+              style: const TextStyle(
+                color: AppColors.goldAccent,
+                fontWeight: FontWeight.w600,
+                fontFeatures: AppFont.tabularFigures,
               ),
             ),
           ],
@@ -378,83 +574,245 @@ class _QuickEntryPageState extends ConsumerState<QuickEntryPage> {
   }
 }
 
-/// Home badge: "今日 N 笔待完善" - zero drafts renders nothing.
-class _TodayDraftBadge extends ConsumerWidget {
-  const _TodayDraftBadge();
+/// Fixed 3x3 category grid: all nine seeds visible, never horizontally scrolls.
+class _CategoryGrid extends StatelessWidget {
+  const _CategoryGrid({
+    required this.categories,
+    required this.selectedId,
+    required this.onSelected,
+  });
+
+  final List<Category> categories;
+  final String? selectedId;
+  final ValueChanged<String> onSelected;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final txRepo = ref.watch(transactionRepositoryProvider);
-    return StreamBuilder<int>(
-      stream: txRepo.watchTodayDraftCount(),
-      builder: (context, snapshot) {
-        final count = snapshot.data ?? 0;
-        if (count == 0) return const SizedBox.shrink();
-        return Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.m,
-            vertical: AppSpacing.xs,
+  Widget build(BuildContext context) {
+    return Column(
+      key: const Key('category_grid'),
+      children: [
+        for (var row = 0; row < 3; row++) ...[
+          if (row > 0) const SizedBox(height: AppSpacing.categoryGap),
+          Row(
+            children: [
+              for (var col = 0; col < 3; col++) ...[
+                if (col > 0) const SizedBox(width: AppSpacing.categoryGap),
+                Expanded(
+                  child: _CategoryCell(
+                    seed: _seedCategories[row * 3 + col],
+                    categories: categories,
+                    selected: selectedId == _seedCategories[row * 3 + col].id,
+                    onTap: () =>
+                        onSelected(_seedCategories[row * 3 + col].id),
+                  ),
+                ),
+              ],
+            ],
           ),
-          decoration: BoxDecoration(
-            color: AppColors.goldContainer,
-            borderRadius: BorderRadius.circular(AppRadius.pill),
-          ),
-          child: Text(
-            '今日 $count 笔待完善',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-        );
-      },
+        ],
+      ],
     );
   }
 }
 
-/// Row showing the time-of-day default category as a selectable chip.
-class _CategoryPrefillRow extends ConsumerWidget {
-  const _CategoryPrefillRow({
-    required this.selectedCategoryId,
-    required this.timeDefaultCategoryId,
-    required this.onCategorySelected,
+/// One grid cell: icon + label; selected = gold border + faint gold fill.
+class _CategoryCell extends StatelessWidget {
+  const _CategoryCell({
+    required this.seed,
+    required this.categories,
+    required this.selected,
+    required this.onTap,
   });
 
-  final String? selectedCategoryId;
-  final String? timeDefaultCategoryId;
-  final ValueChanged<String?> onCategorySelected;
+  final _SeedCategory seed;
+  final List<Category> categories;
+  final bool selected;
+  final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final categoryRepo = ref.watch(categoryRepositoryProvider);
-    return StreamBuilder<List<Category>>(
-      stream: categoryRepo.watchAll(),
-      builder: (context, snapshot) {
-        final categories = snapshot.data ?? const <Category>[];
-        final effectiveId = selectedCategoryId ?? timeDefaultCategoryId;
-        Category? effective;
-        for (final c in categories) {
-          if (c.id == effectiveId) {
-            effective = c;
-            break;
-          }
-        }
-
-        return Wrap(
-          spacing: AppSpacing.s,
-          runSpacing: AppSpacing.xs,
+  Widget build(BuildContext context) {
+    final animationsDisabled = MediaQuery.disableAnimationsOf(context);
+    String name = seed.name;
+    String iconName = seed.icon;
+    for (final c in categories) {
+      if (c.id == seed.id) {
+        name = c.name;
+        iconName = c.icon ?? seed.icon;
+        break;
+      }
+    }
+    final color = selected ? AppColors.goldAccent : AppColors.inkSecondary;
+    return TouchedScale(
+      pressedScale: 0.97,
+      onTap: onTap,
+      child: AnimatedContainer(
+        key: Key('category_cell_${seed.id}'),
+        duration: animationsDisabled
+            ? Duration.zero
+            : const Duration(milliseconds: 150),
+        curve: Curves.easeOut,
+        height: AppSpacing.categoryCellHeight,
+        decoration: BoxDecoration(
+          color: selected ? AppColors.goldContainer : Colors.transparent,
+          borderRadius: BorderRadius.circular(AppRadius.m),
+          border: Border.all(
+            color: selected ? AppColors.goldAccent : AppColors.hairline,
+          ),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if (effective != null)
-              MotionChip(
-                label: effective.name,
-                selected: true,
-                onTap: () => onCategorySelected(null),
-              )
-            else
-              MotionChip(
-                label: '未选类别',
-                selected: false,
+            Icon(
+              CategoryIcons.forName(iconName),
+              size: AppFont.categoryIcon,
+              color: color,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              name,
+              style: TextStyle(
+                fontSize: AppFont.categoryLabel,
+                color: color,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
               ),
+            ),
           ],
-        );
-      },
+        ),
+      ),
+    );
+  }
+}
+
+/// 4x3 keypad: 7 8 9 / 4 5 6 / 1 2 3 / . 0 ⌫ (no C key).
+class _Keypad extends StatelessWidget {
+  const _Keypad({required this.onKey});
+
+  final ValueChanged<String> onKey;
+
+  static const List<List<String>> _rows = <List<String>>[
+    <String>['7', '8', '9'],
+    <String>['4', '5', '6'],
+    <String>['1', '2', '3'],
+    <String>['.', '0', 'backspace'],
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        for (var row = 0; row < _rows.length; row++) ...[
+          if (row > 0) const SizedBox(height: AppSpacing.keypadGapY),
+          Row(
+            children: [
+              for (var col = 0; col < 3; col++) ...[
+                if (col > 0) const SizedBox(width: AppSpacing.keypadGapX),
+                Expanded(
+                  child: _KeyButton(
+                    value: _rows[row][col],
+                    onTap: () => onKey(_rows[row][col]),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// One key. Numbers are filled elevated (no border); `.` / backspace are
+/// transparent with a hairline border - the material hierarchy that keeps the
+/// keypad from reading as twelve equal blocks.
+class _KeyButton extends StatelessWidget {
+  const _KeyButton({required this.value, required this.onTap});
+
+  final String value;
+  final VoidCallback onTap;
+
+  bool get _isDigit => value != '.' && value != 'backspace';
+
+  @override
+  Widget build(BuildContext context) {
+    final label = value == 'backspace' ? '⌫' : value;
+    return TouchedScale(
+      pressedScale: 0.97,
+      pressDuration: const Duration(milliseconds: 120),
+      onPressHaptic: () => HapticFeedback.selectionClick(),
+      onTap: onTap,
+      child: Container(
+        key: Key('key_$value'),
+        height: 56,
+        decoration: BoxDecoration(
+          color: _isDigit ? AppColors.elevated : Colors.transparent,
+          borderRadius: BorderRadius.circular(AppRadius.key),
+          border: _isDigit
+              ? null
+              : Border.all(color: AppColors.hairline),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: _isDigit
+                ? const TextStyle(
+                    fontFamily: 'PlayfairDisplay',
+                    fontWeight: FontWeight.w600,
+                    fontSize: AppFont.keyNumber,
+                    color: AppColors.ink,
+                    fontFeatures: AppFont.tabularFigures,
+                  )
+                : const TextStyle(
+                    fontSize: AppFont.keySymbol,
+                    color: AppColors.inkSecondary,
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Confirm action: gold hairline + faint gold fill + gold text (no gradient).
+class _ConfirmBar extends StatelessWidget {
+  const _ConfirmBar({required this.enabled, required this.onPressed});
+
+  final bool enabled;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.entryPagePadH, 0, AppSpacing.entryPagePadH, AppSpacing.s,
+      ),
+      child: SizedBox(
+        key: const Key('confirm_cta'),
+        width: double.infinity,
+        height: AppSpacing.entryConfirmHeight,
+        child: TouchedScale(
+          pressedScale: 0.96,
+          onPressHaptic: () => HapticFeedback.mediumImpact(),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: AppColors.goldContainer,
+              borderRadius: BorderRadius.circular(AppRadius.l),
+              border: Border.all(color: AppColors.goldDeep),
+            ),
+            child: TextButton(
+              onPressed: enabled ? onPressed : null,
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.goldAccent,
+                disabledForegroundColor: AppColors.inkSecondary,
+                textStyle: const TextStyle(
+                  fontSize: AppFont.title,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              child: const Text('记一笔'),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -490,142 +848,37 @@ class _LunchHint extends StatelessWidget {
   }
 }
 
-/// Horizontal scrollable list of the most frequent recent categories.
-class _HighFrequencyChipBar extends ConsumerWidget {
-  const _HighFrequencyChipBar({
-    required this.selectedCategoryId,
-    required this.onSelected,
-  });
+/// Fixed seed order (never re-ordered by frequency - muscle memory).
+class _SeedCategory {
+  const _SeedCategory(this.id, this.name, this.icon);
 
-  final String? selectedCategoryId;
-  final ValueChanged<String> onSelected;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final txRepo = ref.watch(transactionRepositoryProvider);
-    final categoryRepo = ref.watch(categoryRepositoryProvider);
-
-    return StreamBuilder<List<Transaction>>(
-      stream: txRepo.watchRecent(windowDays: 14),
-      builder: (context, txSnapshot) {
-        return StreamBuilder<List<Category>>(
-          stream: categoryRepo.watchAll(),
-          builder: (context, catSnapshot) {
-            final transactions = txSnapshot.data ?? const <Transaction>[];
-            final categories = catSnapshot.data ?? const <Category>[];
-            final rankedIds = HighFrequencyCategories.ranked(transactions
-                .map((t) => (
-                      categoryId: t.categoryId,
-                      occurredAt: t.occurredAt,
-                    ))
-                .toList());
-
-            if (rankedIds.isEmpty) return const SizedBox.shrink();
-
-            return SizedBox(
-              height: 48,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
-                itemCount: rankedIds.length,
-                separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.s),
-                itemBuilder: (context, index) {
-                  final id = rankedIds[index];
-                  Category? cat;
-                  for (final c in categories) {
-                    if (c.id == id) {
-                      cat = c;
-                      break;
-                    }
-                  }
-                  if (cat == null) return const SizedBox.shrink();
-                  return MotionChip(
-                    label: cat.name,
-                    selected: selectedCategoryId == id,
-                    onTap: () => onSelected(id),
-                  );
-                },
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
+  final String id;
+  final String name;
+  final String icon;
 }
 
-/// Numeric keypad grid (0-9, backspace, clear).
-class _Keypad extends StatelessWidget {
-  const _Keypad({required this.onKey});
+const List<_SeedCategory> _seedCategories = <_SeedCategory>[
+  _SeedCategory(categoryIdDining, '餐饮', 'restaurant'),
+  _SeedCategory(categoryIdTransport, '交通', 'commute'),
+  _SeedCategory(categoryIdShopping, '购物', 'shopping_bag'),
+  _SeedCategory(categoryIdHousing, '居住', 'home'),
+  _SeedCategory(categoryIdEntertainment, '娱乐', 'sports_esports'),
+  _SeedCategory(categoryIdStudy, '学习', 'school'),
+  _SeedCategory(categoryIdMedical, '医疗', 'medical_services'),
+  _SeedCategory(categoryIdGift, '人情', 'redeem'),
+  _SeedCategory(categoryIdOther, '其他', 'category'),
+];
 
-  final ValueChanged<String> onKey;
-
-  static const _keys = <String>[
-    '1', '2', '3',
-    '4', '5', '6',
-    '7', '8', '9',
-    'C', '0', 'backspace',
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
-      child: Column(
-        children: [
-          for (var row = 0; row < 4; row++)
-            Expanded(
-              child: Row(
-                children: [
-                  for (var col = 0; col < 3; col++)
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.all(AppSpacing.xs),
-                        child: _KeyCap(
-                          label: switch (_keys[row * 3 + col]) {
-                            'backspace' => '⌫',
-                            'C' => 'C',
-                            final k => k,
-                          },
-                          onTap: () => onKey(_keys[row * 3 + col]),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-        ],
-      ),
-    );
+/// Formats integer cents as yuan, trimming trailing zeros (70004 -> 700.04).
+String _money(int cents) {
+  final abs = cents.abs();
+  final String text;
+  if (abs % 100 == 0) {
+    text = (abs ~/ 100).toString();
+  } else if (abs % 10 == 0) {
+    text = (abs / 100).toStringAsFixed(1);
+  } else {
+    text = (abs / 100).toStringAsFixed(2);
   }
-}
-
-/// One key on the keypad.
-class _KeyCap extends StatelessWidget {
-  const _KeyCap({required this.label, required this.onTap});
-
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return TouchedScale(
-      onTap: onTap,
-      pressedScale: 0.97,
-      pressDuration: const Duration(milliseconds: 120),
-      onPressHaptic: () => HapticFeedback.selectionClick(),
-      child: Material(
-        color: AppColors.surfaceElevated,
-        borderRadius: BorderRadius.circular(AppRadius.m),
-        child: Center(
-          child: Text(
-            label,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontSize: AppFont.keypad,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  return text;
 }

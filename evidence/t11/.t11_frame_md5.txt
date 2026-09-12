@@ -1,0 +1,4 @@
+# T-11 speed-entry evidence frames (Dart PNG, md5 unique)
+.t11_01_idle.png  md5=441a1022e746  bytes=36961  magic=89504e47
+.t11_02_input.png  md5=50ac738e7c96  bytes=38822  magic=89504e47
+.t11_03_income.png  md5=f72f833eab6c  bytes=37883  magic=89504e47

@@ -3,6 +3,53 @@
 > 执行层（Codex）每次收工在顶部追加一段：做了什么 / 关键决策 / 遗留问题 / 下一步。管理层（Hermes）通过本文件验收进度。
 > ⚠️ 并发写入约定：追加前先重新读取文件最新版，在头部插入自己的段落，不要重建文件横幅；管理层 patch 前同样先重读。
 
+## 2026-09-12（T-11 执行层施工记录：快记页整体重设计 B+C 混合）
+### 做了什么
+1. **`lib/pages/quick_entry_page.dart` 整页重构**（DESIGN_MAIN §4，用户定稿 B+C 混合）：
+   - **两个输入**：新增「项目名称」输入行（`entry_name`，elevated + hairline，高 44，hint「项目名称 · 如 瑞幸咖啡」）；金额改由 4×3 键盘输入、单独显示（Playfair 600 / 42px + tabular）
+   - **键盘补小数点**：`7 8 9 / 4 5 6 / 1 2 3 / . 0 ⌫`；**C 键移出**，清空 = 金额行右侧「清空」文字动作（金额 0 时隐藏，`entry_clear`）
+   - **键盘重设计（§4.2）**：键高 56 · 圆角 17 · 横 gap 16 / 纵 gap 10；**数字键 = `elevated` 填充无描边，功能键（`.` `⌫`）= 透明 + hairline**（材质分层）；键面数字 **Playfair 600 / 26px + tabular**，符号 **sans 21px `inkSecondary`**；键区上下各留 12px
+   - **类别 3×3 全显网格**（`category_grid`，9 格 58px 高、图标 19px + 标签 11.5px；键 `category_cell_<id>`）：**顺序固定 seed 序**（不按频率重排）；未选 = hairline + inkSecondary，**选中 = 金边 + 极淡金底（goldContainer）+ 金字**；**无任何横向滚动**
+   - **移除**：sheen 扫光、发光、装饰性渐变、金渐变填充确认键 → 确认键改 **金边描边 + 极淡金底 + 金字**（高 54 / radius 16，`confirm_cta` 保留）
+   - **额度联动行**（保留项）：有预算时显示「记这笔后，今天还能花 ¥X」（数值 `goldAccent`，上下 hairline，padding 6）；无预算整行隐藏
+   - **顶栏**：`‹` 返回（`quick_back`）+「记一笔」+ **支出/收入 切换** + 紧凑 icon 入口 **回顾/资产/统计**（`quick_review/quick_assets/quick_stats`，T-10b IA 依赖全保留）
+2. **`lib/services/smart_prefill.dart`**：新增纯函数 `QuickEntryDefaults.resolve(explicit, nameSuggestion, timeDefault, topFreq)`——**显式点选 > 名称解析建议 > 时段默认 > 近 14 天高频兜底 > 不预选**；名称联想复用既有 `SmartParser.parse(name, history)`（词典 / 历史 / 前缀，无新解析逻辑）
+3. **tokens**：新增速记页几何/字号 token（`entryNameHeight/entryConfirmHeight/categoryCellHeight/keypadGapX/keypadGapY/categoryGap/linkRowPadding/keypadVertMargin/entryPagePadH/V`、`AppRadius.key=17`、`AppFont.amountEntry=42/keyNumber=26/keySymbol=21/categoryIcon=19/categoryLabel=11.5`）；新增 `lib/ui/category_icons.dart`（图标名→IconData，唯一的分类图标映射）
+4. **测试 +20（153→173）**：`test/quick_entry_defaults_test.dart`（8：优先级/时钟规则）+ `test/quick_entry_layout_test.dart`（12：键位含小数点无 C、小数输入与清空、名称→类别、3×3 九类/固定序/无横向滚动、智能默认三种、午餐提示、点选覆盖、字体（金额/键面 Playfair，符号 sans）、确认键描边无渐变、顶栏四入口、reduce-motion）+ `test/home_page_test.dart` 补「预算不可行」专属单测（T-10b P3 顺带项）；`test/widget_test.dart` 适配新页（pump 二级页 + budget provider fake）
+5. **受影响 integration 按新 IA/新形态更新**：t03（key 输入 + 金额清零断言 + 回顾入口 key）、t09a（帧①改 `entry_name`/`confirm_cta`/支出）、t09b/t09c/t09d（keypad 前 ensureVisible / 帧路径）、**t09c2 重写**（chip 条→3×3 网格 150ms 选中断言；sheen 断言改为**「sheen 已移除」显式断言**；reduce-motion/触感/P4 保留）、perf_scan 导航修复；回归帧统一落 **`evidence/regression/`**（不覆盖原票 evidence）
+6. **新增 `integration_test/t11_quick_entry_test.dart`**：三帧（空态/输入态/收入态）+ 顶栏四入口 + 键盘布局 + 3×3 无横向滚动 + 名称→类别 + 小数点/退格 + **draft 入库**（DB 读回 amount/type/merchant 后墓碑清理）+ 前置条件声明
+
+### 关键决策
+- **名称建议优先于时钟规则**：`resolve` 中 `nameSuggestion` 排在 `timeDefault` 前——用户真打出的商户名比时钟更具体（例：午餐时段输入「滴滴」应得交通而非餐饮）；时段→高频的顺序即 §补口的「智能默认」
+- **页面版式：中段可滚 + 确认键与顶栏固定**：设计目标 748px 免滚动；Windows 预览窗高实测 681，固定排版必溢出，故采用「顶栏固定 / 中段 `SingleChildScrollView` / 确认键固定」——748 上内容按 §4.1 让位表恰好落满（免滚动），更矮的窗口才滚动，且**确认键永远可达**（3 秒一笔）。实机键高上限按 §4.2 = 56（已实现固定 56）
+- **「清空」只清金额**：C 键原语义是清金额+类别；新形态下类别由智能默认托管，清空只清金额并复位午餐提示（类别仍可一键改），避免把用户刚选的类别误清
+- **sheen/chip 的类保留但页面不再消费**：`SheenSweep` / `MotionChip` 仍留在 `motion.dart`（后者 T-12 明细页的筛选 chips 会复用），本票只移除页面用法并在 t09c2 显式断言「已移除」——**不自作主张删公共动效件**；`SheenSweep` 现为无消费件，记入遗留待裁决
+- **顶栏三入口改紧凑 icon**：§4.1 顶栏同时要放返回/标题/支出收入切换，T-10b 又要求三入口全保留；改 icon-only（key 不变）使单行可容，未新增第二行（守住垂直预算）
+- **符号 21px / 金额 42px 以工单为准**：工单与 DESIGN §8 写 21px/42px，§4.2 表内仍写 22px/44px（旧值）——按工单执行并记遗留
+
+### 遗留问题 / 待管理层裁决
+1. **顶栏草稿徽章（「今日 N 笔待完善」）移除**：DESIGN §4.1 顶栏规格无此项（且新版顶栏已满），本票按规格移除；「回顾」入口仍在、draft 计数不再在快记页可见。若需保留请裁决（可放金额行下方细行）
+2. **DESIGN §4.2 表内数字与工单不一致**：表内符号 22px / 金额 44px，工单与 §8 为 21px / 42px——本票按工单（21/42）
+3. **`SheenSweep` 成为无消费件**（`MotionChip` T-12 将复用）：是否随 M1.x 清理 `SheenSweep` + `AppColors.sheen/sheenEdge`，请裁决
+4. **Windows 预览窗 681 < 设计 748**：预览下面页中段会滚动（确认键固定不变）；「免滚动」在设计目标尺寸（748）成立——实机免滚动与否归用户目测
+5. t09b 回归帧 01/04 md5 相同（同态同帧，T-10b 已裁定合法），本轮复现
+
+### 下一步
+- 等管理层验收 T-11；通过后按序 **T-12 明细页** 或 **T-13 字体回归 + M1.x**（管理层定序）
+
+### DoD 证据
+- `flutter analyze` → **No issues found**
+- `flutter test` → **All tests passed（173）**，153 → **+20**（defaults 8 / layout 11 / home_page +1；widget_test 适配）
+- **保留清单逐项断言**：键盘 3 秒一笔（键位/小数点/退格单测 + t11）· 解析器服务名称字段（瑞幸→餐饮，单测 + t11）· 时段默认类别（单测午间→餐饮、深夜→娱乐）· **午餐内联提示**（单测：周一 12:00 ¥15 → 「这是午餐吗？」）· 收入/支出切换（单测顶栏 + t11 收入帧）· draft 入库（t11：`amount=1500 type=income merchant=瑞幸` 读回后墓碑）· TouchedScale 触感 + reduce-motion 全退化（t09c2：`confirm_haptic=ok`）· 顶栏 返回+回顾/资产/统计（单测 + t11）
+- **键盘/网格断言**：11 键含 `.`、**无 C**（单测+t11）；3×3 九类按固定序一次全显；`category_grid` 内 **无 Scrollable**（不可能横向滚动）
+- **字体断言**：金额行 Playfair 600/42；键面数字 Playfair 600/26；符号（`.`/⌫）sans 21 `inkSecondary`（单测逐项）
+- **移除断言**：确认键 `gradient == null` + 金边金底（单测 + t09c2）；t09c2 `find.byType(SheenSweep) findsNothing`（页面上确无 sheen）
+- **T-11 Windows 实跑三帧（Dart PNG，magic 89504e47，md5 全唯一）**：`01_idle 441a1022e746` ｜ `02_input 50ac738e7c96` ｜ `03_income f72f833eab6c`（manifest `evidence/t11/.t11_frame_md5.txt`）
+- **受影响 integration（Windows 逐个单跑，全绿）**：t03 ✅（`DB_DRAFTS 2→3→2`）｜ t09a ✅（3 帧）｜ t09b ✅（5 帧）｜ t09c ✅（8 帧，`rise=40.8 opacity=0.600` 与历史验收同值）｜ t09c2 ✅（2 用例 6 帧，`grid duration=150ms`、`confirm_haptic=ok`）｜ t09d ✅（2 用例 8 帧，`overlap=false`）；帧落 `evidence/regression/`，**原票 evidence 未被覆盖**（git status 仅新增 `evidence/regression/`、`evidence/t11/`）
+- **release APK**：`build/app/outputs/flutter-apk/app-release.apk` **66,254,200 字节（63.2MB）**，md5 `3754a60a95b523c95e583e79bde0d8eb`；已复制桌面 `gringotts-T11-release.apk`（仓库外）
+- **dev 库还原**：本轮残留 live 13 行（tx 5 / assets 1 / photos 7）按墓碑清理 → **live=0（分类 9 保留）**；备份 `gringotts.sqlite.pre-t11-20260912-210932.bak`
+- **执行成本如实记录**：integration 共跑 **10 次**（t11 ×3：① 退格断言误算期望 → 改两次退格；② 顶栏漏渲染收入切换 → 补 SegmentedButton；③ 通过。t03 ×2：① 误把下拉菜单 scope 进 ReviewPage（菜单在 root overlay）→ 回退全局 `.last`；② 通过。其余 t09a/t09b/t09c/t09c2/t09d 各 1 次通过）。全部失败由**代码/断言的确定性缺陷**驱动，修完即绿，**零盲目重跑**
+
 ## 2026-09-12（T-10b 补记：提交遗漏闭环）
 - 接管理层流程挂起项：`git add -A` 补交并 push —— **T-10b 提交 = `41ae607`**（新主页/IA 切换/今日饼图/固定底栏 + 8 个受影响 integration 按新 IA 更新 + 本票 WORKLOG + AGENTS.md 收工三连新规，同一次提交）
 - AGENTS.md「工作流程约定」item 3 已改为**硬性三连**：① 先重读并更新 `WORKLOG.md` 顶部 → ② 本票 commit（`T-1x: <summary>`）→ ③ `git push`；**未 commit/push 的「完工」视同未完工，管理层不予验收**（教训：T-09C、T-10b 两次完工未提交）

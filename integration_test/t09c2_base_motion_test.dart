@@ -11,6 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gringotts/app/app.dart';
 import 'package:gringotts/data/app_database.dart';
 import 'package:gringotts/domain/models.dart';
+import 'package:gringotts/domain/seed_ids.dart';
 import 'package:gringotts/pages/asset_detail_page.dart';
 import 'package:gringotts/pages/assets_page.dart';
 import 'package:gringotts/services/photo_service.dart';
@@ -21,6 +22,10 @@ import 'package:path_provider/path_provider.dart';
 
 /// T-09C2 evidence: base motions (section 4) read back with numbers, plus the
 /// reduce-motion degradation pass with the P4 haptic assertion.
+///
+/// T-11 update: the high-frequency chip bar and the confirm sheen are gone
+/// (spec removal). The 150 ms selection beat now lives on the 3x3 category
+/// grid; the sheen assertions became explicit "sheen removed" proofs.
 Future<void> snap(WidgetTester tester, String name) async {
   final boundary = tester.renderObject<RenderRepaintBoundary>(
     find.byKey(const Key('app_repaint_boundary')),
@@ -30,8 +35,8 @@ Future<void> snap(WidgetTester tester, String name) async {
   final bytes = data!.buffer.asUint8List();
   expect(bytes.sublist(0, 4), <int>[0x89, 0x50, 0x4e, 0x47],
       reason: 'frame $name must be PNG');
-  // T-10b IA update: reruns must not overwrite the original ticket evidence.
-  final file = File('evidence/t10b/regression/.t09c2_$name.png');
+  // T-10b/T-11 IA updates: reruns must not overwrite the original evidence.
+  final file = File('evidence/regression/.t09c2_$name.png');
   await file.create(recursive: true);
   await file.writeAsBytes(bytes, flush: true);
   // ignore: avoid_print
@@ -46,29 +51,42 @@ Widget harness(ProviderContainer container) => RepaintBoundary(
       ),
     );
 
-/// The high-frequency chip bar is the only ListView on the home page; the
-/// prefill row renders its chip in a Wrap, so this stays unambiguous.
-Finder barChips() =>
-    find.descendant(of: find.byType(ListView), matching: find.byType(MotionChip));
+const List<String> _gridIds = <String>[
+  categoryIdDining,
+  categoryIdTransport,
+  categoryIdShopping,
+  categoryIdHousing,
+  categoryIdEntertainment,
+  categoryIdStudy,
+  categoryIdMedical,
+  categoryIdGift,
+  categoryIdOther,
+];
 
-Finder barChip(int index) => barChips().at(index);
+Finder gridCell(String id) => find.byKey(Key('category_cell_$id'));
 
-BoxDecoration chipDecoration(WidgetTester tester, int index) => tester
-    .widget<DecoratedBox>(find
-        .descendant(
-          of: barChip(index),
-          matching: find.byType(DecoratedBox),
-        )
-        .first)
-    .decoration as BoxDecoration;
+BoxDecoration cellDecoration(WidgetTester tester, String id) =>
+    tester.widget<AnimatedContainer>(gridCell(id)).decoration as BoxDecoration;
+
+Color? cellBorder(WidgetTester tester, String id) =>
+    (cellDecoration(tester, id).border as Border?)?.top.color;
+
+String firstUnselectedId(WidgetTester tester) => _gridIds.firstWhere(
+      (id) => cellBorder(tester, id) != AppColors.goldAccent,
+    );
 
 String hex(Color? color) =>
     color == null ? 'none' : '#${color.toARGB32().toRadixString(16).padLeft(8, '0')}';
 
+Future<void> enterSpeedEntry(WidgetTester tester) async {
+  await tester.tap(find.byKey(const Key('home_record_cta')));
+  await tester.pumpAndSettle(const Duration(seconds: 2));
+}
+
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('T-09C2 base motions: chip 150 ms, sheen 600 ms one-shot, '
+  testWidgets('T-09C2 base motions: grid 150 ms selection, no sheen, '
       'count-up spring, hero easeOutCubic', (tester) async {
     final container = ProviderContainer();
     addTearDown(container.dispose);
@@ -76,72 +94,47 @@ void main() {
     await tester.pumpAndSettle(const Duration(seconds: 2));
 
     // T-10b IA: keypad motions live on the secondary speed-entry page.
-    await tester.tap(find.byKey(const Key('home_record_cta')));
-    await tester.pumpAndSettle(const Duration(seconds: 2));
+    await enterSpeedEntry(tester);
 
-    // ---------- 1. category chip: 150 ms AnimatedContainer ----------
-    final barChipsBefore = tester.widgetList<MotionChip>(barChips()).toList();
-    expect(barChipsBefore, isNotEmpty,
-        reason: 'high-frequency chip bar must render recent categories');
-    final chipIndex =
-        barChipsBefore.indexWhere((MotionChip c) => !c.selected);
-    expect(chipIndex, isNonNegative,
-        reason: 'the bar must offer at least one unselected category');
-    final label = barChipsBefore[chipIndex].label;
-    final animated = tester.widget<AnimatedContainer>(find
-        .descendant(
-          of: barChip(chipIndex),
-          matching: find.byType(AnimatedContainer),
-        )
-        .first);
+    // ---------- 1. category grid: 150 ms AnimatedContainer ----------
+    final cellId = firstUnselectedId(tester);
+    final animated = tester.widget<AnimatedContainer>(gridCell(cellId));
     expect(animated.duration, const Duration(milliseconds: 150));
-    final before = chipDecoration(tester, chipIndex).color;
+    final before = cellDecoration(tester, cellId).color;
 
-    await tester.tap(barChip(chipIndex));
+    await tester.ensureVisible(gridCell(cellId));
+    await tester.pumpAndSettle();
+    await tester.tap(gridCell(cellId));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 75));
-    final mid = chipDecoration(tester, chipIndex).color;
+    final mid = cellDecoration(tester, cellId).color;
     await tester.pumpAndSettle();
-    final settled = chipDecoration(tester, chipIndex).color;
+    final settled = cellDecoration(tester, cellId).color;
     // ignore: avoid_print
-    print('T09C2_CHIP label=$label duration=${animated.duration.inMilliseconds}ms '
+    print('T09C2_GRID id=$cellId duration=${animated.duration.inMilliseconds}ms '
         'before=${hex(before)} mid=${hex(mid)} settled=${hex(settled)}');
     expect(mid, isNot(before), reason: 'the 150 ms transition must be running');
-    expect(mid, isNot(AppColors.goldContainer));
     expect(settled, AppColors.goldContainer);
-    await snap(tester, '01_chip_selected');
+    await snap(tester, '01_category_selected');
 
-    // ---------- 2. confirm sheen: 600 ms, one shot ----------
-    for (final String key in <String>['1', '2', '3']) {
-      await tester.tap(find.text(key));
-      await tester.pump();
-    }
-    final cta = find.descendant(
-      of: find.byType(SheenSweep),
-      matching: find.byType(TextButton),
-    );
-    expect(cta, findsOneWidget);
-    await tester.tap(cta);
-    await tester.pump();
-    final sheen = tester.state<SheenSweepState>(find.byType(SheenSweep));
-    // The confirm also raises the section 4 snackbar, which sits exactly over
-    // the CTA; dismiss it so the 600 ms sweep is visible in the frame. The
-    // sweep itself is unaffected and keeps running.
-    ScaffoldMessenger.of(tester.element(find.byType(Scaffold).first))
-        .hideCurrentSnackBar();
-    await tester.pump(const Duration(milliseconds: 300));
-    // ignore: avoid_print
-    print('T09C2_SHEEN sweeping=${sheen.isSweeping} '
-        'progress=${sheen.progress.toStringAsFixed(3)}');
-    expect(sheen.isSweeping, isTrue);
-    expect(sheen.progress, greaterThan(0.0));
-    expect(sheen.progress, lessThan(1.0));
-    await snap(tester, '02_confirm_sheen_mid');
+    // ---------- 2. sheen removed; amount + confirm still work ----------
+    expect(find.byType(SheenSweep), findsNothing,
+        reason: 'T-11 removed the sheen sweep from the page');
+    await tester.ensureVisible(find.byKey(const Key('key_1')));
     await tester.pumpAndSettle();
-    expect(sheen.isSweeping, isFalse, reason: 'the sheen is one-shot');
-    expect(sheen.progress, 1.0);
-    await tester.pump(const Duration(seconds: 2));
-    expect(sheen.isSweeping, isFalse, reason: 'the sheen must never loop');
+    await tester.tap(find.byKey(const Key('key_1')));
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('key_2')));
+    await tester.pump();
+    expect(find.text('¥ 12'), findsOneWidget);
+    final confirmDecoration = tester
+        .widget<DecoratedBox>(find.descendant(
+          of: find.byKey(const Key('confirm_cta')),
+          matching: find.byType(DecoratedBox),
+        ))
+        .decoration as BoxDecoration;
+    expect(confirmDecoration.gradient, isNull,
+        reason: 'the confirm key is outline-style, not a gold gradient fill');
 
     // ---------- 3. seed a 2-photo asset so the hero wall really relays ----------
     final db = container.read(databaseProvider);
@@ -258,8 +251,7 @@ void main() {
     await tester.pumpAndSettle(const Duration(seconds: 2));
 
     // T-10b IA: keypad motions live on the secondary speed-entry page.
-    await tester.tap(find.byKey(const Key('home_record_cta')));
-    await tester.pumpAndSettle(const Duration(seconds: 2));
+    await enterSpeedEntry(tester);
 
     // TouchedScale: no scale animation, haptic still delivered.
     expect(
@@ -271,36 +263,31 @@ void main() {
     );
     for (final AnimatedContainer box in tester.widgetList<AnimatedContainer>(
       find.descendant(
-        of: find.byType(MotionChip),
+        of: find.byKey(const Key('category_grid')),
         matching: find.byType(AnimatedContainer),
       ),
     )) {
-      expect(box.duration, Duration.zero, reason: 'chip switches instantly');
+      expect(box.duration, Duration.zero, reason: 'grid switches instantly');
     }
-    final barChipsBefore = tester.widgetList<MotionChip>(barChips()).toList();
-    expect(barChipsBefore, isNotEmpty,
-        reason: 'high-frequency chip bar must render recent categories');
-    final chipIndex =
-        barChipsBefore.indexWhere((MotionChip c) => !c.selected);
-    expect(chipIndex, isNonNegative,
-        reason: 'the bar must offer at least one unselected category');
-    await tester.tap(barChip(chipIndex));
+
+    final cellId = firstUnselectedId(tester);
+    await tester.ensureVisible(gridCell(cellId));
+    await tester.pumpAndSettle();
+    await tester.tap(gridCell(cellId));
     await tester.pump();
-    expect(chipDecoration(tester, chipIndex).color, AppColors.goldContainer,
+    expect(cellDecoration(tester, cellId).color, AppColors.goldContainer,
         reason: 'reduce-motion snaps to the selected colour');
 
+    await tester.ensureVisible(find.byKey(const Key('key_1')));
+    await tester.pumpAndSettle();
     for (final String key in <String>['1', '2']) {
-      await tester.tap(find.text(key));
+      await tester.tap(find.byKey(Key('key_$key')));
       await tester.pump();
     }
-    await tester.tap(find.descendant(
-      of: find.byType(SheenSweep),
-      matching: find.byType(TextButton),
-    ));
+    expect(find.byType(SheenSweep), findsNothing,
+        reason: 'the sheen is removed, not merely skipped');
+    await tester.tap(find.byKey(const Key('confirm_cta')));
     await tester.pump();
-    final sheen = tester.state<SheenSweepState>(find.byType(SheenSweep));
-    expect(sheen.isSweeping, isFalse, reason: 'sheen is skipped');
-    expect(sheen.progress, 0.0);
     expect(haptics.map((MethodCall c) => c.arguments),
         contains('HapticFeedbackType.mediumImpact'),
         reason: 'P4: the confirm haptic survives reduce-motion');

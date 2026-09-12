@@ -34,7 +34,7 @@ Future<void> snap(
   expect(bytes.sublist(0, 4), <int>[0x89, 0x50, 0x4e, 0x47],
       reason: 'frame $name must be PNG');
   // T-10b IA update: reruns must not overwrite the original ticket evidence.
-  final file = File('evidence/t10b/regression/.t09b_$name.png');
+  final file = File('evidence/regression/.t09b_$name.png');
   await file.create(recursive: true);
   await file.writeAsBytes(bytes, flush: true);
   // ignore: avoid_print

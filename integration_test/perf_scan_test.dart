@@ -57,10 +57,16 @@ void main() {
     print('PERF_PRECONDITION live_assets=${assets.length} '
         'target=$assetName photos_at_target=${assetPhotoCount > 0 ? assetPhotoCount : 1}');
 
-    // ---- phase 1: keypad entry + confirm (home) ----
+    // ---- phase 1: keypad entry + confirm (speed-entry page) ----
     await binding.watchPerformance(() async {
+      // T-10b IA: the keypad is a secondary page; T-11's page scrolls, so keys
+      // are brought into view before sampling.
+      await tester.tap(find.byKey(const Key('home_record_cta')));
+      await tester.pumpAndSettle(const Duration(seconds: 1));
+      await tester.ensureVisible(find.byKey(const Key('key_1')));
+      await tester.pumpAndSettle();
       for (final key in <String>['1', '2', '3']) {
-        await tester.tap(find.text(key));
+        await tester.tap(find.byKey(Key('key_$key')));
         await tester.pump(const Duration(milliseconds: 16));
       }
       await tester.tap(find.byKey(const Key('confirm_cta')));
@@ -69,7 +75,7 @@ void main() {
 
     // ---- phase 2: assets list scroll (dashboard sink + tiles + CPD) ----
     await binding.watchPerformance(() async {
-      await tester.tap(find.byIcon(Icons.inventory_2));
+      await tester.tap(find.byKey(const Key('quick_assets')));
       await tester.pumpAndSettle(const Duration(seconds: 2));
       for (var i = 0; i < 8; i++) {
         await tester.drag(find.byType(ListView).first, const Offset(0, -160));

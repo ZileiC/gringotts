@@ -28,7 +28,7 @@ Future<void> snap(
   final bytes = data!.buffer.asUint8List();
   expect(bytes.sublist(0, 4), <int>[0x89, 0x50, 0x4e, 0x47]);
   // T-10b IA update: reruns must not overwrite the original ticket evidence.
-  final file = File('evidence/t10b/regression/.t09a_$name.png');
+  final file = File('evidence/regression/.t09a_$name.png');
   await file.create(recursive: true);
   await file.writeAsBytes(bytes, flush: true);
   // ignore: avoid_print
@@ -56,7 +56,7 @@ void main() {
     await tester.tap(find.byKey(const Key('home_record_cta')));
     await tester.pumpAndSettle(const Duration(seconds: 2));
     await snap(tester, '01_quick_entry', [
-      find.text('GRINGOTTS'),
+      find.byKey(const Key('entry_name')),
       find.byKey(const Key('confirm_cta')),
       find.text('支出'),
     ]);

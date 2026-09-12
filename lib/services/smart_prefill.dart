@@ -35,6 +35,30 @@ class TimeOfDayDefaults {
   }
 }
 
+/// Effective category selection rules for the speed-entry page (T-11).
+///
+/// The high-frequency chip bar became a smart default: the grid never
+/// re-orders by frequency (spatial consistency), it only pre-selects a cell.
+class QuickEntryDefaults {
+  QuickEntryDefaults._();
+
+  /// Category selection precedence:
+  ///   1. explicit tap (the user overrules everything),
+  ///   2. name-parser suggestion (a typed name is more specific than a clock),
+  ///   3. time-of-day default,
+  ///   4. most frequent category of the last 14 days,
+  ///   5. none (nothing pre-selected).
+  ///
+  /// Rules 3 -> 4 are the "smart default"; the grid order stays fixed.
+  static String? resolve({
+    String? explicitId,
+    String? nameSuggestionId,
+    String? timeDefaultId,
+    String? topFrequencyId,
+  }) =>
+      explicitId ?? nameSuggestionId ?? timeDefaultId ?? topFrequencyId;
+}
+
 /// Frequency ranking of categories over the last N days (chip bar).
 class HighFrequencyCategories {
   HighFrequencyCategories._();

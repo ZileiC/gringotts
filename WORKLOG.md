@@ -3,6 +3,24 @@
 > 执行层（Codex）每次收工在顶部追加一段：做了什么 / 关键决策 / 遗留问题 / 下一步。管理层（Hermes）通过本文件验收进度。
 > ⚠️ 并发写入约定：追加前先重新读取文件最新版，在头部插入自己的段落，不要重建文件横幅；管理层 patch 前同样先重读。
 
+## 2026-09-13（**执行层 T-12c 续工完工**：3 失败用例清零 + 返回落分析页 + 月历断言重建 + t12c 证据 + APK）
+- **基线/结果**：`cc26215`（管理层 WIP 保全）→ 本轮 WIP 提交 `a394df6`（本地）；`flutter analyze` → **No issues found**；`flutter test` → **All tests passed (186)，整轮正常退出**（上轮：179 passed / 3 failed 且挂死不退出）
+- **① 三个失败用例全部清零**（产品语义只按 ②/③ 工单字面改动，其余只改测试与一处布局）
+  1. `home_shell_test: three peer tabs…`：`find.byType(AssetsPage/StatsPage)` 缺 `skipOffstage: false`（IndexedStack 非选中子页 offstage）→ 改 finder + 补「选中在台上 / 未选中在台下」双向断言
+  2. `home_shell_test` 其余 3 例（含工单点名的「记一笔压栈」）**与整轮挂死同源**：drift `StreamQueryStore.markAsClosed` 在**卸载 StreamBuilder** 时排一个 0ms Timer，而 flutter_test 在 body 之后才卸载 widget 树、且只做一次不带 elapse 的 `pump()`（`flutter_test/src/binding.dart:1960-1963`）⇒ Timer 永不过期 ⇒ `!timersPending` 失败，**失败后每例再挂 10 分钟**（4 例 ≈ 30 分钟 = 管理层观察到的「整轮不退出」）→ 在 body 内显式卸载（`pumpWidget(SizedBox)` + `pumpAndSettle`）冲掉 Timer；**单文件 30 分钟挂死 → 2 秒全绿**
+  3. `home_page_test` 月历切换：**原诊断「sheet pop 后 setState 时序」不成立**——真因是 sheet 内容 342dp 超过 modal 默认上限 9/16（600dp 高画布 ⇒ 337.5dp）⇒ `RenderFlex overflowed by 4.5 pixels`；日志里的「deactivated widget ancestor」只是 inspector 解释该溢出时的二次报错（红鲱鱼）→ 改 `showModalBottomSheet(isScrollControlled: true)`（格高 52/radius 12 规格不变）；**窗口高 <337.5dp 或横屏真机同样会中招**，非仅测试画布问题
+- **② 「记一笔」返回落分析页（工单字面 + 管理层裁决）**：`_openQuickEntry` push 前 `setState(() => _index = 0)`；补双向导航断言：分析 tab 进→返回 `_index=0`、**统计 tab 进→返回 `_index=0`**；push 期间 shell 处于 offstage 也断言（`skipOffstage: false`）作为「切换不压栈」的对拍基线
+- **③ 月历禁用断言重建**（sheet 上重建，不靠实现）：未来月 = `inkSecondary` 40% 灰显 + 点击不关 sheet + 主页月份不动；当月金边金字；历史月 primary ink；`home_month_prev`/`home_month_next` **零残余 key**（sheet 打开态也断言）
+- **④ 证据**：新增 `integration_test/t12c_shell_test.dart`（tab 切换不压栈 / 记一笔压栈 / 月历切换 + 历史月只读）；Windows 实跑 **All tests passed**，4 帧 md5 `8e544e66869d / c9330abf629d / 497284de0898 / ab3efb6fd6cd`（与回归 11 帧共 **15 帧全局无碰撞**）；帧因「02 曾与 t11 idle 帧字节相同」重跑 1 次（新事实驱动）并在 02 键入「瑞幸」使其成为本 run 专属。回归 **t10b / t11 / t12 逐个跑通**，帧与日志落 `evidence/regression/`，**原票 md5 记录未覆盖**；回归帧与原记录不同值（T-12c IA 改动 + dev 库行集不同）已逐条对照标注
+- **⑤ 测试数量申报**：**186 用例**（静态计数与运行时报数一致 = 上轮 185 + 1）；**删除 0 个测试**；**修改**：`test/home_shell_test.dart` 4→5 例（新增「统计 tab 进快记返回落分析页」）、`test/home_page_test.dart` 6 例不变（月历例内新增灰显/不可点/零残余 key 断言）；结果 **186/186 全绿**
+- **⑥ 交付**：`gringotts-T12c-release.apk`（`flutter build apk --release`，62.8MB，md5 `8e508b6b83d138ec8eac9e818c2d8e03`）已复制到桌面；构建日志 + md5 记录见 `evidence/t12c/.t12c_apk_*`
+- **文档**：本轮除本 WORKLOG 条目外未改任何 .md；`AGENTS.md` / `DESIGN_MAIN.md` 未触碰（管理层已于 `f26bc0e` 按用户授权订正——本轮开工时该 commit 尚未出现，中途落地，故原文「跳过 AGENTS.md 并记一笔」的挂账**已由管理层自行出账，无需再跳过**）
+- **遗留问题（请管理层裁决/知悉）**
+  1. **证据 PNG 未入库**：`evidence/t12c/` 4 帧 + `evidence/regression/` 11 帧留在本地供目检，入库的是 md5 记录 + 运行日志（沿用「PNG 不入 git」惯例）；仓库无 `evidence/**/*.png` 忽略规则 ⇒ `git status` 会列出未跟踪 PNG——加 ignore 属策略决定，本轮未擅自改 `.gitignore`
+  2. **月历 sheet 高度边界（P3）**：`isScrollControlled` 修掉 9/16 上限后按内容 342dp 布局；真机横屏可用高 < ~342dp 仍会溢出（本票未含；要彻底解需可滚动 grid）
+  3. `.t12c_03_month_sheet` 帧含 dev 库背景 ⇒ 只声明「run 内 md5 唯一」，不声明跨 run 可复现（01/02/04 可复现）
+- **下一步**：**等验收**（本轮 = `a394df6` + 本条目所在收工 commit）→ T-13a
+
 ## 2026-09-13（管理层事故记录：执行层 T-12c 掉线 → WIP 已保全 + 续工票重开 + T-13 拆票）
 - 📌 **保全 commit = `cc26215`**（WIP T-12c parts A–D，已 push；**未验收**，不得当作完工）
 - **事故**：执行层在 T-12c 施工中途掉线，工作区留下**整票未提交**的施工（24 文件改/删 + 2 新增 `lib/pages/home_shell.dart`、`test/home_shell_test.dart`），零 commit、零 push、无 WORKLOG、无证据、无 APK——本项目最脆弱状态（第 1 条教训翻版：一次误 reset 即全丢）

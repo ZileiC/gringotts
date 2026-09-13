@@ -35,7 +35,7 @@
 - **M4.0**：Windows 端（镜像 + 分析工作台）+ 同步
 
 ## 开放项
-1. **T-13b（下一票，M2.0 前置波最后一票）**：① 启动画面 wordmark 去重（⚠️ **待用户裁决**）② 全量回归（**先清 dev 库**，覆盖三 tab + 记一笔压栈 + 明细挂统计页）③ release APK ④ 完工报告 ⑤ 工具/测试卫生（`photo_gc` selftest 环境依赖 + `--report` 参数化、`clean_dev_db --report`、`t04` 补墓碑 teardown）⑥ `splash.dart:9` 过时注释
+1. **T-13b（下一票，M2.0 前置波最后一票）**：① 全量回归（**先清 dev 库**，覆盖三 tab + 记一笔压栈 + 明细挂统计页）② release APK ③ 完工报告 ④ 工具/测试卫生（`photo_gc` selftest 环境依赖 + `--report` 参数化、`clean_dev_db --report`、`t04` 补墓碑 teardown）⑤ `splash.dart:9` 过时注释。启动画面 wordmark 用户已裁决**不动**（`DESIGN_T09` §8 第 6 条已锁）
 2. ✅ 2026-09-13 **T-13a 验收通过**（`751509a`+`bf1ae2d`+`f90116f`+`4a943a3`+`fd14688`）：净值衬线金渐变（共享 token）/ 照片孤儿 GC 67→56 零误删 / M1.x 清账 / 月历 342dp 边界修好
 3. ✅ 2026-09-13 用户「权限全开」：`AGENTS.md` 已订正（快记即正式 / 三 tab IA / 金渐变例外 / 掉线保险 WIP 提交）；T-12c 已验收（`a394df6`+`ce43036`）
 4. 备用裁决池：截屏记账（M1.0 实测后定生死）、语音记账、剪贴板捕获

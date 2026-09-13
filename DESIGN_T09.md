@@ -92,7 +92,7 @@
 3. **资产列表页**：净值看板（eyebrow + **tabular 暖白大数字** + 三 pill）；tile 按下 0.98 + Hero 接力进详情；CPD 徽章 goldContainer pill；服役进度条 goldAccent/hairline
 4. **资产详情页（新）**：§6 全项 + 视差 B + 成组入场 D
 5. **统计页**：净结余卡（负值 semanticExpense 大字）；双线趋势 + 金阶 donut；导出 = hairline 金描边 outline 键
-6. **启动画面**：canvas 纯色 + 徽标居中 38% + Playfair 600 wordmark；图标：Android 自适应（前景 G 龙 66% 安全区/canvas 底）+ Windows ico 多尺寸
+6. **启动画面**：canvas 纯色 + 徽标居中 38% + Playfair 600 wordmark；图标：Android 自适应（前景 G 龙 66% 安全区/canvas 底）+ Windows ico 多尺寸。**⚠️ 锁定：徽标内含 wordmark + 下方独立 wordmark 的「重复」为有意保留——用户 2026-09-13 裁决「不动」，后人勿以「去重」为由改动**
 7. 应用内图标：1.8px 描边 24 网格圆头线性单色——未激活 inkSecondary / 激活 goldAccent
 
 ## 9. 验收补充（叠加既有 DoD）

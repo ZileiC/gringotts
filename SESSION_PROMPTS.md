@@ -40,11 +40,12 @@
 
 > T-13a（`751509a`+`bf1ae2d`+`f90116f`+`4a943a3`+`fd14688`）已于 2026-09-13 验收通过；其施工 prompt 已归档到 WORKLOG 验收记录，不再复用。
 
-**T-13b（收尾 II：全量回归与交付）—— 派工前先拿用户对「启动画面 wordmark 去重」的裁决**
+**T-13b（收尾 II：全量回归与交付）**
 ```
 继续 Gringotts 施工（M2.0 前置波最后一票）。先读 PROJECT_STATE.md + TICKETS_M2A.md 的 T-13b + DESIGN_T09 §8；设计细节按需只读章节。
-任务：① 启动画面 wordmark 去重（用户裁决结果：<派工时填入>；未裁决则跳过该项并在 WORKLOG 记一笔）② 全量回归：快记→立即入账→统计→资产→详情→编辑→明细→导出 全链路实跑（须覆盖新导航：三 tab + 记一笔压栈 + 明细从统计页进入）③ release APK 重建交付 ④ 完工报告：对照 DESIGN_T09 §8 + DESIGN_MAIN 逐页核对 ⑤ 工具/测试卫生（见工单第 5 项：photo_gc selftest 环境依赖 + --report 参数化、clean_dev_db --report、t04 补墓碑 teardown）⑥ splash.dart 过时注释收尾。
-关键前提：**全量回归前先 `python tool/clean_dev_db.py --apply` 清掉 T-04 遗留行**（否则帧不可信）；工具报告不得覆盖他票证据（先做第 5 项的 --report 参数化）。
+任务：① 全量回归：快记→立即入账→统计→资产→详情→编辑→明细→导出 全链路实跑（须覆盖新导航：三 tab + 记一笔压栈 + 明细从统计页进入）② release APK 重建交付 ③ 完工报告：对照 DESIGN_T09 §8 + DESIGN_MAIN 逐页核对 ④ 工具/测试卫生（见工单第 5 项：photo_gc selftest 环境依赖 + --report 参数化、clean_dev_db --report、t04 补墓碑 teardown）⑤ splash.dart 过时注释收尾。
+注意：工单第 1 项（启动画面 wordmark）用户已裁决「不动」——**不要碰启动画面**（DESIGN_T09 §8 第 6 条已锁定）。
+关键前提：**全量回归前先 `python tool/clean_dev_db.py --apply` 清掉 T-04 遗留行**（否则帧不可信）；工具报告不得覆盖他票证据（先做第 4 项的 --report 参数化）。
 验收：① 全链路 integration 通过且前置条件自声明，回归帧无未解释的重复 md5 ② 完工报告逐页无遗漏 ③ APK md5 交付 ④ analyze 零错 + 194 test 全绿 ⑤ 工具在普通 shell（TMP 不在仓库内）下 selftest / dry-run 均可独立跑通。
 规则：每完成一个 Part 立即 WIP 提交；收工三连 WORKLOG → commit（T-13b: …）→ push；停下等验收。
 ```

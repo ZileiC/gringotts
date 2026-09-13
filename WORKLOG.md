@@ -3,6 +3,22 @@
 > 执行层（Codex）每次收工在顶部追加一段：做了什么 / 关键决策 / 遗留问题 / 下一步。管理层（Hermes）通过本文件验收进度。
 > ⚠️ 并发写入约定：追加前先重新读取文件最新版，在头部插入自己的段落，不要重建文件横幅；管理层 patch 前同样先重读。
 
+## 2026-09-13（**执行层 T-13b 完工：M2.0 前置波收尾**——全链路实跑 + 全量回归 + APK + 完工报告 + 工具/测试卫生）
+- **基线/结果**：`5f59ece`（T-13a 验收 + wordmark 裁决）→ 本轮 3 个 WIP 提交 `0c32108`（工具/测试卫生 + splash 注释）/ `d82fdaf`（全链路 + 全量回归 + 5 个脚本修复 + 清单）；`flutter analyze` → **No issues found**；`flutter test` → **All tests passed (194)**，整轮正常退出
+- **① 全链路实跑（新增 `integration_test/t13b_full_chain_test.dart`）**：三 tab 壳 → 「记一笔」压栈 → **立即入账**（`is_draft=false`，主页即显 `¥15 · 1 笔`）→ 统计（`支出 ¥15`/净结余 −15）→ 资产（新增带 CPD 资产）→ 详情 → 编辑（改名）→ **明细（自统计页进入）** → 行内编辑（商户+金额）→ **导出**（CSV 带 BOM 逐字节断言含编辑后商户/金额 + JSON 含资产 schema=3）→ teardown 墓碑全部种子；**All tests passed**，10 帧 md5 唯一（前置自声明 `live_tx=0 live_assets=0 budget=null`）
+- **② 全量回归**：回归前 `clean_dev_db --apply` 退掉 T-04 遗留行 → **14/14 脚本全绿**（t04/t05/t09a/t09b/t09c/t09c2/t09d/t09e/t10b/t11/t12/t12c/t13a/t13b），68 帧；**6 组重复 md5 全部逐条解释**（同屏同态：引导态主页 ×4 / 空资产页 ×5 / 无数据统计页 ×3 / 快记页 idle ×2（t09a 01 与 t09c 01 名称不同实为同屏）/ t09b 返回列表复现同帧 / t09c stagger 60ms 已落定）；**回归后 dev 库 live 全 0**（transactions/assets/asset_photos/budget），categories 9 未动
+- **③ 本票真发现：5 个证据脚本自 T-11/T-12c 起静默失效（全量回归才暴露）**
+  1. `pageBack()` 打在**快记页**（该页回退是自有 `quick_back`，非 Material BackButton）→ t09a/t09c/t09c2（共 3 处）改按 `quick_back`；t09c2 的 count-up 断言在 T-12c IndexedStack 下无法中途采样 → 改断言**落位终态**（弹簧机制由 `test/motion_base_test.dart` 单测锁定；帧改名 `03_net_value_settled`，并为净值加 key `assets_net_value`）
+  2. **惰性列表折叠**断言：t05/t09a/t09c 要求首屏之下的「饼图区」→ t05 改为滚到该区单独出帧 `state3b_category_pie`，t09a/t09c 改断言首屏卡片
+  3. **清理缺口**：t04/t09b/t09c2/t09d 播完不留墓碑（累积污染 dev 库并造成跨脚本同帧）→ 全部补墓碑 teardown（含照片行）
+  4. `perf_scan_test` 不计入功能回归集（T-09E profiling 载体，debug 帧耗时不成立，如实声明）
+- **④ 工具卫生（T-13a 挂账出账）**：`photo_gc.py --selftest` 在 TEMP 不在仓库内时**复现 `photo_gc.py:210` ValueError**（`REPORT.relative_to(ROOT)`）→ 安全路径显示 + **`--report` 参数化**（默认中性 `evidence/photo_gc_report.json`）；`clean_dev_db.py` 同样加 `--report`（默认中性，**不再指向 `evidence/t09e/...`**）；实测 selftest 9 项 PASS（TEMP 外置）、photo_gc dry-run 56/56/0、两份报告均落 `evidence/t13b/` **未覆盖他票证据**
+- **⑤ 收尾 2 项**：`lib/ui/splash.dart` 注释「the home page IS the keypad…」→ T-12c 三 tab 壳（**仅注释，启动画面像素未动**；wordmark 去重按用户裁决不做，`DESIGN_T09` §8.6 锁定）；`t04` 补墓碑（同 ③3）
+- **⑥ 交付**：`gringotts-T13b-release.apk`（62.8MB，**md5 `e7c75551f5894e22e952df892de914f6`**）已复制到桌面；构建日志 + md5 记录 `evidence/t13b/apk_build.log.txt` / `apk_md5.txt`
+- **⑦ 完工报告**：`evidence/t13b/completion_report.md`（对照 `DESIGN_T09` §8 逐页 7 页 + §9 补充验收 + `DESIGN_MAIN` §3–§8，含**对比度实测 12 组全部 ≥AA（最低 5.03）**、金渐变定义处 = 2（≤4）、动效/数据/回归验收）
+- **遗留问题（需管理层裁决，均 P3，详见完工报告 §4）**：A 统计页**净结余负值未取 `semanticExpense`**（spec §8.5，1 行可修，本票未擅自改）；B 统计页**导出键为 tonal 实心 pill**，spec 要求 hairline 金描边 outline 键；C `DESIGN_T09` §8.1/§8.2/§9 **三处文档漂移**（速记首页 / 回顾页 / 金渐变 ≤2，已被 T-11/T-12c/T-13a 取代，**.md 归管理层**，执行层未改）；D 证据帧名过时（t09e `02_keyboard_after_splash`、t09c `01_home_idle`，内容已核对无误）；E `clean_dev_db` 备份名仍带 `pre-t09e` 前缀（本票只按要求做了 `--report`）
+- **下一步**：**等验收**（本轮 = `0c32108` + `d82fdaf` + 本条目所在收工 commit）→ M2.0 前置波关闭 → M2.0 正式波（BYO AI / 主页 AI 分析 / 对话窗口…，待派工）
+
 ## 2026-09-13（**执行层 T-13a 完工**：净值字体回归 + 照片孤儿 GC + M1.x 清账 + 月历 342dp 边界结论）
 - **基线/结果**：`5595d4e`（T-12c 验收）→ 本轮 4 个 WIP 提交 `751509a`(P1) / `bf1ae2d`(P2) / `f90116f`(P3) / `4a943a3`(P4+证据)；`flutter analyze` → **No issues found**；`flutter test` → **All tests passed (194)，整轮正常退出**（上轮 186 全绿）
 - **① 资产页净值回归（Part 1）**：`lib/ui/tokens.dart` 新增两个唯一来源 `AppFont.brandNumber = 48` + `AppGradient.goldText`（goldAccent→goldDeep，DESIGN_MAIN §7 的两处文字渐变共用**一条**定义）；资产页净值改 `ShaderMask + Playfair 600 / 48 / tabular`；主页 Hero 同步改用同一对 token（**值与渐变逐字不变 ⇒ 主页像素不变**）；列表 / CPD / 天数未动。证据 = `test/brand_number_test.dart` 3 例（token 逐值 `[goldAccent, goldDeep]` + `48`；**主页 Hero 与资产净值 TextStyle 全等**——「逐值一致」的结构化证明；资产页仅 1 处 Playfair 节点）+ 真机帧 `T13A_NET_VALUE font=PlayfairDisplay weight=w600 size=48.0 gradient=goldAccent->goldDeep shader_masks=1`

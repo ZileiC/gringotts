@@ -1,0 +1,6 @@
+# T-13b release deliverable
+# build: `flutter build apk --release` -> build/app/outputs/flutter-apk/app-release.apk
+# log:   evidence/t13b/apk_build.log.txt (Gradle assembleRelease 83.9s)
+# copy:  C:/Users/JHarayden/Desktop/gringotts-T13b-release.apk
+gringotts-T13b-release.apk  bytes=65877476  md5=e7c75551f5894e22e952df892de914f6
+gringotts-T12c-release.apk  bytes=65877476  md5=8e508b6b83d138ec8eac9e818c2d8e03 (previous release)

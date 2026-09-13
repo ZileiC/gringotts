@@ -1,0 +1,13 @@
+Flutter assets will be downloaded from https://storage.flutter-io.cn. Make sure you trust this source!
+00:00 +0: loading C:/Users/JHarayden/Desktop/Gringotts/integration_test/t10b_home_test.dart
+Building Windows application...                                    25.8s
+√ Built build\windows\x64\runner\Debug\gringotts.exe
+00:00 +0: T-10b home: onboarding / set / overspent / empty donut
+T10B_PRECONDITION month=2026-09 live_today_expenses=0
+T10B_SNAP name=01_onboarding md5=5480480ccf84
+T10B_SNAP name=02_budget_set md5=2ba2a1cf8de0
+T10B_FIXEDBAR record_bottom=612.0 tab_bottom=677.0 screen=681.0
+T10B_SNAP name=03_overspent md5=852bbf624be3
+T10B_SNAP name=04_donut_empty md5=2cbefb7591b7
+00:27 +1: (tearDownAll)
+00:27 +1: All tests passed!

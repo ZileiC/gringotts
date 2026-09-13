@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -275,7 +277,22 @@ class _MonthSheetState extends State<_MonthSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final bottomInset = MediaQuery.of(context).viewPadding.bottom;
+    final mq = MediaQuery.of(context);
+    final bottomInset = mq.viewPadding.bottom;
+    // Fixed content: handle (4) + gap + year row (48) + gap + 4 rows of 52dp
+    // cells = 310dp (342dp with the sheet's own padding). A landscape phone, a
+    // short desktop window or a split view can be shorter than that, so the
+    // content scrolls inside the sheet instead of overflowing (T-13a part 4,
+    // the boundary inherited from T-12c). The cell height stays 52 - above the
+    // 48dp touch minimum - and every month stays reachable.
+    final contentMaxHeight = math.max(
+      0.0,
+      mq.size.height -
+          mq.viewPadding.top -
+          AppSpacing.s -
+          AppSpacing.l -
+          bottomInset,
+    );
     return Container(
       key: const Key('home_month_sheet'),
       decoration: const BoxDecoration(
@@ -285,67 +302,73 @@ class _MonthSheetState extends State<_MonthSheet> {
       padding: EdgeInsets.fromLTRB(
         AppSpacing.m, AppSpacing.s, AppSpacing.m, AppSpacing.l + bottomInset,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Drag handle.
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: AppColors.hairline,
-              borderRadius: BorderRadius.circular(AppRadius.pill),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.m),
-          // Year row: ‹ 2026 › (the next year is disabled against "now").
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: contentMaxHeight),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              _CircleIconButton(
-                key: const Key('month_sheet_year_prev'),
-                icon: Icons.chevron_left,
-                onTap: () => setState(() => _year--),
-              ),
-              SizedBox(
-                width: 96,
-                child: Text(
-                  '$_year',
-                  key: const Key('month_sheet_year'),
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.titleLarge,
+              // Drag handle.
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.hairline,
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
                 ),
               ),
-              _CircleIconButton(
-                key: const Key('month_sheet_year_next'),
-                icon: Icons.chevron_right,
-                onTap: _yearCanAdvance
-                    ? () => setState(() => _year++)
-                    : null,
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.m),
-          for (var row = 0; row < 4; row++) ...[
-            if (row > 0) const SizedBox(height: AppSpacing.categoryGap),
-            Row(
-              children: [
-                for (var col = 0; col < 3; col++) ...[
-                  if (col > 0) const SizedBox(width: AppSpacing.categoryGap),
-                  Expanded(
-                    child: _MonthCell(
-                      month: row * 3 + col + 1,
-                      selected: _year == widget.selected.year &&
-                          row * 3 + col + 1 == widget.selected.month,
-                      disabled: _isFutureMonth(row * 3 + col + 1),
-                      onTap: () => _select(row * 3 + col + 1),
+              const SizedBox(height: AppSpacing.m),
+              // Year row: ‹ 2026 › (the next year is disabled against "now").
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _CircleIconButton(
+                    key: const Key('month_sheet_year_prev'),
+                    icon: Icons.chevron_left,
+                    onTap: () => setState(() => _year--),
+                  ),
+                  SizedBox(
+                    width: 96,
+                    child: Text(
+                      '$_year',
+                      key: const Key('month_sheet_year'),
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.titleLarge,
                     ),
                   ),
+                  _CircleIconButton(
+                    key: const Key('month_sheet_year_next'),
+                    icon: Icons.chevron_right,
+                    onTap: _yearCanAdvance
+                        ? () => setState(() => _year++)
+                        : null,
+                  ),
                 ],
+              ),
+              const SizedBox(height: AppSpacing.m),
+              for (var row = 0; row < 4; row++) ...[
+                if (row > 0) const SizedBox(height: AppSpacing.categoryGap),
+                Row(
+                  children: [
+                    for (var col = 0; col < 3; col++) ...[
+                      if (col > 0)
+                        const SizedBox(width: AppSpacing.categoryGap),
+                      Expanded(
+                        child: _MonthCell(
+                          month: row * 3 + col + 1,
+                          selected: _year == widget.selected.year &&
+                              row * 3 + col + 1 == widget.selected.month,
+                          disabled: _isFutureMonth(row * 3 + col + 1),
+                          onTap: () => _select(row * 3 + col + 1),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ],
-            ),
-          ],
-        ],
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -57,12 +57,14 @@ void main() {
 
     await tester.pumpWidget(harness(container, child: const GringottsApp()));
 
-    // First frame of the real app: the brand moment is on screen and the
-    // keyboard home is already mounted underneath it (no navigation layer).
+    // First frame of the real app: the brand moment is on screen and the start
+    // page is already mounted underneath it (no navigation layer). Since T-12c
+    // that start page is the tab shell (analysis / assets / statistics) that
+    // carries the 记一笔 action - the old "keypad home" wording is gone.
     expect(find.byKey(SplashGate.brandMomentKey), findsOneWidget,
         reason: 'the splash is visible on the very first frame');
     expect(find.text('记一笔'), findsOneWidget,
-        reason: 'the keypad home is mounted from frame one');
+        reason: 'the tab shell is mounted from frame one');
 
     await tester.pumpAndSettle(const Duration(seconds: 1));
     expect(find.byKey(SplashGate.brandMomentKey), findsNothing,

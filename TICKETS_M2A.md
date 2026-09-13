@@ -11,6 +11,7 @@
 | T-11b | 顶部证据帧 + 额度联动断言 | `25a4b32` |
 | T-12 | 明细页（月→日→条目 / 全字段编辑 / 草稿徽章迁主页 / SheenSweep 清理） | `e581909` |
 | T-12c | 导航壳（三 tab 平级 + 记一笔压栈）/ 快记即正式 / `updateFields` 移除 / 月历 sheet（**续工后验收通过**） | `cc26215`+`a394df6`+`ce43036` |
+| T-13a | 资产净值衬线+金渐变（共享 token）/ 照片孤儿 GC（67→56，11 孤儿 0 误删）/ M1.x 清账 / 月历 342dp 边界修好 | `751509a`+`bf1ae2d`+`f90116f`+`4a943a3` |
 
 ---
 
@@ -47,7 +48,7 @@
 
 ---
 
-## T-13a（收尾 I：资产与存储）
+## T-13a（收尾 I：资产与存储）—— ✅ **已验收通过（2026-09-13，`751509a`+`bf1ae2d`+`f90116f`+`4a943a3`+`fd14688`）**
 > 拆票理由：2026-09-13 掉线事故后按「小票更省、掉线损失更小」原则，把原 T-13 拆成两张；内容与原票语义一致，只是分两轮交付。
 1. **资产页字体回归**：净值大数字恢复 **Playfair 衬线 + 金渐变**（`DESIGN_MAIN §6`）；其余数字保持 tabular sans；列表/CPD/天数不变
 2. **照片孤儿文件 GC**：`gringotts/photos/` 中无 DB 引用（含墓碑）的 hash 文件清理；**先 dry-run 后 apply**，输出清理前后数量；断言：被引用文件零误删
@@ -56,11 +57,16 @@
 **验收**：① 净值大数字字体/渐变与 spec 逐值一致（源码 + 帧）② GC dry-run 与 apply 数量自洽、引用文件保留（单测/脚本断言）③ analyze 零错 + test 全绿 ④ 帧 md5 唯一 ⑤ 横屏 342dp 边界有结论（修好 或 给实测数据 + 建议，不得留空）
 
 ## T-13b（收尾 II：全量回归与交付）
-1. **启动画面 wordmark 去重**：⚠️ **待用户裁决**（徽标内含 wordmark + 下方独立 wordmark 重复）——用户未表态前**不动**；派工前必须确认
-2. **全量回归**：快记 → 立即入账 → 统计 → 资产 → 详情 → 编辑 → 明细 → 导出 全链路实跑（覆盖新导航层级：三 tab + 记一笔压栈 + 明细从统计页进入）
+1. **启动画面 wordmark 去重**：⚠️ **待用户裁决**（徽标内含 wordmark + 下方独立 wordmark 重复）——用户未表态前**不动**；派工前必须确认（用户 2026-09-13：「看不大懂，等会再说」）
+2. **全量回归**：快记 → 立即入账 → 统计 → 资产 → 详情 → 编辑 → 明细 → 导出 全链路实跑（覆盖新导航：三 tab + 记一笔压栈 + 明细从统计页进入）；**回归前先 `python tool/clean_dev_db.py --apply` 清掉 T-04 遗留行**，否则帧不可信
 3. **release APK 重建** + `gringotts-T13b-release.apk` 交付
 4. **T-13 完工报告**：对照 `DESIGN_T09.md` §8 + `DESIGN_MAIN.md` 逐页核对
-**验收**：① 全链路 integration 通过且前置条件自声明 ② 完工报告逐页核对无遗漏项 ③ APK md5 交付 ④ analyze + test 全绿
+5. **工具与测试卫生（T-13a 验收挂账）**：
+   - `tool/photo_gc.py`：`--selftest` 在 TEMP 不位于仓库内时崩溃（`REPORT.relative_to(ROOT)` 抛 ValueError，普通 shell 无法独立复验）→ 报告路径安全化；并加 `--report <path>` 参数化（现固定 `evidence/t13a/photo_gc_report.json`，dry-run 会覆盖 apply 报告，本轮靠人工改名规避）
+   - `tool/clean_dev_db.py`：报告路径硬编码 `evidence/t09e/...` → 加 `--report`，**禁止覆盖 T-09E 证据**
+   - `integration_test/t04_assets_test.dart`：播种后无墓碑清理（源码仅 `addTearDown(container.dispose)`）⇒ 每轮回归把测试资产永久留在 dev 库、后续脚本渲染到同一屏造成**回归帧重复 md5** → 补墓碑 teardown
+6. **过时表述收尾**：`lib/ui/splash.dart:9` 注释「the home page IS the keypad, there is no navigation layer」→ 改为 T-12c 后的三 tab 壳（代码注释，执行层范围）；`FEATURES.md` 已由管理层订正，勿重复改
+**验收**：① 全链路 integration 通过且前置条件自声明，**回归帧无未解释的重复 md5** ② 完工报告逐页核对无遗漏项 ③ APK md5 交付 ④ analyze 零错 + test 全绿 ⑤ 工具在普通 shell 下可独立跑通（selftest / dry-run 各一次，且报告不覆盖他票证据）
 
 ## 后续（M2.0 正式波，待管理层派工）
 BYO AI 配置（provider/baseURL/key/model）+ 主页 AI 分析建议 + 对话窗口 + 图表 AI 解读 + 预算与周期账单 + Widget + 本地加密。路线图详情见 `HANDOFF_MANAGEMENT.md` §6。

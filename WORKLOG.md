@@ -18,6 +18,22 @@
   3. 证据帧含 Windows debug 版「DEBUG」角标（既有惯例，release 不显示）；`01/02` 帧跨 run 可复现，`03/04` 含 dev 库背景 ⇒ 只声明 run 内 md5 唯一
 - **下一步**：**等验收**（本轮 = `751509a` + `bf1ae2d` + `f90116f` + `4a943a3` + 本条目所在收工 commit）→ T-13b（wordmark 裁决 + 全量回归 + APK + 完工报告）
 
+## 2026-09-13（管理层验收记录：T-13a ✅ 通过 —— 净值衬线回归 / 照片 GC / M1.x 清账 / 月历 342dp 边界修好）
+- **验收基线**：`751509a` + `bf1ae2d` + `f90116f` + `4a943a3` + 收工 `fd14688`（已 push `5595d4e..fd14688`，工作区干净）
+- **五层验收**：
+  1. **记录核对** ✓ 4 个 WIP 提交 + 1 收工提交，hash 与申报一致；变更面 = `tokens.dart`(+16) / `assets_page.dart`(+20) / `home_page.dart`（Hero token 化 + 月历滚动）/ `tool/photo_gc.py`(299) / 2 个新单测（`brand_number_test` 133、`month_sheet_viewport_test` 150）/ `integration_test/t13a_assets_sheet_test.dart`(191) / `t09e` 注释 / 证据
+  2. **独立复验** ✓（管理层亲跑）`flutter analyze` → **No issues found**；`flutter test` → **All tests passed (194)** 整轮正常退出（186 → 194，+8；删除 0）——与申报逐位一致
+  3. **源码级审查** ✓ ① `tokens.dart`：`brandNumber = 48`、`AppGradient.goldText = LinearGradient([goldAccent, goldDeep])`（默认 topCenter→bottomCenter，与 Hero 原内联渐变**逐值等价** ⇒ 主页像素不变，回归帧 `5480480ccf84` 与 T-12c 轮一致可证）② 资产页净值 = `ShaderMask(AppGradient.goldText)` + Playfair w600 / 48 / tabular，页内其余数字未动 ③ 月历 = `ConstrainedBox(maxHeight: 视口高 − 顶 inset − s − l − 底 inset)` + `SingleChildScrollView`，格高仍 52（≥48 触控）④ `photo_gc.py` 安全栏逐条核：引用集为空即中止（需 `--allow-empty-references` 覆盖）、删除集三条断言（hash 名 / 在 photos 内 / 不在引用集）、apply 前备份、apply 后「引用文件与外来文件全仍在」的零误删断言
+  4. **独立 integration** ✓（管理层亲跑 `t13a_assets_sheet_test.dart -d windows`）**All tests passed**；我实测打印与其表格**逐格复现**：800×600→342.0/52.0/0、800×360→342.0/52.0/0、640×300→300.0/52.0/42.0、360×280→280.0/52.0/62.0；`T13A_NET_VALUE font=PlayfairDisplay w600 size=48 gradient=goldAccent->goldDeep shader_masks=1`；teardown 种子已墓碑
+     - **独立 GC 复核** ✓ 管理层亲跑 `python tool/photo_gc.py`（dry-run）→ **total=56 / referenced=56 / foreign=0 / orphan=0，retained=242831 字节**——与其 apply 后状态逐值一致（11 个孤儿确已删、56 个被引用文件一个不少、字节数吻合）
+     - **帧 md5**：4 帧中仅 02 与其记录相同，01/03/04 不同——**非缺陷**：其清单已声明「帧含 dev 库状态与 CPD 持有天数 ⇒ 仅 run 内唯一、不跨日可复现」，我核验差异来源与其声明一致（CPD/日期 + T-04 遗留行）。**本票改以结构化断言承担 spec 证明**（`brand_number_test` 3 例：token 逐值、Hero 与净值 `TextStyle` 全等、全页仅 1 处 Playfair 节点），帧降为辅助——方向正确，值得沿用
+  5. **UI 目检 + 数学复核** ✓ 帧 01：净值 `¥10800` 为**衬线 + 上浅下深金渐变**；同页 服役/退役/已实现 pills、列表「¥6000 · 256 天」、CPD「¥23.4/天」**全为 sans**；无溢出裁切。数学复核：月历内容 310dp + sheet 内边距 32 = **342dp**；`maxHeight` 代入 640×300 ⇒ 268+32 = **300**、滚 310−268 = **42**；360×280 ⇒ **280**、滚 **62**——与其表格逐格吻合
+- **✅ 挂账核销（T-12c 遗留 P3 月历横屏边界）→ 结论：修好**：视口够高时逐像素同原来（帧 02 与 T-12c 轮同为 44523 字节），不够时网格内滚、12 月全可达、格高保持 52。新边界如实申报：视口 ≤342dp 时 sheet 占满整屏 ⇒ 无遮罩可点，退出 = 选月/下拉/系统返回（已实测断言，未假装遮罩存在）——**接受该行为**
+- **⚠️ 管理层独立复验发现（不构成 T-13a 缺陷，但工具不可第三方复验）**：`python tool/photo_gc.py --selftest` 在**普通 shell（TMP=`%LOCALAPPDATA%\Temp`）下崩溃**——`REPORT.relative_to(ROOT)` 在 selftest 改指临时报告路径时抛 `ValueError`；仅当 TEMP 落在仓库内（其 harness 的 `.ekko-tmp/`）才跑得通。**我做的确定性验证**：TEMP 指向仓库内 `.ekko-tmp/verify` → **9 PASS / selftest: OK**（与其提交证据逐行一致）；指向系统 Temp → traceback。**结论：其「selftest 9 PASS」申报为真、证据真实，但脚本存在环境依赖 ⇒ 已立 T-13b 修**（含 `photo_gc --report`、`clean_dev_db --report` 参数化）
+- **执行层发现（本轮最值钱的一条，管理层已核验成立）**：`t04_assets_test` 播种后**不清理**（源码仅 `addTearDown(container.dispose)`，零墓碑）⇒ 每轮回归把测试资产永久留在 dev 库 ⇒ 后续脚本渲染到同一屏：回归集内两处重复 md5（`5480480ccf84` t04≡t10b、`8fa0b4ae1011` t04≡t12c），且我亲跑的资产帧里「已卖出 测试相机 ¥-1200」正是该遗留行 ⇒ **已立 T-13b：全量回归前先清库 + 给 t04 补墓碑 teardown**（否则全链条回归的帧不可信）
+- **管理层处置**：① `FEATURES.md`「先记后补机制」段（draft 入库 / 首页 N 笔待完善 / 回顾页批量补全）**已由管理层订正**为「快记即正式」② `lib/ui/splash.dart:9`「the home page IS the keypad, there is no navigation layer」属**代码注释** ⇒ 写入 T-13b
+- **结论：T-13a ✅ 验收通过**。下一票 **T-13b**（wordmark 裁决 + 全量回归 + APK + 完工报告 + 工具/测试卫生）
+
 ## 2026-09-13（管理层验收记录：T-12c ✅ 通过 —— 续工完工，186 全绿；含 1 处诊断订正 + 1 项挂账出账）
 - **验收基线**：`a394df6`（本轮施工 + 证据 + APK 记录）+ `ce43036`（收工 WORKLOG 条目）；`f26bc0e..ce43036` 已 push，工作区干净（仅证据 PNG 未跟踪 → 见裁决①）
 - **五层验收**：

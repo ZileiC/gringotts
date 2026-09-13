@@ -29,6 +29,13 @@ Usage:
   python tool/photo_gc.py --selftest          # rule regression on a temp fixture
   python tool/photo_gc.py                     # dry run on the dev directory
   python tool/photo_gc.py --apply             # delete the orphans + report
+
+Report path: --report <path> (default evidence/photo_gc_report.json - a neutral
+tool-owned record). Never point it at another ticket's evidence file; give each
+run its own path, e.g. --report evidence/t13b/photo_gc_dry_run.json. The
+selftest always writes into its own temporary directory and works with TEMP
+outside the repository (T-13b hygiene fix: printing a repo-relative path used to
+raise ValueError).
 """
 
 from __future__ import annotations
@@ -44,7 +51,18 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 HASH_NAME = re.compile(r"^[0-9a-f]{64}\.jpg$")
-REPORT = ROOT / "evidence" / "t13a" / "photo_gc_report.json"
+
+# Neutral, tool-owned default (never another ticket's evidence file).
+DEFAULT_REPORT = ROOT / "evidence" / "photo_gc_report.json"
+REPORT = DEFAULT_REPORT
+
+
+def display(path: Path) -> str:
+    """Repo-relative when possible; absolute otherwise (TEMP may be outside)."""
+    try:
+        return path.relative_to(ROOT).as_posix()
+    except ValueError:
+        return str(path)
 
 DEFAULT_APP_DIR = (
     Path(os.environ.get("APPDATA") or (Path.home() / "AppData" / "Roaming"))
@@ -207,7 +225,7 @@ def run(db: Path, photos_dir: Path, apply: bool, backup_dir: Path | None,
                               "live AND tombstoned rows",
         }
     )
-    print(f"-- report -> {REPORT.relative_to(ROOT).as_posix()}")
+    print(f"-- report -> {display(REPORT)}")
     if not apply:
         print("-- (dry run - re-run with --apply to delete the orphans)")
     return 0
@@ -280,15 +298,19 @@ def selftest() -> int:
 
 
 def main() -> int:
+    global REPORT
     parser = argparse.ArgumentParser()
     parser.add_argument("--db", type=Path, default=DEFAULT_APP_DIR / "gringotts.sqlite")
     parser.add_argument("--photos", type=Path, default=DEFAULT_APP_DIR / "photos")
+    parser.add_argument("--report", type=Path, default=DEFAULT_REPORT,
+                        help="where to write the JSON record (default: %(default)s)")
     parser.add_argument("--apply", action="store_true", help="delete the orphans")
     parser.add_argument("--backup-dir", type=Path, default=None,
                         help="copy orphans here before deleting (session backup)")
     parser.add_argument("--allow-empty-references", action="store_true")
     parser.add_argument("--selftest", action="store_true")
     args = parser.parse_args()
+    REPORT = args.report
     if args.selftest:
         return selftest()
     return run(args.db, args.photos, args.apply, args.backup_dir,

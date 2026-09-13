@@ -1,0 +1,32 @@
+tempfile.gettempdir() = C:\Users\JHarayden\AppData\Local\Temp
+PASS  live + tombstoned + name-fallback rows are all referenced
+PASS  foreign file and subdirectory are never delete candidates
+PASS  only the unreferenced hash-named file is an orphan
+PASS  delete set and reference set are disjoint
+-- references: {"asset_photos_rows": 2, "assets_photo_path_rows": 1, "asset_photos_tombstoned": 1, "assets_photo_path_tombstoned": 1}
+-- photos dir: C:\Users\JHarayden\AppData\Local\Temp\t13a-gc-3mme4opl\photos
+-- before: total=5 referenced=2 foreign=2 orphan=1
+   orphan cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.jpg (1 bytes)
+-- after : total=4 referenced=2 foreign=2 orphan=0
+-- removed=1 retained_bytes=3
+Traceback (most recent call last):
+  File "C:\Users\JHarayden\Desktop\Gringotts\.ekko-tmp\repro_gc_selftest.py", line 14, in <module>
+    runpy.run_path(r"tool\photo_gc.py", run_name="__main__")
+  File "<frozen runpy>", line 287, in run_path
+  File "<frozen runpy>", line 98, in _run_module_code
+  File "<frozen runpy>", line 88, in _run_code
+  File "tool\photo_gc.py", line 299, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "tool\photo_gc.py", line 293, in main
+    return selftest()
+           ^^^^^^^^^^
+  File "tool\photo_gc.py", line 270, in selftest
+    rc = run(db, photos, apply=True, backup_dir=backup, allow_empty=False)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "tool\photo_gc.py", line 210, in run
+    print(f"-- report -> {REPORT.relative_to(ROOT).as_posix()}")
+                          ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\JHarayden\.hermes-web-ui\desktop-runtime\hermes\0.20.6\win-x64\python\base\Lib\pathlib.py", line 682, in relative_to
+    raise ValueError(f"{str(self)!r} is not in the subpath of {str(other)!r}")
+ValueError: 'C:\\Users\\JHarayden\\AppData\\Local\\Temp\\t13a-gc-3mme4opl\\selftest_report.json' is not in the subpath of 'C:\\Users\\JHarayden\\Desktop\\Gringotts'

@@ -20,6 +20,12 @@ a JSON report lands in evidence/t09e/development_db_cleanup.json.
 Usage:
   python tool/clean_dev_db.py            # dry run (report only)
   python tool/clean_dev_db.py --apply    # tombstone + backup
+
+Report path: --report <path> (default evidence/dev_db_cleanup.json - a neutral
+tool-owned record). Passing another ticket's path would overwrite that ticket's
+evidence (T-13a挂账), so give each run its own, e.g.
+--report evidence/t13b/dev_db_cleanup.json. Printing a repo-relative path is
+guarded for report paths outside the repository.
 """
 
 from __future__ import annotations
@@ -34,8 +40,22 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_DB = Path(os.environ["APPDATA"]) / "dev.jharayden" / "gringotts" / "gringotts.sqlite"
-REPORT = ROOT / "evidence" / "t09e" / "development_db_cleanup.json"
+DEFAULT_DB = (
+    Path(os.environ.get("APPDATA") or (Path.home() / "AppData" / "Roaming"))
+    / "dev.jharayden"
+    / "gringotts"
+    / "gringotts.sqlite"
+)
+DEFAULT_REPORT = ROOT / "evidence" / "dev_db_cleanup.json"
+REPORT = DEFAULT_REPORT
+
+
+def display(path: Path) -> str:
+    """Repo-relative when possible; absolute otherwise."""
+    try:
+        return path.relative_to(ROOT).as_posix()
+    except ValueError:
+        return str(path)
 
 RETIRE_TABLES = ("transactions", "assets", "asset_photos")
 KEEP_TABLES = ("categories",)
@@ -55,8 +75,12 @@ def inventory(cur: sqlite3.Cursor) -> dict[str, dict[str, int]]:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--db", type=Path, default=DEFAULT_DB)
+    parser.add_argument("--report", type=Path, default=DEFAULT_REPORT,
+                        help="where to write the JSON record (default: %(default)s)")
     parser.add_argument("--apply", action="store_true", help="tombstone the rows")
     args = parser.parse_args()
+    global REPORT
+    REPORT = args.report
 
     if not args.db.exists():
         raise SystemExit(f"dev database not found: {args.db}")
@@ -110,7 +134,7 @@ def main() -> int:
     REPORT.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
 
     print("\nafter :", json.dumps(after, ensure_ascii=False))
-    print(f"report -> {REPORT.relative_to(ROOT).as_posix()}")
+    print(f"report -> {display(REPORT)}")
     if not args.apply:
         print("\n(dry run - re-run with --apply to tombstone)")
     con.close()

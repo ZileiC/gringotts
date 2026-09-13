@@ -15,6 +15,10 @@ import 'package:integration_test/integration_test.dart';
 /// T-04 evidence pipeline: a state's PNG frame is captured from the real
 /// render tree ONLY AFTER its required UI elements are asserted on the tree.
 /// Frames are content-hashed on save; different states cannot share a frame.
+///
+/// The seeded asset is tombstoned again at teardown (T-13b hygiene): while it
+/// stayed live, every later script rendered the same assets screen and the
+/// regression frames collided on md5.
 Future<void> snapState(
   WidgetTester tester,
   String name,
@@ -145,5 +149,17 @@ void main() {
     expect(CpdCalculator.retentionPermille(soldAsset), 800);
     // ignore: avoid_print
     print('SOLD_OK retention=800 permille');
+
+    // T-13b hygiene: retire the seed (tombstone, never a physical delete) so
+    // the development database is left exactly as it was found.
+    await repo.softDelete(soldAsset.id);
+    final afterCleanup = await repo.getLiveAssets();
+    expect(afterCleanup.where((a) => a.name == '测试相机'), isEmpty,
+        reason: 'the seeded asset is tombstoned at teardown');
+    expect(afterCleanup.length, assetsBefore.length,
+        reason: 'the live asset count returns to the pre-run value');
+    // ignore: avoid_print
+    print('T04_TEARDOWN seed_tombstoned=true '
+        'live=${assetsBefore.length}->${afterCleanup.length}');
   });
 }

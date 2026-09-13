@@ -1,0 +1,30 @@
+{
+  "ticket": "T-13a",
+  "tool": "tool/photo_gc.py",
+  "applied": false,
+  "database": "C:\\Users\\JHarayden\\AppData\\Roaming\\dev.jharayden\\gringotts\\gringotts.sqlite",
+  "photos_dir": "C:\\Users\\JHarayden\\AppData\\Roaming\\dev.jharayden\\gringotts\\photos",
+  "backup_dir": null,
+  "reference_counts": {
+    "asset_photos_rows": 62,
+    "assets_photo_path_rows": 25,
+    "asset_photos_tombstoned": 58,
+    "assets_photo_path_tombstoned": 25
+  },
+  "before": {
+    "total": 56,
+    "referenced": 56,
+    "foreign": 0,
+    "orphan": 0
+  },
+  "after": {
+    "total": 56,
+    "referenced": 56,
+    "foreign": 0,
+    "orphan": 0
+  },
+  "orphans": [],
+  "removed": [],
+  "foreign_kept": [],
+  "reference_rule": "asset_photos.path + assets.photo_path, live AND tombstoned rows"
+}

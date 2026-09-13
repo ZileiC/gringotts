@@ -1,0 +1,43 @@
+T-13b tool hygiene (T-13a挂账) - commands, condition, result
+date 2026-09-13   runner: cmd.exe (ordinary shell; TEMP/TMPDIR forced outside the
+repository for the selftest, because the agent runtime pins TMP* inside the repo)
+
+1) tool/photo_gc.py --selftest
+   condition : tempfile.gettempdir() = C:/Users/JHarayden/AppData/Local/Temp
+               (outside the repo) - reproduced via .ekko-tmp/repro_gc_selftest.py
+   before    : FAILED - ValueError at photo_gc.py:210
+               "'...Temp\t13a-gc-...\selftest_report.json' is not in the subpath
+                of 'C:\Users\JHarayden\Desktop\Gringotts'"  (report path printed
+               with Path.relative_to(ROOT))
+               evidence: evidence/t13b/photo_gc_selftest.before_fix.txt
+   after fix : selftest: OK - 9 PASS, report path printed absolute
+               evidence: evidence/t13b/photo_gc_selftest.txt
+   fix       : display() helper (repo-relative when possible, absolute otherwise)
+
+2) tool/photo_gc.py --report <path>   (new; default evidence/photo_gc_report.json)
+   run       : python tool/photo_gc.py --report evidence/t13b/photo_gc_dry_run.json
+   result    : 56 files / 56 referenced / 0 foreign / 0 orphan (photos dir already
+               clean after T-13a; idempotent dry run, nothing deleted)
+               evidence: evidence/t13b/photo_gc_dry_run.json (record)
+                         evidence/t13b/photo_gc_dry_run.log.txt (stdout)
+   note      : the T-13a records evidence/t13a/photo_gc_report*.json are untouched;
+               the old hardcoded path (evidence/t13a/... dry-run overwrote apply)
+               is gone - each run names its own record.
+
+3) tool/clean_dev_db.py --report <path>   (new; default evidence/dev_db_cleanup.json)
+   run       : python tool/clean_dev_db.py --report evidence/t13b/dev_db_cleanup_dryrun.json
+   result    : dry run - transactions 115/0 live, assets 64/1 live, asset_photos
+               62/4 live, categories 9/9 live  (the single live asset is T-04's
+               leftover "测试相机" that this ticket retires before the regression)
+               evidence: evidence/t13b/dev_db_cleanup_dryrun.json
+                         evidence/t13b/dev_db_cleanup_dryrun.log.txt
+   note      : T-09E's record evidence/t09e/development_db_cleanup.json is no longer
+               the default target and was NOT touched.
+
+4) integration_test/t04_assets_test.dart - tombstone teardown added (seed retired
+   at the end of the run; live asset count asserted back to the pre-run value).
+   Verified by the T-13b regression run: see evidence/regression/t04_assets_test.t13b.log
+
+5) lib/ui/splash.dart - docstring "the home page IS the keypad, there is no
+   navigation layer" -> the T-12c tab shell; the brand frame itself stays locked
+   (DESIGN_T09 section 8.6). Comment only, no code change.

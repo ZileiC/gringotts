@@ -1,0 +1,60 @@
+{
+  "database": "C:\\Users\\JHarayden\\AppData\\Roaming\\dev.jharayden\\gringotts\\gringotts.sqlite",
+  "applied": false,
+  "tombstone_timestamp": {},
+  "backup": null,
+  "retire_tables": [
+    "transactions",
+    "assets",
+    "asset_photos"
+  ],
+  "kept_tables": [
+    "categories"
+  ],
+  "before": {
+    "transactions": {
+      "total": 115,
+      "live": 0,
+      "tombstoned": 115
+    },
+    "assets": {
+      "total": 64,
+      "live": 1,
+      "tombstoned": 63
+    },
+    "asset_photos": {
+      "total": 62,
+      "live": 4,
+      "tombstoned": 58
+    },
+    "categories": {
+      "total": 9,
+      "live": 9,
+      "tombstoned": 0
+    }
+  },
+  "after": {
+    "transactions": {
+      "total": 115,
+      "live": 0,
+      "tombstoned": 115
+    },
+    "assets": {
+      "total": 64,
+      "live": 1,
+      "tombstoned": 63
+    },
+    "asset_photos": {
+      "total": 62,
+      "live": 4,
+      "tombstoned": 58
+    },
+    "categories": {
+      "total": 9,
+      "live": 9,
+      "tombstoned": 0
+    }
+  },
+  "rows_tombstoned": {},
+  "note": "tombstone only - no row is physically deleted (AGENTS.md data rule)"
+}

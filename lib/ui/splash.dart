@@ -5,11 +5,15 @@ import 'tokens.dart';
 /// Brand splash (T-09E, DESIGN_T09 section 8.6): canvas solid + brand logo at
 /// 38% of the shortest side + Playfair wordmark "Gringotts".
 ///
-/// Presentation-only overlay. [child] (the speed-entry keyboard - the home
-/// page IS the keypad, there is no navigation layer) is mounted and laid out
-/// from the very first frame; the overlay holds, fades out and then removes
-/// itself. No route is pushed, so the app entry path is unchanged and the
-/// brand moment can never desync from the home page.
+/// Presentation-only overlay. [child] - since T-12c the tab shell (analysis /
+/// assets / statistics) whose 记一笔 action pushes the speed-entry page - is
+/// mounted and laid out from the very first frame; the overlay holds, fades out
+/// and then removes itself. No route is pushed, so the app entry path is
+/// unchanged and the brand moment can never desync from the start page.
+///
+/// The brand frame itself is locked as is (DESIGN_T09 section 8.6: the wordmark
+/// inside the logo plus the wordmark below it is deliberate) - this comment
+/// only tracks the navigation change above.
 ///
 /// Accessibility: with `disableAnimations` the brand moment is skipped
 /// entirely (DESIGN_T09 section 5: motion degrades to direct presentation).

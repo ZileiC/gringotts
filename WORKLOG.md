@@ -3,6 +3,21 @@
 > 执行层（Codex）每次收工在顶部追加一段：做了什么 / 关键决策 / 遗留问题 / 下一步。管理层（Hermes）通过本文件验收进度。
 > ⚠️ 并发写入约定：追加前先重新读取文件最新版，在头部插入自己的段落，不要重建文件横幅；管理层 patch 前同样先重读。
 
+## 2026-09-13（**执行层 T-13a 完工**：净值字体回归 + 照片孤儿 GC + M1.x 清账 + 月历 342dp 边界结论）
+- **基线/结果**：`5595d4e`（T-12c 验收）→ 本轮 4 个 WIP 提交 `751509a`(P1) / `bf1ae2d`(P2) / `f90116f`(P3) / `4a943a3`(P4+证据)；`flutter analyze` → **No issues found**；`flutter test` → **All tests passed (194)，整轮正常退出**（上轮 186 全绿）
+- **① 资产页净值回归（Part 1）**：`lib/ui/tokens.dart` 新增两个唯一来源 `AppFont.brandNumber = 48` + `AppGradient.goldText`（goldAccent→goldDeep，DESIGN_MAIN §7 的两处文字渐变共用**一条**定义）；资产页净值改 `ShaderMask + Playfair 600 / 48 / tabular`；主页 Hero 同步改用同一对 token（**值与渐变逐字不变 ⇒ 主页像素不变**）；列表 / CPD / 天数未动。证据 = `test/brand_number_test.dart` 3 例（token 逐值 `[goldAccent, goldDeep]` + `48`；**主页 Hero 与资产净值 TextStyle 全等**——「逐值一致」的结构化证明；资产页仅 1 处 Playfair 节点）+ 真机帧 `T13A_NET_VALUE font=PlayfairDisplay weight=w600 size=48.0 gradient=goldAccent->goldDeep shader_masks=1`
+- **② 照片孤儿 GC（Part 2）**：新增 `tool/photo_gc.py`（**先 dry-run 后 apply**）。判定规则 = ① 直接在 photos 目录内 ② 文件名为内容哈希 `<sha256>.jpg` ③ **无任何 DB 引用**（`asset_photos.path` + `assets.photo_path`，**含墓碑行**）；不满足 ② 的「外来文件」永不删。安全栏逐条断言（不靠假定）：删除集必须与引用集不相交、必在 photos 目录内、**引用集为空即中止**（需 `--allow-empty-references` 才可越过）、**apply 后复查每个原引用文件仍存在**（零误删）。**实测：67 文件 / 56 引用 / 0 外来 / 11 孤儿 → apply 后 56 / 56 / 0 / 0**（删 11 个共 47802 字节，保留 242831 字节；删前已副本到 `.ekko-tmp/t13a_orphan_backup/` 会话备份）。`--selftest` 9 项 PASS（墓碑引用保留 / 外来文件保留 / 删除集∩引用集=∅ / 引用文件存活 / 备份到位）。报告 `evidence/t13a/photo_gc_report.{dry-run,apply}.json` + `photo_gc_selftest.txt`
+- **③ M1.x 清账（Part 3）**：`integration_test/t09e_brand_test.dart` 两处「keypad home」表述订正为 T-12c 后的三 tab 壳（**仅注释 / 失败 reason，断言未动**，analyze 覆盖）——关闭 `WORKLOG_ARCHIVE` 挂账的「下次触碰 t09e 时一并订正」
+- **④ 月历 342dp 边界（Part 4，T-12c 挂账出账）**：**修好**。`_MonthSheet` 内容固定 342dp（手柄 4 + 年份行 48 + 4×52 格 + 间隙 + padding）；改为 `ConstrainedBox(maxHeight: 视口可用高) + SingleChildScrollView` ⇒ 视口够高时与原来**逐像素一致**，不够时网格滚动、**格高保持 52（≥48 触控线）**、12 个月全部可达。实测（widget 层与真机同值）：800×600 → 342/52/滚动 0；**800×360 横屏 → 342/52/0（仍全显，不白滚）**；640×300 → 300/52/42；360×280 → 280/52/62；真机 681 → 342/52/0；真机 800×300 → 300/52/42。**新发现（行为边界，已按实测分支断言）**：视口 ≤342dp 时 sheet 占满整屏 ⇒ **无遮罩可点**，退出路径 = 选中月份 / 下拉 / 系统返回——不假装遮罩一定存在
+- **⑤ 证据**：新增 `integration_test/t13a_assets_sheet_test.dart`（真机：净值字体/渐变断言 + 月历常规 / 矮窗 / 末行可达）→ **All tests passed**，4 帧 md5 `820399573587 / 2afbe48722a3 / c06e46a4c2ba / fd5d410cb6d5`（run 内唯一）；`evidence/t13a/.t13a_frame_md5.txt` 入库、PNG 本地（沿用 `evidence/**/*.png` 忽略规则）。**回归**：t04（资产页像素因 Part 1 变化）/ t10b / t12c **逐个跑通**，日志 + 帧落 `evidence/regression/`（**原票记录未覆盖**），逐帧 delta 与两处 md5 重复已逐条解释（`.T13a_regression_frame_md5.txt` / `.T13a_regression_summary.txt`）
+- **⑥ 测试数量申报**：**194 用例**（= 186 + 8：`brand_number_test` 3 + `month_sheet_viewport_test` 5）；**删除 0**；**新增单测文件 2 个**；**修改** = `integration_test/t09e_brand_test.dart`（仅注释/reason）；结果 **194/194 全绿**
+- **文档**：除本条目外未改任何 .md；`DESIGN_MAIN.md` / `AGENTS.md` **未触碰**；**本票不含 APK**（T-13b 出包）
+- **遗留问题（请管理层裁决/知悉）**
+  1. **dev 库脏数据会污染证据帧（本轮新发现）**：`t04_assets_test` 播种「测试相机」后**不做墓碑清理** ⇒ 后续脚本（t12c）会渲染到同一屏 ⇒ 回归集内**两处 md5 重复**（`5480480ccf84` t04 state1 ≡ t10b 01；`8fa0b4ae1011` t04 state4 ≡ t12c 01）。建议全量回归（T-13b）前先 `python tool/clean_dev_db.py --apply` 退掉 dev 行；⚠️ 该脚本 report 路径硬编码 `evidence/t09e/development_db_cleanup.json`，**会覆盖 T-09E 证据**，需先加 `--report` 参数（本轮未改，属范围外）
+  2. **另有两处同类过时表述未改**（工单 Literal 范围只到 t09e，缺口照规矩上报）：`lib/ui/splash.dart:9`「**page IS the keypad**, there is no navigation layer」（T-10b 起即失效）、`FEATURES.md:47`「首页『今日 N 笔待完善』角标；当日回顾页批量补全」（草稿链路已废除）；后者是 .md ⇒ 建议由管理层一并订正
+  3. 证据帧含 Windows debug 版「DEBUG」角标（既有惯例，release 不显示）；`01/02` 帧跨 run 可复现，`03/04` 含 dev 库背景 ⇒ 只声明 run 内 md5 唯一
+- **下一步**：**等验收**（本轮 = `751509a` + `bf1ae2d` + `f90116f` + `4a943a3` + 本条目所在收工 commit）→ T-13b（wordmark 裁决 + 全量回归 + APK + 完工报告）
+
 ## 2026-09-13（管理层验收记录：T-12c ✅ 通过 —— 续工完工，186 全绿；含 1 处诊断订正 + 1 项挂账出账）
 - **验收基线**：`a394df6`（本轮施工 + 证据 + APK 记录）+ `ce43036`（收工 WORKLOG 条目）；`f26bc0e..ce43036` 已 push，工作区干净（仅证据 PNG 未跟踪 → 见裁决①）
 - **五层验收**：

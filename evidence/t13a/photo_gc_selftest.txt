@@ -1,0 +1,17 @@
+PASS  live + tombstoned + name-fallback rows are all referenced
+PASS  foreign file and subdirectory are never delete candidates
+PASS  only the unreferenced hash-named file is an orphan
+PASS  delete set and reference set are disjoint
+-- references: {"asset_photos_rows": 2, "assets_photo_path_rows": 1, "asset_photos_tombstoned": 1, "assets_photo_path_tombstoned": 1}
+-- photos dir: C:\Users\JHarayden\Desktop\Gringotts\.ekko-tmp\t13a-gc-izmjtb_s\photos
+-- before: total=5 referenced=2 foreign=2 orphan=1
+   orphan cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.jpg (1 bytes)
+-- after : total=4 referenced=2 foreign=2 orphan=0
+-- removed=1 retained_bytes=3
+-- report -> .ekko-tmp/t13a-gc-izmjtb_s/selftest_report.json
+PASS  apply run exits 0
+PASS  orphan deleted
+PASS  referenced files survive apply
+PASS  foreign entries survive apply
+PASS  deleted file was backed up
+selftest: OK

@@ -87,8 +87,8 @@
 - tooltip：overlay 底 + ink 文字 + 金色数值
 
 ## 8. 逐页要点
-1. **速记首页**：顶栏 wordmark（衬线金渐变小字）；金额 display 56 tabular 暖白；混合输入框 elevated；键盘键 elevated + 按下 0.97；确认键金渐变填充 onGold 文字 + sheen 600ms 一次性
-2. **回顾页**：日期头 eyebrow（inkSecondary+字距）；draft 卡 surface；7 天灰显 Opacity 0.45；滚动物理 A
+1. **速记首页**：顶栏 wordmark（衬线金渐变小字）；金额 display 56 tabular 暖白；混合输入框 elevated；键盘键 elevated + 按下 0.97；确认键金渐变填充 onGold 文字 + sheen 600ms 一次性。⚠️ **已过时（T-12c 后）**：IA 改为「主页 = 分析页 + 三 tab 壳，『记一笔』压栈进快记页」（真相源 `DESIGN_MAIN` §1 v3）；确认键按 T-11 用户裁决改**金边描边**（非渐变），`sheen` 已随 T-12 删除；金额行 42（非 56）
+2. ~~**回顾页**~~ → **已删除（T-12c Part B：快记即正式，草稿链路废除）**，本节作废
 3. **资产列表页**：净值看板（eyebrow + **tabular 暖白大数字** + 三 pill）；tile 按下 0.98 + Hero 接力进详情；CPD 徽章 goldContainer pill；服役进度条 goldAccent/hairline
 4. **资产详情页（新）**：§6 全项 + 视差 B + 成组入场 D
 5. **统计页**：净结余卡（负值 semanticExpense 大字）；双线趋势 + 金阶 donut；导出 = hairline 金描边 outline 键
@@ -97,7 +97,7 @@
 
 ## 9. 验收补充（叠加既有 DoD）
 - 对比度抽查：正文/次文/金交互三档实测 ≥ AA
-- 金色纪律 grep：金渐变出现处 ≤ 2（确认键 + 饼图金阶定义处）
+- 金色纪律 grep：金渐变出现处 **≤4**（真相源 `DESIGN_MAIN` §7：主页 Hero 额度 / 资产净值 / 底栏「记一笔」/ 饼图金阶）；当前实现 **2 处**（`AppGradient.goldText` + 底栏主按钮）。原口径「≤2（确认键 + 饼图金阶）」**已过时**（确认键改描边、饼图为色板非渐变）
 - **动效验收**：Hero 接力/视差/微缩放/stagger 各留 Windows 实跑截图或录屏帧（md5 唯一 + Dart PNG）；integration 补资产详情页路由与多照片断言
 - 数据验收：asset_photos 迁移用例（V1→V2 旧数据自动落表）+ 详情页数字与列表同源单测 + D1 净成本口径单测更新
 - 回归：T-01~T-07 全部测试保持绿 + Windows 实跑 + release APK 重建 + 用户目测通过

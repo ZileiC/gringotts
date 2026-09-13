@@ -3,6 +3,28 @@
 > 执行层（Codex）每次收工在顶部追加一段：做了什么 / 关键决策 / 遗留问题 / 下一步。管理层（Hermes）通过本文件验收进度。
 > ⚠️ 并发写入约定：追加前先重新读取文件最新版，在头部插入自己的段落，不要重建文件横幅；管理层 patch 前同样先重读。
 
+## 2026-09-13（管理层验收记录：T-13b ✅ 通过 —— **M2.0 前置波关闭**；含 1 项口径瑕疵订正 + 4 项偏离裁决）
+- **验收基线**：`0c32108`（工具/测试卫生）+ `d82fdaf`（全链路 + 全量回归）+ 收工 `08e9ee4`；已 push，工作区干净
+- **五层验收**：
+  1. **记录核对** ✓ 3 个提交、hash 与申报一致；变更面 = `t13b_full_chain_test.dart`(293 新增) / 5 个旧脚本修复（t05/t09a/t09b/t09c/t09c2/t09d）+ `t04` 补墓碑 / `tool/photo_gc.py` `tool/clean_dev_db.py` 卫生 / `splash.dart` 注释 / `assets_page.dart`(+1 key) / 证据 20+ 文件
+  2. **独立复验** ✓（管理层亲跑）`flutter analyze` → **No issues found**；`flutter test` → **All tests passed (194)** 整轮正常退出 —— 与申报逐位一致
+  3. **源码级审查** ✓ ① 全链路脚本为真端到端：导出断言**逐字节**（CSV 前 3 字节 `EF BB BF` BOM + 解码后含编辑后 `瑞幸咖啡` / `2000`；JSON `transactions[].merchant` 与 `assets[].name` 含改名后资产），teardown 墓碑种子**并删除导出的 2 个文件**（不留垃圾）② 工具卫生：两工具新增 `display()`（`relative_to` 失败回落绝对路径）+ `--report` 参数化、默认值改为**中性工具自有路径**（不再指向 T-13a / T-09E 证据）③ `t04` 补墓碑 teardown ④ 启动画面像素未动（仅注释）
+  4. **独立 integration** ✓（管理层亲跑 4 个脚本）`t13b_full_chain` → **All tests passed**，逐步打印复核：`entry amount=1500 draft=false`（快记即正式）/ `stats today_expense=15.00` / `ledger_edit merchant=瑞幸咖啡 amount=2000` / `asset_edit name=T13B 相机Pro value=600000`（改名校值存）/ **`export files=2 bom=true csv_merchant=true json_asset=true schema=3`** / `teardown live_tx=0 live_assets=0 exported_files_removed=2`；修复脚本抽样 `t05` ✓ / `t09c2` ✓ / `t04` ✓（`T04_TEARDOWN seed_tombstoned=true live=0->0`）
+     - **dev 库卫生独立复核** ✓（直读 sqlite）我跑完 4 个 integration 后：`transactions / assets / asset_photos / budget_months` **live 全 0**、`categories 9` 未动 —— 与申报一致，**证明 5 个脚本的墓碑 teardown 真的止住了累积污染**
+     - **工具卫生独立复核** ✓ `python tool/photo_gc.py --selftest` 在**系统 TEMP（仓库外）**下 **9 PASS / `selftest: OK` / EXIT=0** —— T-13a 的挂账确已修复；`clean_dev_db` 默认报告路径已中性，未覆盖他票证据
+     - **APK** ✓ 桌面 `gringotts-T13b-release.apk` 65,877,476 字节，md5 **`e7c75551f5894e22e952df892de914f6`** 与申报逐位一致
+  5. **UI 目检 + 数学复核** ✓ 帧 03/10 目检（主页 `¥15 · 1 笔` / 统计页红绿双线 + 金 donut + 底部「记一笔」与三 tab，统计 tab 金字激活）。**对比度 11 组我逐值重算**（WCAG 2.x，从 `tokens.dart` 十六进制）：17.14 / 7.23 / 6.88 / 11.51 / 9.36 / 10.92 / 11.16 / 13.94 / 5.03 / 6.49 / 4.89 —— **与完工报告表格逐位相同，零偏差**（独立复算）
+- **⚠️ 申报口径瑕疵（结论不受影响，已订正）**：完工报告写「全部 ≥ AA（最低 5.03）」，但其自身表内 `goldDeep/canvas = 4.89` 才是最低值（4.89 仍 ≥ 4.5，故「全部 ≥ AA」成立）。**正确口径：最低 4.89**。后续报告请复核极值
+- **偏离裁决（完工报告 §4 五项，逐条给结论）**：
+  - **A 统计页净结余负值未取 `semanticExpense`** → **修**（spec §8.5 明确；并入 T-14 第 1 项，含单测）
+  - **B 统计页导出键为 tonal 实心 pill、spec 要求 hairline 金描边 outline 键** → **修**（本项目「金色克制」章程：金只作描边/文字，不作大面积填充；并入 T-14 第 2 项）
+  - **C `DESIGN_T09` 三处文档漂移（§8.1 / §8.2 / §9 金渐变 ≤2）** → ✅ **管理层已当场订正**（§8.1 标注 T-12c 后失效并给出真相源；§8.2 回顾页标为已删除；§9 金色纪律改 ≤4 并注明当前实现 2 处）
+  - **D 证据帧名过时（t09e / t09c）** → 修，并入 T-14 第 3 项（内容已核对无误，仅名称）
+  - **E `clean_dev_db` 备份名前缀仍 `pre-t09e-`** → 修，并入 T-14 第 4 项
+- **新增发现（管理层独立跑的副产品，入 T-14 第 5 项）**：全量回归/测试会自然产生照片孤儿——我 dry-run 实测回归后有 **7 个孤儿（≈30KB）**（T-13b 的 GC dry-run 记录取的是回归**前**状态 56/56/0）⇒ 约定全量回归收尾跑一次 `photo_gc` 并在 WORKLOG 记数
+- **执行层行为肯定**：① **全量回归暴露了 5 个自 T-11/T-12c 起就静默失效的证据脚本**（`pageBack()` 打在快记页、惰性列表折叠断言、count-up 中途采样在 IndexedStack 下不可行）——全部按根因修好而非加 ignore，且把无法中途采样的机制改由单测锁定并**如实说明帧改名** ② `t04/t09b/t09c2/t09d` 补齐墓碑 teardown，止住 dev 库累积污染（我直读 sqlite 验证 live 全 0）③ 主动申报 5 项偏离而不擅自越界修改 ④ 完工报告标注逐条依据（源码位置 / 帧 / 测试）
+- **结论：T-13b ✅ 验收通过 → M2.0 前置波（结构波）全部关闭**。下一票 **T-14（收口小票）**；之后进入 **M2.0 正式波**（BYO AI 配置 / 主页 AI 分析建议 / 对话窗口 / 图表 AI 解读 / 预算与周期账单 / Widget / 本地加密）
+
 ## 2026-09-13（**执行层 T-13b 完工：M2.0 前置波收尾**——全链路实跑 + 全量回归 + APK + 完工报告 + 工具/测试卫生）
 - **基线/结果**：`5f59ece`（T-13a 验收 + wordmark 裁决）→ 本轮 3 个 WIP 提交 `0c32108`（工具/测试卫生 + splash 注释）/ `d82fdaf`（全链路 + 全量回归 + 5 个脚本修复 + 清单）；`flutter analyze` → **No issues found**；`flutter test` → **All tests passed (194)**，整轮正常退出
 - **① 全链路实跑（新增 `integration_test/t13b_full_chain_test.dart`）**：三 tab 壳 → 「记一笔」压栈 → **立即入账**（`is_draft=false`，主页即显 `¥15 · 1 笔`）→ 统计（`支出 ¥15`/净结余 −15）→ 资产（新增带 CPD 资产）→ 详情 → 编辑（改名）→ **明细（自统计页进入）** → 行内编辑（商户+金额）→ **导出**（CSV 带 BOM 逐字节断言含编辑后商户/金额 + JSON 含资产 schema=3）→ teardown 墓碑全部种子；**All tests passed**，10 帧 md5 唯一（前置自声明 `live_tx=0 live_assets=0 budget=null`）

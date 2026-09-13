@@ -10,7 +10,7 @@
 
 先读一次（仅此一次）：HANDOFF_MANAGEMENT.md —— 你的角色权限边界、双 session 协议、五层验收协议、成本纪律、施工 prompt 写法、M2.0/M3/M4 路线图、9 条事故教训都在里面。
 
-日常开工只读三样：PROJECT_STATE.md → TICKETS_M2A.md（当前票 T-12c 续工 → T-13a → T-13b）→ WORKLOG.md 顶部两条。设计细节按需只读章节（如 DESIGN_MAIN §3 第 1 条），不要整篇读。
+日常开工只读三样：PROJECT_STATE.md → TICKETS_M2A.md（当前票 T-14 → 之后 M2.0 正式波）→ WORKLOG.md 顶部两条。设计细节按需只读章节（如 DESIGN_MAIN §3 第 1 条），不要整篇读。
 
 职责：brainstorm、派工、验收（结论必标 commit hash）、GitHub 仓库管理；代码只读不改。成本敏感：每票约 ¥15，严格执行 HANDOFF §4 降本纪律与 §5 prompt 写法。
 
@@ -36,16 +36,20 @@
 规则：每完成一个 Part 立即 `git commit -m "WIP T-12c: Part X"`（掉线保险，AGENTS.md 工作流程第 4 条）；收工三连 WORKLOG → commit（T-12c: …）→ push；停下等验收。
 ```
 
-## C. 备查：T-13b 施工 prompt（下一票，M2.0 前置波最后一票）
+## C. 备查：T-14 施工 prompt（下一票，收口小票）
 
-> T-13a（`751509a`+`bf1ae2d`+`f90116f`+`4a943a3`+`fd14688`）已于 2026-09-13 验收通过；其施工 prompt 已归档到 WORKLOG 验收记录，不再复用。
+> T-13a / T-13b 均已验收通过（M2.0 前置波关闭，2026-09-13）；其施工 prompt 已归档到 WORKLOG 验收记录，不再复用。
 
-**T-13b（收尾 II：全量回归与交付）**
+**T-14（收口小票：四项 spec/记录对齐 + 照片孤儿例行化）**
 ```
-继续 Gringotts 施工（M2.0 前置波最后一票）。先读 PROJECT_STATE.md + TICKETS_M2A.md 的 T-13b + DESIGN_T09 §8；设计细节按需只读章节。
-任务：① 全量回归：快记→立即入账→统计→资产→详情→编辑→明细→导出 全链路实跑（须覆盖新导航：三 tab + 记一笔压栈 + 明细从统计页进入）② release APK 重建交付 ③ 完工报告：对照 DESIGN_T09 §8 + DESIGN_MAIN 逐页核对 ④ 工具/测试卫生（见工单第 5 项：photo_gc selftest 环境依赖 + --report 参数化、clean_dev_db --report、t04 补墓碑 teardown）⑤ splash.dart 过时注释收尾。
-注意：工单第 1 项（启动画面 wordmark）用户已裁决「不动」——**不要碰启动画面**（DESIGN_T09 §8 第 6 条已锁定）。
-关键前提：**全量回归前先 `python tool/clean_dev_db.py --apply` 清掉 T-04 遗留行**（否则帧不可信）；工具报告不得覆盖他票证据（先做第 4 项的 --report 参数化）。
-验收：① 全链路 integration 通过且前置条件自声明，回归帧无未解释的重复 md5 ② 完工报告逐页无遗漏 ③ APK md5 交付 ④ analyze 零错 + 194 test 全绿 ⑤ 工具在普通 shell（TMP 不在仓库内）下 selftest / dry-run 均可独立跑通。
-规则：每完成一个 Part 立即 WIP 提交；收工三连 WORKLOG → commit（T-13b: …）→ push；停下等验收。
+继续 Gringotts 施工。M2.0 前置波已关闭（T-13b 验收通过）。先读 PROJECT_STATE.md + TICKETS_M2A.md 的 T-14 + DESIGN_T09 §8.5。
+任务（四小项，均 P3 收口）：
+① 统计页净结余负值配色对齐 spec：stats_page.dart:138-147 无颜色分支 ⇒ 负值仍暖白 ink → 改为「负值 AppColors.semanticExpense、零/正 AppColors.ink」，补单测（负值红 / 零与正值暖白）。
+② 统计页导出键形态对齐 spec：FilledButton.tonalIcon（goldContainer 实心 pill）→ hairline 金描边 outline 键（OutlinedButton + goldAccent fine 边 + 金字）。理由：项目「金色克制」章程——金只作描边/文字，不作大面积填充。
+③ 证据帧名过时：t09e 02_keyboard_after_splash（内容=启动后主页）、t09c 01_home_idle（内容=快记页 idle）→ 更名与实际内容一致，md5 清单同步更新（帧本体内容不变）。
+④ clean_dev_db.py 备份名前缀 pre-t09e-<stamp>.bak → pre-clean-<stamp>.bak。
+⑤ 收尾跑一次 `python tool/photo_gc.py`（dry-run 报数；若要 apply 先确认），WORKLOG 记一行孤儿数——全量回归会自然产生孤儿（上轮实测 7 个 ≈30KB）。
+验收：① 两项 spec 对齐有单测断言 + 帧（负值大数字为 semanticExpense、导出键为描边式）② 帧名/备份名改后相关脚本重跑全绿、md5 记录同步 ③ analyze 零错 + test 全绿（194 + 新增）④ 孤儿报数留档。
+规则：每完成一个 Part 立即 WIP 提交；收工三连 WORKLOG → commit（T-14: …）→ push；停下等验收。
 ```
+> T-14 之后进入 **M2.0 正式波**（BYO AI 配置页 → 主页 AI 分析建议 → 对话窗口 → 图表 AI 解读 → 预算与周期账单 → Widget + 本地加密）；派工前由管理层先把该波拆票写进 `TICKETS_M2A.md`。

@@ -12,6 +12,7 @@
 | T-12 | 明细页（月→日→条目 / 全字段编辑 / 草稿徽章迁主页 / SheenSweep 清理） | `e581909` |
 | T-12c | 导航壳（三 tab 平级 + 记一笔压栈）/ 快记即正式 / `updateFields` 移除 / 月历 sheet（**续工后验收通过**） | `cc26215`+`a394df6`+`ce43036` |
 | T-13a | 资产净值衬线+金渐变（共享 token）/ 照片孤儿 GC（67→56，11 孤儿 0 误删）/ M1.x 清账 / 月历 342dp 边界修好 | `751509a`+`bf1ae2d`+`f90116f`+`4a943a3` |
+| T-13b | **M2.0 前置波收尾**：全链路实跑（含导出逐字节）/ 全量回归 14/14 脚本 68 帧 / 修复 5 个静默失效脚本 / 工具卫生 / APK / 完工报告 | `0c32108`+`d82fdaf`+`08e9ee4` |
 
 ---
 
@@ -56,7 +57,7 @@
 4. **月历 sheet 横屏/矮窗边界（P3 挂账，来自 T-12c 验收）**：`isScrollControlled` 已修掉默认 9/16 高上限，但按内容 342dp 布局 ⇒ **可用高 < 342dp（真机横屏）仍溢出**；彻底解 = 月历 grid 可滚动或横屏下改用紧凑格高（须保持格高 ≥ 触控 48）；**真机判定权归用户**
 **验收**：① 净值大数字字体/渐变与 spec 逐值一致（源码 + 帧）② GC dry-run 与 apply 数量自洽、引用文件保留（单测/脚本断言）③ analyze 零错 + test 全绿 ④ 帧 md5 唯一 ⑤ 横屏 342dp 边界有结论（修好 或 给实测数据 + 建议，不得留空）
 
-## T-13b（收尾 II：全量回归与交付）
+## T-13b（收尾 II：全量回归与交付）—— ✅ **已验收通过（2026-09-13，`0c32108`+`d82fdaf`+`08e9ee4`）**，M2.0 前置波就此关闭
 1. ~~启动画面 wordmark 去重~~ → **用户 2026-09-13 裁决：不动**（维持现状；徽标内 wordmark + 下方独立 wordmark 的「重复」为有意保留，已锁进 `DESIGN_T09.md` §8 第 6 条）——**本项关闭，无施工内容**
 2. **全量回归**：快记 → 立即入账 → 统计 → 资产 → 详情 → 编辑 → 明细 → 导出 全链路实跑（覆盖新导航：三 tab + 记一笔压栈 + 明细从统计页进入）；**回归前先 `python tool/clean_dev_db.py --apply` 清掉 T-04 遗留行**，否则帧不可信
 3. **release APK 重建** + `gringotts-T13b-release.apk` 交付
@@ -67,6 +68,16 @@
    - `integration_test/t04_assets_test.dart`：播种后无墓碑清理（源码仅 `addTearDown(container.dispose)`）⇒ 每轮回归把测试资产永久留在 dev 库、后续脚本渲染到同一屏造成**回归帧重复 md5** → 补墓碑 teardown
 6. **过时表述收尾**：`lib/ui/splash.dart:9` 注释「the home page IS the keypad, there is no navigation layer」→ 改为 T-12c 后的三 tab 壳（代码注释，执行层范围）；`FEATURES.md` 已由管理层订正，勿重复改
 **验收**：① 全链路 integration 通过且前置条件自声明，**回归帧无未解释的重复 md5** ② 完工报告逐页核对无遗漏项 ③ APK md5 交付 ④ analyze 零错 + test 全绿 ⑤ 工具在普通 shell 下可独立跑通（selftest / dry-run 各一次，且报告不覆盖他票证据）
+
+## T-14（收口小票，P3；M2.0 正式波之前或并行皆可）
+> 来源：T-13b 完工报告 §4 的偏离项（管理层 2026-09-13 验收逐条裁决：A/B/D/E 修，C 已由管理层订正）。
+> 拆成小票的理由：四项都是「1 行级」改动，合并一次跑避免多轮 session 成本。
+1. **统计页净结余负值配色对齐 spec（原报告 A）**：`stats_page.dart:138-147` 无颜色分支 ⇒ 负值仍暖白 `ink`；`DESIGN_T09` §8.5 要求负值 `semanticExpense` 大字 → 改为 `color: net < 0 ? AppColors.semanticExpense : AppColors.ink`，补单测（负值红 / 零与正值暖白）
+2. **统计页导出键形态对齐 spec（原报告 B）**：现 `FilledButton.tonalIcon`（goldContainer 实心 tonal pill）→ spec 要求 **hairline 金描边 outline 键**（`OutlinedButton` + goldAccent fine 边 + 金字）——按「金色克制」章程：金只作描边/文字，不作大面积填充
+3. **证据帧名过时（原报告 D）**：`t09e 02_keyboard_after_splash`（内容 = 启动后主页）、`t09c 01_home_idle`（内容 = 快记页 idle）→ 更名为与实际内容一致，md5 清单同步
+4. **工具备份名（原报告 E）**：`clean_dev_db.py` 备份前缀仍 `pre-t09e-<stamp>.bak` → `pre-clean-<stamp>.bak`
+5. **照片孤儿例行化**：全量回归/测试会自然产生孤儿（T-13b 回归后管理层 dry-run 实测 **94 文件 / 87 引用 / 7 孤儿 ≈30KB**）→ 约定：全量回归收尾跑 `python tool/photo_gc.py`（dry-run 报数；apply 前确认），WORKLOG 记一行
+**验收**：① 两项 spec 对齐有单测断言 + 帧（负值大数字为 `semanticExpense`、导出键为描边式）② 帧名/备份名改后全量回归仍全绿且 md5 记录同步 ③ analyze 零错 + test 全绿（194 + 新增）④ 孤儿清理报数留档
 
 ## 后续（M2.0 正式波，待管理层派工）
 BYO AI 配置（provider/baseURL/key/model）+ 主页 AI 分析建议 + 对话窗口 + 图表 AI 解读 + 预算与周期账单 + Widget + 本地加密。路线图详情见 `HANDOFF_MANAGEMENT.md` §6。

@@ -78,6 +78,14 @@ void main() {
           ),
         );
     await photoRepo.createAll(asset.id, [photoA, photoB]);
+    // T-13b hygiene: this run used to leave the asset live, so every later
+    // script rendered the same assets screen (duplicate regression frames).
+    addTearDown(() async {
+      for (final p in await photoRepo.getForAsset(asset.id)) {
+        await photoRepo.softDelete(p.id);
+      }
+      await container.read(assetRepositoryProvider).softDelete(asset.id);
+    });
 
     // 1. Assets list shows the tile; tap into detail (Hero relay).
     // T-12c IA: the assets tab is a top-level peer.

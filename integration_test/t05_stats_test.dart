@@ -55,9 +55,11 @@ void main() {
     // 1. Navigate to stats: tap its peer tab (T-12c IA, no push).
     await tester.tap(find.byKey(const Key('tab_stats')));
     await tester.pumpAndSettle(const Duration(seconds: 2));
+    // T-13b: the pie section sits below the fold of the lazy stats list, so the
+    // top-of-page frame asserts the net card only; the pie gets its own frame
+    // once it is scrolled into range (see state3b).
     await snapState(tester, 'state1_stats_daily', [
       find.text('净结余（收入 − 支出）'),
-      find.text('支出类别占比'),
     ]);
 
     // 2. Switch to monthly range.
@@ -75,6 +77,15 @@ void main() {
       find.text('年'),
       find.text('净结余（收入 − 支出）'),
     ]);
+
+    // 3b. Category pie (below the fold): scroll it into range and frame it.
+    await tester.scrollUntilVisible(
+      find.text('支出类别占比'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await snapState(tester, 'state3b_category_pie', [find.text('支出类别占比')]);
 
     // 4. Export produces CSV + JSON in documents dir.
     await tester.scrollUntilVisible(

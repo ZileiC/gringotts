@@ -150,6 +150,7 @@ class _NetValueCard extends StatelessWidget {
             // hero's spec values (AppFont.brandNumber / AppGradient.goldText).
             // Every other number on this page stays tabular sans.
             CountUpNumber(
+              key: const Key('assets_net_value'),
               valueCents: portfolio.netCents,
               builder: (context, cents) => ShaderMask(
                 shaderCallback: (bounds) =>

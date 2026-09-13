@@ -60,7 +60,9 @@ void main() {
       find.byKey(const Key('confirm_cta')),
       find.text('支出'),
     ]);
-    await tester.pageBack();
+    // T-13b: the speed-entry page's back action is its own keyed button -
+    // pageBack() looks for a Material BackButton, which this page does not use.
+    await tester.tap(find.byKey(const Key('quick_back')));
     await tester.pumpAndSettle(const Duration(seconds: 1));
 
     await tester.tap(find.byKey(const Key('tab_assets')));
@@ -72,9 +74,10 @@ void main() {
 
     await tester.tap(find.byKey(const Key('tab_stats')));
     await tester.pumpAndSettle(const Duration(seconds: 2));
+    // T-13b: the pie section sits below the fold of the lazy stats list (its
+    // own frame is evidence/t13b + the t05 regression); assert the net card.
     await snap(tester, '03_stats', [
       find.text('净结余（收入 − 支出）'),
-      find.text('支出类别占比'),
     ]);
   });
 }

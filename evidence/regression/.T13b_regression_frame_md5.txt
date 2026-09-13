@@ -1,0 +1,98 @@
+# T-13b regression frames (md5 per script, Windows engine, 2026-09-13)
+# scripts=14 all passed  frames=68  unique_md5=56
+
+[t04_assets_test]
+  state1_home                      md5=5480480ccf84
+  state2_assets_dashboard          md5=28914690a7c2
+  state3_assets_with_cpd           md5=1ffb1f469512
+  state4_sold_realized             md5=8fa0b4ae1011
+
+[t05_stats_test]
+  state1_stats_daily               md5=faf34516fdb5
+  state2_stats_monthly             md5=09d4649cd8e5
+  state3_stats_yearly              md5=c8df80212836
+  state3b_category_pie             md5=3e1ae5d2ad12
+
+[t09a_reskin_test]
+  01_quick_entry                   md5=78147c4bf86f
+  02_assets                        md5=28914690a7c2
+  03_stats                         md5=faf34516fdb5
+
+[t09b_detail_flow_test]
+  01_list_with_tile                md5=bc7859b7257b
+  02_detail_hero                   md5=0e6bf132086f
+  03_detail_photo2                 md5=ea86f6c63b6d
+  04_back_to_list                  md5=bc7859b7257b
+  05_detail_sold_review            md5=f03ae81e78e6
+
+[t09c_motion_test]
+  01_home_idle                     md5=78147c4bf86f
+  02_home_cta_pressed              md5=199cfd5f78f0
+  03_assets_stagger_mid            md5=ac8c626d843c
+  04_assets_settled                md5=ac8c626d843c
+  05_assets_scrolled_sink          md5=77737cd62db6
+  06_stats_idle                    md5=faf34516fdb5
+  07_stats_scrolled                md5=b7a1247dc65a
+  08_ledger                        md5=2b1d8da8c891
+
+[t09c2_base_motion_test]
+  01_category_selected             md5=c6d9bba7ef43
+  03_net_value_settled             md5=5918c0288edb
+  04_detail_hero_relay             md5=53b143f49a7a
+  05_reduce_motion_assets          md5=28914690a7c2
+  06_reduce_motion_scrolled        md5=28914690a7c2
+
+[t09d_edit_flow_test]
+  01_list_cover_before             md5=353383d4ca2d
+  02_edit_sheet                    md5=84a6ac2d1888
+  03_date_picked                   md5=cc20f404ffd6
+  04_photos_added                  md5=367766f26d28
+  05_cover_swapped                 md5=85c12e03eb06
+  06_detail_after_save             md5=78244e92eed9
+  07_list_cover_after              md5=2b6d3d151dfb
+  08_snackbar_above_cta            md5=1f4388064792
+
+[t09e_brand_test]
+  02_keyboard_after_splash         md5=5480480ccf84
+  01_splash_brand_frame            md5=45da58b2d03f
+
+[t10b_home_test]
+  01_onboarding                    md5=5480480ccf84
+  02_budget_set                    md5=2ba2a1cf8de0
+  03_overspent                     md5=4ea9c95728cc
+  04_donut_empty                   md5=2cbefb7591b7
+
+[t11_quick_entry_test]
+  01_idle                          md5=d5f727ac3389
+  02_input                         md5=fdb93ed3c36a
+  03_income                        md5=0f548efa0461
+  04_top                           md5=7a2f99c63d67
+
+[t12_ledger_test]
+  01_list                          md5=d3f75ed0b63d
+  02_filter_income                 md5=7a7fff142b9c
+  03_edit_sheet                    md5=11f91d69bed7
+
+[t12c_shell_test]
+  01_tab_assets                    md5=28914690a7c2
+  02_entry_pushed                  md5=c9330abf629d
+  03_month_sheet                   md5=c8a57077da9a
+  04_history_month                 md5=ab3efb6fd6cd
+
+[t13a_assets_sheet_test]
+  01_assets_net_value              md5=820399573587
+  02_month_sheet_normal            md5=252c1835b373
+  03_month_sheet_short             md5=f0a11ad3021e
+  04_month_sheet_short_last_row    md5=6dc1bf7999ef
+
+[t13b_full_chain_test]
+  01_shell_home                    md5=5480480ccf84
+  02_quick_entry                   md5=2210436f2dff
+  03_home_after_entry              md5=8da5d9b333ff
+  04_stats                         md5=1e87efb2fc2a
+  05_ledger                        md5=5bb1b5791d1f
+  06_ledger_edited                 md5=0a8c46718e00
+  07_assets_with_cpd               md5=99330e626f20
+  08_asset_detail                  md5=f66eb30324d3
+  09_asset_edited                  md5=8fdc302706bd
+  10_stats_exported                md5=74799e2a3a65

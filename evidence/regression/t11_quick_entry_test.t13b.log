@@ -1,0 +1,15 @@
+Flutter assets will be downloaded from https://storage.flutter-io.cn. Make sure you trust this source!
+00:00 +0: loading C:/Users/JHarayden/Desktop/Gringotts/integration_test/t11_quick_entry_test.dart
+Building Windows application...                                    26.5s
+√ Built build\windows\x64\runner\Debug\gringotts.exe
+00:00 +0: T-11 speed entry: idle / input / income + retained capabilities
+T11_PRECONDITION live_tx_before=0
+T11_SNAP name=01_idle md5=d5f727ac3389
+T11_SNAP name=02_input md5=fdb93ed3c36a
+T11_SNAP name=03_income md5=0f548efa0461
+T11_RECORD id=1d5009ff-04d2-452f-a67d-539e59a46368 amount=1500 draft=false type=income
+00:15 +1: T-11b top-of-page frame: name + amount + budget link row
+T11B_PRECONDITION live_tx=0 spent=0 remaining=360000 remaining_days=18
+T11_SNAP name=04_top md5=7a2f99c63d67
+00:23 +2: (tearDownAll)
+00:23 +2: All tests passed!

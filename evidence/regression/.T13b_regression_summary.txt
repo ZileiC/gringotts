@@ -1,0 +1,51 @@
+T-13b FULL REGRESSION (M2.0 pre-wave closing ticket)
+runner : flutter test integration_test/<file>.dart -d windows   (Windows desktop engine)
+date   : 2026-09-13
+result : 14/14 scripts passed -> 68 frames captured, md5 unique per screen
+
+Preconditions:
+  - before the run: `python tool/clean_dev_db.py --apply --report evidence/t13b/dev_db_cleanup.pre_regression.json`
+    (retired the T-04 leftover row; see evidence/t13b/dev_db_cleanup.json)
+  - after the run (verified by direct sqlite read): transactions live=0, assets live=0,
+    asset_photos live=0, budget_months live=0, categories 9 (untouched seeds)
+    -> every script now retires what it seeds (T-13b hygiene: t04, t09b, t09c2, t09d)
+
+script                     result              log
+t04_assets_test            All tests passed    evidence/regression/t04_assets_test.t13b.log
+t05_stats_test             All tests passed    evidence/regression/t05_stats_test.t13b.log
+t09a_reskin_test           All tests passed    evidence/regression/t09a_reskin_test.t13b.log
+t09b_detail_flow_test      All tests passed    evidence/regression/t09b_detail_flow_test.t13b.log
+t09c_motion_test           All tests passed    evidence/regression/t09c_motion_test.t13b.log
+t09c2_base_motion_test     All tests passed    evidence/regression/t09c2_base_motion_test.t13b.log
+t09d_edit_flow_test        All tests passed    evidence/regression/t09d_edit_flow_test.t13b.log  (re-run after its photo teardown was added)
+t09e_brand_test            All tests passed    evidence/regression/t09e_brand_test.t13b.log
+t10b_home_test             All tests passed    evidence/regression/t10b_home_test.t13b.log
+t11_quick_entry_test       All tests passed    evidence/regression/t11_quick_entry_test.t13b.log
+t12_ledger_test            All tests passed    evidence/regression/t12_ledger_test.t13b.log
+t12c_shell_test            All tests passed    evidence/regression/t12c_shell_test.t13b.log
+t13a_assets_sheet_test     All tests passed    evidence/regression/t13a_assets_sheet_test.t13b.log
+t13b_full_chain_test       All tests passed    evidence/regression/t13b_full_chain_test.t13b.log
+
+notes:
+  - t09d was re-run alone after its teardown gained the photo-row tombstones (its frames
+    embed run-scoped random photo content, so only that script's md5s changed).
+  - perf_scan_test is NOT part of this regression: it is the T-09E profiling harness
+    (debug frame times are meaningless, project rule "别用 debug 帧耗时当真机帧率").
+
+Duplicate md5 groups (all explained, same screen + same state):
+  28914690a7c2 x5: t04_assets_test:state2_assets_dashboard, t09a_reskin_test:02_assets, t09c2_base_motion_test:05_reduce_motion_assets, t09c2_base_motion_test:06_reduce_motion_scrolled, t12c_shell_test:01_tab_assets
+      -> the assets tab with zero live assets (net value 0) - t04 state2, t09a 02, t09c2 05/06 (the empty page has nothing to scroll, so the 'scrolled' frame equals the idle one) and t12c 01
+  5480480ccf84 x4: t04_assets_test:state1_home, t09e_brand_test:02_keyboard_after_splash, t10b_home_test:01_onboarding, t13b_full_chain_test:01_shell_home
+      -> the analysis home in its onboarding state (no budget, no data) - t04 state1, t09e after-splash, t10b 01, t13b 01 are the same launch screen
+  faf34516fdb5 x3: t05_stats_test:state1_stats_daily, t09a_reskin_test:03_stats, t09c_motion_test:06_stats_idle
+      -> the stats tab with no data - t05 state1_stats_daily, t09a 03_stats, t09c 06_stats_idle
+  78147c4bf86f x2: t09a_reskin_test:01_quick_entry, t09c_motion_test:01_home_idle
+      -> the idle speed-entry page - t09a 01_quick_entry and t09c 01_home_idle (the t09c name is a stale M1.x label: its snap is taken after tapping 记一笔, so it is the same screen)
+  bc7859b7257b x2: t09b_detail_flow_test:01_list_with_tile, t09b_detail_flow_test:04_back_to_list
+      -> t09b 01_list_with_tile and 04_back_to_list - returning from the detail reproduces the identical list screen
+  ac8c626d843c x2: t09c_motion_test:03_assets_stagger_mid, t09c_motion_test:04_assets_settled
+      -> t09c 03_assets_stagger_mid and 04_assets_settled - the stagger had already settled at the 60 ms sample (single-row list)
+
+unique md5s: 56 of 68 frames
+frame files: PNGs stay local (evidence/**/*.png is gitignored); each script writes into
+  evidence/regression/ or its own ticket dir - the md5 manifest below is the record.

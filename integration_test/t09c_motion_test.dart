@@ -143,8 +143,9 @@ void main() {
     await tester.pumpAndSettle();
 
     // 2. Assets: stagger entrance mid-flight + settled. Pop back to the shell
-    // first, then switch to the assets peer tab (T-12c).
-    await tester.pageBack();
+    // first with the speed-entry page's own back action (T-13b: pageBack()
+    // looks for a Material BackButton), then switch to the assets tab.
+    await tester.tap(find.byKey(const Key('quick_back')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('tab_assets')));
     await tester.pump();
@@ -180,7 +181,9 @@ void main() {
     await tester.tap(find.byKey(const Key('tab_stats')));
     await tester.pumpAndSettle(const Duration(seconds: 1));
     await tester.pumpAndSettle(const Duration(seconds: 1));
-    await snap(tester, '06_stats_idle', [find.text('支出类别占比')]);
+    // T-13b: the pie section is below the fold of the lazy stats list; the
+    // idle frame asserts the net card that is actually on screen.
+    await snap(tester, '06_stats_idle', [find.text('净结余（收入 − 支出）')]);
     await snapSink(tester, '07_stats_scrolled', find.byType(StatsPage));
 
     // 5. Ledger: the statistics page's child (T-12c Part A).

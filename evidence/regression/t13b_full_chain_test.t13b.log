@@ -1,0 +1,28 @@
+Flutter assets will be downloaded from https://storage.flutter-io.cn. Make sure you trust this source!
+00:00 +0: loading C:/Users/JHarayden/Desktop/Gringotts/integration_test/t13b_full_chain_test.dart
+Building Windows application...                                    24.8s
+√ Built build\windows\x64\runner\Debug\gringotts.exe
+00:00 +0: T-13b full chain: 快记 -> 入账 -> 统计 -> 资产 -> 详情 -> 编辑 -> 明细 -> 导出
+T13B_PRECONDITION live_tx=0 live_assets=0 budget=null
+T13B_STEP shell tabs=3 cta=onstage
+T13B_SNAP name=01_shell_home bytes=35710 md5=5480480ccf84
+T13B_SNAP name=02_quick_entry bytes=36806 md5=2210436f2dff
+T13B_STEP entry id=1f2631b6-75dd-4f1d-9d3e-ee7bd9bfd70d amount=1500 draft=false
+T13B_SNAP name=03_home_after_entry bytes=35755 md5=8da5d9b333ff
+T13B_STEP stats today_expense=15.00
+T13B_SNAP name=04_stats bytes=29552 md5=1e87efb2fc2a
+T13B_STEP ledger rows=1 month=2026-09
+T13B_SNAP name=05_ledger bytes=18463 md5=5bb1b5791d1f
+T13B_STEP ledger_edit merchant=瑞幸咖啡 amount=2000
+T13B_SNAP name=06_ledger_edited bytes=20514 md5=0a8c46718e00
+T13B_STEP asset id=d9f5aba1-34d1-4610-9a9e-f93aa0661ff7 value=600000
+T13B_SNAP name=07_assets_with_cpd bytes=32613 md5=99330e626f20
+T13B_STEP asset_detail opened=true cpd_row=true
+T13B_SNAP name=08_asset_detail bytes=24334 md5=f66eb30324d3
+T13B_STEP asset_edit name=T13B 相机Pro
+T13B_SNAP name=09_asset_edited bytes=25435 md5=8fdc302706bd
+T13B_STEP export files=2 bom=true csv_merchant=true json_asset=true schema=3
+T13B_SNAP name=10_stats_exported bytes=29931 md5=74799e2a3a65
+T13B_TEARDOWN live_tx=0 live_assets=0 exported_files_removed=2
+00:52 +1: (tearDownAll)
+00:52 +1: All tests passed!

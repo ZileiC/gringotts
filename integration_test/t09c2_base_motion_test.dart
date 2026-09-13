@@ -170,31 +170,39 @@ void main() {
           ),
         );
     await photoRepo.createAll(asset.id, [photoA, photoB]);
+    // T-13b hygiene: retire the seed (rows and photos) even when the run aborts
+    // mid-flight - a live asset here made later scripts render the same assets
+    // screen and collided in the regression frames.
+    addTearDown(() async {
+      for (final p in await photoRepo.getForAsset(asset.id)) {
+        await photoRepo.softDelete(p.id);
+      }
+      await container.read(assetRepositoryProvider).softDelete(asset.id);
+    });
     await tester.pumpAndSettle(const Duration(seconds: 1));
 
     // ---------- 4. net-value count-up (assets page) ----------
-    await tester.pageBack();
+    // Since T-12c the assets page is an IndexedStack peer, so the spring starts
+    // when the seed lands (while that tab is still offstage) and has landed by
+    // the time the tab is on stage - a mid-flight sample is no longer
+    // observable here. The spring mechanics (monotonic rise, no overshoot,
+    // exact landing, restart on value change) are covered by the unit tests in
+    // test/motion_base_test.dart; this step asserts the end state on the real
+    // engine. T-13b: the speed-entry page's back action is its own keyed button.
+    await tester.tap(find.byKey(const Key('quick_back')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('tab_assets')));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 120));
-    final counter =
-        tester.state<CountUpNumberState>(find.byType(CountUpNumber));
-    final midCents = counter.shownCents;
-    // ignore: avoid_print
-    print('T09C2_COUNTUP counting=${counter.isCounting} mid=$midCents');
-    expect(counter.isCounting, isTrue);
-    // One extra frame flushes the counted value into the paint before snapping.
-    await tester.pump();
-    await snap(tester, '03_net_value_countup_mid');
     await tester.pumpAndSettle();
-    final finalCents = counter.shownCents;
+    await snap(tester, '03_net_value_settled');
+    final counter = tester.state<CountUpNumberState>(
+      find.byKey(const Key('assets_net_value')),
+    );
+    final settledCents = counter.shownCents;
     // ignore: avoid_print
-    print('T09C2_COUNTUP counting=${counter.isCounting} settled=$finalCents');
-    expect(counter.isCounting, isFalse);
-    expect(counter.shownCents, finalCents, reason: 'must land exactly');
-    expect(midCents, greaterThan(0));
-    expect(midCents, lessThan(finalCents));
+    print('T09C2_COUNTUP counting=${counter.isCounting} settled=$settledCents');
+    expect(counter.isCounting, isFalse, reason: 'the spring has landed');
+    expect(settledCents, 600000,
+        reason: 'the net value lands exactly on the seeded asset value');
 
     // ---------- 4. hero relay curve + flow ----------
     // Only the relaying heroes are ours: FloatingActionButton ships its own
@@ -317,7 +325,7 @@ void main() {
     print('T09C2_REDUCED haptics=${haptics.length} confirm_haptic=ok snackbar=ok');
 
     // Count-up renders the target straight away.
-    await tester.pageBack();
+    await tester.tap(find.byKey(const Key('quick_back')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('tab_assets')));
     await tester.pumpAndSettle(const Duration(seconds: 1));

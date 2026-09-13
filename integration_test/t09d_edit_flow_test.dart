@@ -289,14 +289,36 @@ void main() {
         reason: 'the list main image follows the new cover');
     await snap(tester, '07_list_cover_after');
 
-    // Keep the dev DB tidy: tombstone the asset this run seeded.
+    // Keep the dev DB tidy: tombstone the asset this run seeded AND the photo
+    // rows it attached (T-13b: the rows used to stay live, so every pass left
+    // three live asset_photos behind).
+    for (final p in await photoRepo.getForAsset(asset.id)) {
+      await photoRepo.softDelete(p.id);
+    }
     await assetRepo.softDelete(asset.id);
     await tester.pumpAndSettle(const Duration(seconds: 1));
+    final leftoverPhotos = await photoRepo.getForAsset(asset.id);
+    // ignore: avoid_print
+    print('T09D_TEARDOWN asset_tombstoned=true '
+        'live_photos=${leftoverPhotos.length}');
   });
 
   testWidgets('T-09D: floating snackbar clears the confirm CTA', (tester) async {
     final container = ProviderContainer();
     addTearDown(container.dispose);
+    // T-13b hygiene: the confirm below writes a formal record; retire every row
+    // this run created so the dev database is left exactly as it was found
+    // (this script used to leave a live expense behind, which broke the strict
+    // preconditions of t10b/t13b on the next full regression).
+    final txRepo = container.read(transactionRepositoryProvider);
+    final txBefore = (await txRepo.watchAll().first).map((t) => t.id).toSet();
+    addTearDown(() async {
+      for (final row in await txRepo.watchAll().first) {
+        if (!txBefore.contains(row.id)) {
+          await txRepo.softDelete(row.id);
+        }
+      }
+    });
     await tester.pumpWidget(harness(container));
     await tester.pumpAndSettle(const Duration(seconds: 2));
 

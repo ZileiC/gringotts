@@ -1,0 +1,18 @@
+Flutter assets will be downloaded from https://storage.flutter-io.cn. Make sure you trust this source!
+00:00 +0: loading C:/Users/JHarayden/Desktop/Gringotts/integration_test/t09c_motion_test.dart
+Building Windows application...                                    24.3s
+√ Built build\windows\x64\runner\Debug\gringotts.exe
+00:00 +0: T-09C motion evidence: stagger + sink + scale + fps
+T09C_SNAP name=01_home_idle md5=78147c4bf86f
+T09C_SNAP name=02_home_cta_pressed md5=199cfd5f78f0
+T09C_SNAP name=03_assets_stagger_mid md5=ac8c626d843c
+T09C_SNAP name=04_assets_settled md5=ac8c626d843c
+T09C_SINK name=05_assets_scrolled_sink scroll_px=81.0 rise=40.8 opacity=0.600
+T09C_SNAP name=05_assets_scrolled_sink md5=77737cd62db6
+T09C_FPS scroll_drag avg_frame_ms=27.25 samples=12 budget=16.7
+T09C_SNAP name=06_stats_idle md5=faf34516fdb5
+T09C_SINK name=07_stats_scrolled scroll_px=81.0 rise=40.8 opacity=0.600
+T09C_SNAP name=07_stats_scrolled md5=b7a1247dc65a
+T09C_SNAP name=08_ledger md5=2b1d8da8c891
+00:21 +1: (tearDownAll)
+00:21 +1: All tests passed!

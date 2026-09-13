@@ -145,12 +145,24 @@ class _NetValueCard extends StatelessWidget {
           children: [
             Text('总资产净值', style: theme.textTheme.bodySmall),
             const SizedBox(height: AppSpacing.xs),
+            // Brand moment (DESIGN_MAIN.md section 6/7): the net value is the
+            // assets page's serif + gold-gradient number, sharing the home
+            // hero's spec values (AppFont.brandNumber / AppGradient.goldText).
+            // Every other number on this page stays tabular sans.
             CountUpNumber(
               valueCents: portfolio.netCents,
-              builder: (context, cents) => Text(
-                _yuan(cents),
-                style: theme.textTheme.displayLarge?.copyWith(
-                  fontSize: AppFont.display - 8,
+              builder: (context, cents) => ShaderMask(
+                shaderCallback: (bounds) =>
+                    AppGradient.goldText.createShader(bounds),
+                child: Text(
+                  _yuan(cents),
+                  style: const TextStyle(
+                    fontFamily: 'PlayfairDisplay',
+                    fontWeight: FontWeight.w600,
+                    fontSize: AppFont.brandNumber,
+                    color: AppColors.goldAccent,
+                    fontFeatures: AppFont.tabularFigures,
+                  ),
                 ),
               ),
             ),

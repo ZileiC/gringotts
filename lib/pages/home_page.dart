@@ -502,15 +502,14 @@ class _HeroCard extends StatelessWidget {
                 style: theme.textTheme.bodySmall),
             const SizedBox(height: AppSpacing.s),
             ShaderMask(
-              shaderCallback: (bounds) => const LinearGradient(
-                colors: [AppColors.goldAccent, AppColors.goldDeep],
-              ).createShader(bounds),
+              shaderCallback: (bounds) =>
+                  AppGradient.goldText.createShader(bounds),
               child: Text(
                 '¥${_money(live)}',
                 style: const TextStyle(
                   fontFamily: 'PlayfairDisplay',
                   fontWeight: FontWeight.w600,
-                  fontSize: 48,
+                  fontSize: AppFont.brandNumber,
                   color: AppColors.goldAccent,
                   fontFeatures: AppFont.tabularFigures,
                 ),

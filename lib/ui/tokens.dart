@@ -174,10 +174,26 @@ abstract final class AppRadius {
   static const double key = 17;
 }
 
+/// Gradients. DESIGN_MAIN.md section 7 caps gold-gradient definitions at four
+/// (home hero allowance / assets net value / bottom-bar 记一笔 / chart gold
+/// scale) and prohibits them everywhere else, so the two text moments share
+/// this one definition instead of each page rolling its own.
+abstract final class AppGradient {
+  /// Brand gold text gradient (home hero allowance + assets net value).
+  static const LinearGradient goldText = LinearGradient(
+    colors: [AppColors.goldAccent, AppColors.goldDeep],
+  );
+}
+
 /// Typography scale (Perfect Fourth, base 16; DESIGN_T09.md section 2).
 abstract final class AppFont {
   /// Keypad amount display (speed-entry home).
   static const double display = 56;
+
+  /// The brand serif number: the two gold-gradient amounts (home hero live
+  /// allowance + assets net value, DESIGN_MAIN.md section 6/7). Identical in
+  /// both places by construction - brand_number_test locks the pair.
+  static const double brandNumber = 48;
 
   /// H3 level.
   static const double h3 = 38;

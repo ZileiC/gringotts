@@ -26,7 +26,7 @@
 
 本轮任务 = T-14b（M2 前置修正票，两部分）：
 Part A 导航语义修正（立即做）：「记一笔」只属分析页 —— 仅在分析 tab 选中时出现（分析页自己的固定操作条，位于底栏之上）；切到资产/统计则该入口不存在（不留空槽、不置灰、不可压栈）；快记页唯一入口＝分析页 CTA，返回必落分析页；审计并清理所有「从资产/统计进快记」的路径与断言（t12c_shell_test 的 pushed_from_stats 用例改为「统计 tab 无 CTA」的存在性断言；home_shell_test 同步）；底栏总高在三个 tab 间恒定。
-Part B 底栏重设计（按 DESIGN_MAIN §8 冻结稿 = 方向 A）：纯色金实心「＋ 记一笔」键（禁渐变！高 46 / radius 12 / 水平内边距 26 / 文字 15 w600），不撑满整条、右端留「今天 N 笔」信息位；三 tab 图标 20 + 文字 11.5 上下排，选中 goldAccent w600、未选中 inkSecondary，顶部 hairline；按下 0.96 微缩放 + 触感，reduce-motion 退化纯色变；色值/字号/间距只准引用 tokens.dart；资产/统计页无 CTA（见 A 部分）。若用户改选方向 B/C，管理层会同步改 §8，你以 §8 为准。
+Part B 底栏重设计：**先看 DESIGN_MAIN §8**（v2 待拍板：tab 态 T1/T2/T3 × 「记一笔」位置 P1/P2/P3 × 按钮本体 D1/D2/D3）。**若 §8 尚未写成终稿（用户没拍板）→ 只做 Part A + Part C，并在 WORKLOG 顶部记一行「Part B 待规格」，不要自行选型或凭感觉设计**。已冻结的不变量（无论选哪套）：底栏只放三个 tab；只用自绘 1.25px 线稿图标；禁投影/渐变/发光/循环动画；底栏总高恒定；色值字号间距只准引用 tokens.dart。
 Part C 出包：本票末 flutter build apk --release → 桌面 gringotts-T14b-release.apk（把 T-14 的统计页改动一并入包）+ 记录 md5。
 
 不要改 AGENTS.md / DESIGN_MAIN.md / TICKETS_M2A.md（管理层文档；AGENTS.md 的结构行订正由管理层负责）。

@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Gringotts · 底栏 + 「记一笔」重设计 v2（2026-09-14）</title>
+<style>
+  :root{
+    --canvas:#0C0B09; --surface:#14120E; --elevated:#1D1A13; --overlay:#262117;
+    --hairline:#2C271C; --ink:#F4EFE2; --ink2:#A69C86;
+    --gold:#E3C36B; --goldDeep:#9C7A24; --goldContainer:#2A2314; --onGoldContainer:#EDD9A3;
+    --onGold:#171204;
+    --sans:-apple-system,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;
+    --serif:"Playfair Display",Georgia,"Times New Roman",serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--canvas);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.6}
+  .wrap{max-width:1200px;margin:0 auto;padding:40px 24px 90px}
+  .eyebrow{font-size:11px;letter-spacing:.16em;color:var(--ink2);text-transform:uppercase}
+  h1{font-size:26px;margin:6px 0 8px;letter-spacing:-.02em}
+  h2{font-size:18px;margin:0}
+  h3{font-size:13px;color:var(--ink2);margin:0 0 8px;letter-spacing:.06em}
+  .pod{color:var(--ink2);font-size:13px;margin:0 0 16px}
+  .note{border:1px solid var(--hairline);border-radius:12px;padding:14px 16px;background:var(--surface);margin:16px 0}
+  .note b{color:var(--gold)}
+  .sec{margin-top:46px}
+  .sec-head{display:flex;align-items:baseline;gap:12px;margin-bottom:4px}
+  .sec-head .idx{font-family:var(--serif);font-size:22px;color:var(--gold)}
+  .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+  .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
+  .tag{font-size:11px;letter-spacing:.1em;border:1px solid var(--gold);color:var(--gold);border-radius:999px;padding:2px 10px;white-space:nowrap}
+  .tag.rec{border-color:var(--gold);background:var(--goldContainer);color:var(--onGoldContainer)}
+  .colhd{display:flex;align-items:center;gap:10px;margin:0 0 8px;flex-wrap:wrap}
+  .phone{width:100%;border:1px solid var(--hairline);border-radius:18px;background:var(--canvas);overflow:hidden;display:flex;flex-direction:column;min-height:470px}
+  .bar{height:36px;border-bottom:1px solid var(--hairline);display:flex;align-items:center;justify-content:space-between;padding:0 12px;font-size:12px}
+  .body{padding:12px;flex:1;position:relative}
+  .card{border:1px solid var(--hairline);border-radius:12px;background:var(--surface);padding:11px}
+  .lbl{font-size:10.5px;color:var(--ink2);letter-spacing:.06em}
+  .bignum{font-family:var(--serif);font-size:30px;font-weight:600;color:var(--gold);letter-spacing:-.02em}
+  .kv{display:flex;justify-content:space-between;font-size:11.5px;padding:2px 0;color:var(--ink2)}
+  .kv b{color:var(--ink);font-weight:600}
+  .cap{font-size:11.5px;color:var(--ink2);margin:8px 0 0}
+  /* bottom bar variants */
+  .bottom{border-top:1px solid var(--hairline)}
+  .tabs{display:flex}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 0 10px;justify-content:center;position:relative}
+  .tab .tx{font-size:11.5px;letter-spacing:.06em;color:var(--ink2)}
+  .tab svg{width:20px;height:20px}
+  .tab svg *{stroke:var(--ink2)}
+  .tab.on .tx{color:var(--gold);font-weight:600}
+  .tab.on svg *{stroke:var(--gold)}
+  /* T1 underline */
+  .tab.underline::after{content:"";position:absolute;bottom:4px;left:50%;transform:translateX(-50%);width:16px;height:1.5px;border-radius:2px;background:var(--gold);opacity:0}
+  .tab.underline.on::after{opacity:1}
+  /* T2 dot + tracking */
+  .tab.dot .tx{font-size:12px;letter-spacing:.1em}
+  .tab.dot .mark{position:absolute;top:6px;left:50%;transform:translateX(-50%);width:3px;height:3px;border-radius:999px;background:var(--gold);opacity:0}
+  .tab.dot.on .mark{opacity:1}
+  .tab.dot.on .tx{color:var(--gold);font-weight:600}
+  /* T3 cells */
+  .tabs.cells{padding:8px 12px 12px;gap:8px}
+  .tabs.cells .tab{border:1px solid var(--hairline);border-radius:12px;padding:8px 0}
+  .tabs.cells .tab.on{border-color:var(--gold);background:var(--goldContainer)}
+  .tabs.cells .tab.on .tx{color:var(--gold)}
+  /* CTA variants */
+  .cta-dock{padding:0 16px 10px}
+  .fab{position:absolute;right:14px;bottom:14px;width:54px;height:54px;border-radius:999px;background:var(--gold);display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 0 1px var(--goldDeep)}
+  .fab.small{width:44px;height:44px;opacity:.72}
+  .fab svg{width:22px;height:22px}
+  .fab svg *{stroke:var(--onGold)}
+  .topkey{width:40px;height:40px;border-radius:999px;border:1.25px solid var(--gold);display:flex;align-items:center;justify-content:center}
+  .topkey svg{width:18px;height:18px}
+  .topkey svg *{stroke:var(--gold)}
+  .rule{display:flex;align-items:center;gap:0;margin:8px 0 6px}
+  .rule .line{flex:1;height:1px;background:var(--gold)}
+  .rule .txt{color:var(--gold);font-size:15px;font-weight:600;padding:0 10px;white-space:nowrap}
+  .pill{display:inline-flex;align-items:center;gap:7px;height:44px;padding:0 22px;border-radius:12px;font-size:15px;font-weight:600}
+  .pill.solid{background:var(--gold);color:var(--onGold);box-shadow:inset 0 0 0 1px var(--goldDeep)}
+  .pill.ring{border:1.25px solid var(--gold);color:var(--gold)}
+  .pill.double{position:relative;color:var(--gold);padding:0 24px}
+  .pill.double::before{content:"";position:absolute;inset:0;border:1px solid var(--gold);border-radius:12px}
+  .pill.double::after{content:"";position:absolute;inset:3px;border:1px solid rgba(227,195,107,.45);border-radius:9px}
+  .pros{font-size:12.5px;color:var(--ink2);margin:10px 0 0}
+  .pros b{color:var(--ink);font-weight:600}
+  .pick{margin-top:38px;border:1px dashed var(--hairline);border-radius:12px;padding:16px}
+  .pick b{color:var(--gold)}
+  code{background:var(--elevated);border:1px solid var(--hairline);border-radius:6px;padding:1px 5px;font-size:12px}
+  .swatch{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:middle}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="eyebrow">Gringotts · M2 前置修正 · 底栏与「记一笔」重设计 v2</div>
+  <h1>三 tab 的艺术感 × 3 &nbsp;·&nbsp; 「记一笔」的位置 × 3</h1>
+  <div class="pod">v2 按你的三条意见重做：① 底栏**只放三个 tab**（不塞按钮）② 三个 tab 本身要**更有艺术感**（不是通用「图标+汉字」）③ 「记一笔」的**位置与按钮本体**推倒重来（前三个位置作废：底栏上方通栏 / 卡片内 / 底栏居中）。可自由组合，例如「T1 + P2 + D2」。</div>
+
+  <div class="note">
+    <b>两条铁律没变</b>：①「记一笔」只在**分析页**存在（资产/统计页彻底没有它）② 底栏总高恒定、切换不跳动。另外三 tab 我保留了你认可的「图标 + 汉字」结构，只在<b>线稿、字距、选中态</b>三处做文章 —— 不用渐变、不用发光、不加投影。
+  </div>
+
+  <!-- ================= 1. 三个 tab 的艺术感 ================= -->
+  <div class="sec">
+    <div class="sec-head"><span class="idx">I</span><h2>三个 tab：三种更有艺术感的做法</h2></div>
+    <p class="pod">共同点：图标改为<b>项目自绘线稿</b>（1.25px 细描边，几何化，不再用 Material 通用件）—— 分析＝一条上升折线带终点小圆 · 资产＝层叠双框（金库）· 统计＝三根不等高竖线压底线。区别在「选中」怎么表达。</p>
+    <div class="grid3">
+
+      <div>
+        <div class="colhd"><span class="tag rec">T1 · 推荐</span><span class="cap" style="margin:0">金细线滑动</span></div>
+        <div class="phone">
+          <div class="bar"><span>2026 年 9 月 ▾</span><span>＋ ⚙</span></div>
+          <div class="body"><div class="card"><div class="lbl">今天还能花</div><div class="bignum">¥86</div></div></div>
+          <div class="bottom">
+            <div class="tabs">
+              <div class="tab underline on">
+                <svg viewBox="0 0 20 20" fill="none" stroke-width="1.25"><path d="M2.5 14.5l4-4.5 3 2.5 5-6.5"/><circle cx="15.5" cy="6" r="1.6"/></svg>
+                <div class="tx">分析</div>
+              </div>
+              <div class="tab underline">
+                <svg viewBox="0 0 20 20" fill="none" stroke-width="1.25"><rect x="3.5" y="5" width="13" height="4.5" rx="1"/><rect x="3.5" y="11" width="13" height="4.5" rx="1"/></svg>
+                <div class="tx">资产</div>
+              </div>
+              <div class="tab underline">
+                <svg viewBox="0 0 20 20" fill="none" stroke-width="1.25"><path d="M4 16.5V9M10 16.5V4.5M16 16.5v-5"/></svg>
+                <div class="tx">统计</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="cap"><b>选中</b>＝字变金加粗 + 图标变金 + 底下一条 16px 金细线（切 tab 时滑动过渡 180ms）。<br>最接近现在的手感，只是把「方块图标」换成自绘线稿、把选中做成「一线之差」—— 安静但精致。</p>
+      </div>
+
+      <div>
+        <div class="colhd"><span class="tag">T2</span><span class="cap" style="margin:0">金点 · 字距 · 大留白</span></div>
+        <div class="phone">
+          <div class="bar"><span>2026 年 9 月 ▾</span><span>＋ ⚙</span></div>
+          <div class="body"><div class="card"><div class="lbl">今天还能花</div><div class="bignum">¥86</div></div></div>
+          <div class="bottom">
+            <div class="tabs">
+              <div class="tab dot on"><div class="mark"></div>
+                <svg viewBox="0 0 20 20" fill="none" stroke-width="1.25"><path d="M2.5 14.5l4-4.5 3 2.5 5-6.5"/><circle cx="15.5" cy="6" r="1.6"/></svg>
+                <div class="tx">分析</div>
+              </div>
+              <div class="tab dot"><div class="mark"></div>
+                <svg viewBox="0 0 20 20" fill="none" stroke-width="1.25"><rect x="3.5" y="5" width="13" height="4.5" rx="1"/><rect x="3.5" y="11" width="13" height="4.5" rx="1"/></svg>
+                <div class="tx">资产</div>
+              </div>
+              <div class="tab dot"><div class="mark"></div>
+                <svg viewBox="0 0 20 20" fill="none" stroke-width="1.25"><path d="M4 16.5V9M10 16.5V4.5M16 16.5v-5"/></svg>
+                <div class="tx">统计</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="cap"><b>选中</b>＝文字放大字距（+0.10em）+ 加粗变金 + 图标顶上一颗 3px 金点（像页码的着重号）。无底线、无边框 —— 最像「排版」的一版。</p>
+      </div>
+
+      <div>
+        <div class="colhd"><span class="tag">T3</span><span class="cap" style="margin:0">三格账页（与网格同源）</span></div>
+        <div class="phone">
+          <div class="bar"><span>2026 年 9 月 ▾</span><span>＋ ⚙</span></div>
+          <div class="body"><div class="card"><div class="lbl">今天还能花</div><div class="bignum">¥86</div></div></div>
+          <div class="bottom">
+            <div class="tabs cells">
+              <div class="tab on">
+                <svg viewBox="0 0 20 20" fill="none" stroke-width="1.25"><path d="M2.5 14.5l4-4.5 3 2.5 5-6.5"/><circle cx="15.5" cy="6" r="1.6"/></svg>
+                <div class="tx">分析</div>
+              </div>
+              <div class="tab">
+                <svg viewBox="0 0 20 20" fill="none" stroke-width="1.25"><rect x="3.5" y="5" width="13" height="4.5" rx="1"/><rect x="3.5" y="11" width="13" height="4.5" rx="1"/></svg>
+                <div class="tx">资产</div>
+              </div>
+              <div class="tab">
+                <svg viewBox="0 0 20 20" fill="none" stroke-width="1.25"><path d="M4 16.5V9M10 16.5V4.5M16 16.5v-5"/></svg>
+                <div class="tx">统计</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="cap"><b>选中</b>＝细框变金边 + 极淡金底（复用月历/类别网格的选中语言，全 app 同源）。辨识度最高、最「有设计」；代价是高度多一点（+8）。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 2. 记一笔的位置 ================= -->
+  <div class="sec">
+    <div class="sec-head"><span class="idx">II</span><h2>「记一笔」的位置：三个新方案</h2></div>
+    <p class="pod">都遵守「只在分析页」。前三个方案（底栏上方通栏 / 卡片内 / 底栏居中）已作废。</p>
+    <div class="grid3">
+
+      <div>
+        <div class="colhd"><span class="tag rec">P1 · 推荐</span><span class="cap" style="margin:0">右下悬浮金键（拇指位）</span></div>
+        <div class="phone">
+          <div class="bar"><span>2026 年 9 月 ▾</span><span>⚙</span></div>
+          <div class="body">
+            <div class="card"><div class="lbl">今天还能花</div><div class="bignum">¥86</div><div class="kv" style="margin-top:4px"><span>本月已花</span><b>¥2,000</b></div></div>
+            <div class="fab"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M4 20l1-4 9.5-9.5a2 2 0 012.8 0l1.2 1.2a2 2 0 010 2.8L9 20l-5 0z"/></svg></div>
+          </div>
+          <div class="bottom">
+            <div class="tabs">
+              <div class="tab underline on"><svg viewBox="0 0 20 20" fill="none" stroke-width="1.25"><path d="M2.5 14.5l4-4.5 3 2.5 5-6.5"/><circle cx="15.5" cy="6" r="1.6"/></svg><div class="tx">分析</div></div>
+              <div class="tab underline"><svg viewBox="0 0 20 20" fill="none" stroke-width="1.25"><rect x="3.5" y="5" width="13" height="4.5" rx="1"/><rect x="3.5" y="11" width="13" height="4.5" rx="1"/></svg><div class="tx">资产</div></div>
+              <div class="tab underline"><svg viewBox="0 0 20 20" fill="none" stroke-width="1.25"><path d="M4 16.5V9M10 16.5V4.5M16 16.5v-5"/></svg><div class="tx">统计</div></div>
+            </div>
+          </div>
+        </div>
+        <p class="cap">圆形金键（54）悬浮在内容右下、底栏之上 14px。滚动时缩到 44 并半透明（0.72），向上滚回原样 —— <b>一次性过渡，不是循环动画</b>。<br><b>为什么推荐</b>：记账是最高频动作，拇指原位就能按；不占底栏、不和三个 tab 抢注意力；切到资产/统计自动消失。</p>
+      </div>
+
+      <div>
+        <div class="colhd"><span class="tag">P2</span><span class="cap" style="margin:0">顶栏金环键（永不离屏）</span></div>
+        <div class="phone">
+          <div class="bar">
+            <span>2026 年 9 月 ▾</span>
+            <span style="display:flex;align-items:center;gap:8px">
+              <span class="topkey"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.6"><path d="M12 5v14M5 12h14"/></svg></span>
+              <span>⚙</span>
+            </span>
+          </div>
+          <div class="body"><div class="card"><div class="lbl">今天还能花</div><div class="bignum">¥86</div><div class="kv" style="margin-top:4px"><span>本月已花</span><b>¥2,000</b></div></div></div>
+          <div class="bottom">
+            <div class="tabs">
+              <div class="tab underline on"><svg viewBox="0 0 20 20" fill="none" stroke-width="1.25"><path d="M2.5 14.5l4-4.5 3 2.5 5-6.5"/><circle cx="15.5" cy="6" r="1.6"/></svg><div class="tx">分析</div></div>
+              <div class="tab underline"><svg viewBox="0 0 20 20" fill="none" stroke-width="1.25"><rect x="3.5" y="5" width="13" height="4.5" rx="1"/><rect x="3.5" y="11" width="13" height="4.5" rx="1"/></svg><div class="tx">资产</div></div>
+              <div class="tab underline"><svg viewBox="0 0 20 20" fill="none" stroke-width="1.25"><path d="M4 16.5V9M10 16.5V4.5M16 16.5v-5"/></svg><div class="tx">统计</div></div>
+            </div>
+          </div>
+        </div>
+        <p class="cap">顶栏右端一个 40 的金环键（1.25px 金环 + 金「＋」，无填充），与月份按钮同一行、⚙ 在其右。<br><b>好处</b>：顶栏不随滚动 → 入口永不离屏，且完全不占内容区；<b>代价</b>：大屏单手够顶栏要挪一下手。</p>
+      </div>
+
+      <div>
+        <div class="colhd"><span class="tag">P3</span><span class="cap" style="margin:0">金线下划键（编辑风）</span></div>
+        <div class="phone">
+          <div class="bar"><span>2026 年 9 月 ▾</span><span>⚙</span></div>
+          <div class="body">
+            <div class="card"><div class="lbl">今天还能花</div><div class="bignum">¥86</div><div class="kv" style="margin-top:4px"><span>本月已花</span><b>¥2,000</b></div></div>
+            <div class="rule"><div class="line"></div><div class="txt">＋ 记一笔</div><div class="line"></div></div>
+            <div class="card"><div class="lbl">今日支出构成</div><div class="kv"><span>餐饮</span><b>¥45</b></div></div>
+          </div>
+          <div class="bottom">
+            <div class="tabs">
+              <div class="tab underline on"><svg viewBox="0 0 20 20" fill="none" stroke-width="1.25"><path d="M2.5 14.5l4-4.5 3 2.5 5-6.5"/><circle cx="15.5" cy="6" r="1.6"/></svg><div class="tx">分析</div></div>
+              <div class="tab underline"><svg viewBox="0 0 20 20" fill="none" stroke-width="1.25"><rect x="3.5" y="5" width="13" height="4.5" rx="1"/><rect x="3.5" y="11" width="13" height="4.5" rx="1"/></svg><div class="tx">资产</div></div>
+              <div class="tab underline"><svg viewBox="0 0 20 20" fill="none" stroke-width="1.25"><path d="M4 16.5V9M10 16.5V4.5M16 16.5v-5"/></svg><div class="tx">统计</div></div>
+            </div>
+          </div>
+        </div>
+        <p class="cap">Hero 卡下面一条通栏 1px 金线，线中央「＋ 记一笔」把线断开 —— 像印刷品的分栏线，零填充零边框。<br><b>好处</b>：最有「排版艺术感」、最克制；<b>代价</b>：往下滚就看不见了（要回顶端）。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 3. 按钮本体 ================= -->
+  <div class="sec">
+    <div class="sec-head"><span class="idx">III</span><h2>按钮本体：三种做法（可单独换）</h2></div>
+    <p class="pod">按钮形状与位置可以拆开选：位置挑 II 里的，样式挑这里的。全部无投影、无渐变、无发光。</p>
+    <div class="grid3">
+      <div>
+        <div class="colhd"><span class="tag rec">D1 · 压印金块</span></div>
+        <div class="card" style="padding:18px;display:flex;justify-content:center;align-items:center;min-height:110px">
+          <span class="pill solid">＋ 记一笔</span>
+        </div>
+        <p class="cap">纯色香槟金实心，<b>内侧 1px 深金描边</b>模拟「压印边」—— 不用投影也有金属重量感。文字 sans 15·w600。</p>
+      </div>
+      <div>
+        <div class="colhd"><span class="tag">D2 · 金环</span></div>
+        <div class="card" style="padding:18px;display:flex;justify-content:center;align-items:center;min-height:110px">
+          <span class="pill ring">＋ 记一笔</span>
+        </div>
+        <p class="cap">1.25px 金环 + 金字，按下时内部渐入极淡金底（120ms 一次性）。与快记页确认键、导出键同一套语言。</p>
+      </div>
+      <div>
+        <div class="colhd"><span class="tag">D3 · 双线薄片</span></div>
+        <div class="card" style="padding:18px;display:flex;justify-content:center;align-items:center;min-height:110px">
+          <span class="pill double">＋ 记一笔</span>
+        </div>
+        <p class="cap">外 1px 金线 + 内 1px 极淡金线（间距 3），像钱币边缘。最「精工」，也最挑像素对齐（1px 线在非整数缩放下会糊）。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="pick">
+    <b>怎么回我</b>：三处各挑一个即可，例如 <code>T1 / P1 / D1</code>（我的推荐组合），或 <code>T3 + P2 + D2</code>。<br>
+    <span style="color:var(--ink2)">推荐理由（一句话）：<b>T1 细线滑动</b> 保留你现在认可的结构、只提升质感；<b>P1 右下金键</b> 让「3 秒一笔」是拇指原位就能完成、且不占底栏；<b>D1 压印金块</b> 去掉渐变但仍保留金色的重量感。</span><br>
+    <span style="color:var(--ink2)">若还想改：告诉我具体不爽点（「线太细」「金太亮」「字要更大」「不要线稿图标」），我出 v3。你拍板前不派工。</span>
+  </div>
+
+</div>
+</body>
+</html>

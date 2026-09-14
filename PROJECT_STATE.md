@@ -4,7 +4,7 @@
 
 ## 状态（2026-09-14，M2 前置修正票 **T-14b** 立案；M2.0 正式波待启动）
 - **M2.0 前置波**：全部 ✅ 关闭（T-10a → T-14）；**当前票 = T-14b（M2 前置修正，P1）**：① 导航语义修正——「记一笔」仅属分析页 ② 底栏 + 「记一笔」重设计（`DESIGN_MAIN.md` §8 草案·方向 A，待你拍板）
-- **设计稿待拍板**：`design/bottom_bar_preview.html`（底栏三方向）+ `design/ai_wave_preview.html`（AI 三屏各 2 方向，T-15 起用）
+- **设计稿待拍板**：`design/bottom_bar_preview_v2.html`（底栏：tab 态 T1/T2/T3 × 「记一笔」位置 P1/P2/P3 × 按钮本体 D1/D2/D3，可组合 —— T-14b Part B 用）+ `design/ai_wave_preview.html`（AI 三屏各 2 方向 —— T-15 起用）
 - **当前波**：**M2.0 正式波（AI 上线）**拆票见 `TICKETS_M2A.md`（T-15 AI 基座 → T-16 主页 AI 建议 → T-17/T-18 → T-19 → T-20）
 - **交付物**：桌面 `gringotts-T13b-release.apk`（md5 `e7c75551f5894e22e952df892de914f6`）；T-14 统计页改动 + T-14b 底栏改动将由 **T-14b 末出包**（`gringotts-T14b-release.apk`）一并入包；仓库 github.com/jharayden/gringotts（private）
 - **质量基线**：**196 单测全绿且整轮正常退出**；全量回归 14/14 脚本；dev 库回归后 live 全 0；对比度 ≥ AA（最低 4.89）；零硬编码色值；工作区已内部清理（释放 ≈6.8GB，见 WORKLOG）

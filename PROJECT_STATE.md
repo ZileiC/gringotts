@@ -6,6 +6,7 @@
 - **M2.0 前置波**：全部 ✅ 关闭（T-10a → T-14）；**当前票 = T-14b（P1）**，规格已定稿：① Part A 导航语义修正——「记一笔」仅属分析页 ② Part B 底栏重设计 = **`DESIGN_MAIN.md` §8 终稿（T1/P2/D1：底栏金细线滑动 + 记一笔移到分析页顶栏、只要加号 + 引入 MiSans）**
 - **派工 prompt**：`SESSION_PROMPTS.md` §B（执行层新 session 开场 prompt，已含 Part A/B/C 与验收标准，**直接可派**）
 - **待拍板（另一件）**：`design/ai_wave_preview.html`（AI 三屏各 2 方向）—— **T-15 的启用前提**
+- **M2.0 正式波（含 T-15~T-20）按用户安排暂缓**（2026-09-14 用户：「M2.0 以及它的各个部分都可以先放一下，我有自己的安排」）→ 拆票表保留在 `TICKETS_M2A.md` 备查，**未获用户指示前不派工、不催办**；用户另有安排时按其指示推进
 - **当前波**：**M2.0 正式波（AI 上线）**拆票见 `TICKETS_M2A.md`（T-15 AI 基座 → T-16 主页 AI 建议 → T-17/T-18 → T-19 → T-20）
 - **交付物**：桌面 `gringotts-T13b-release.apk`（md5 `e7c75551f5894e22e952df892de914f6`）；T-14 统计页改动 + T-14b 底栏改动由 **T-14b 末出包**（`gringotts-T14b-release.apk`）一并入包；仓库 github.com/jharayden/gringotts（private）
 - **质量基线**：**196 单测全绿且整轮正常退出**；全量回归 14/14 脚本；dev 库回归后 live 全 0；对比度 ≥ AA（最低 4.89）；零硬编码色值；工作区已内部清理（释放 ≈6.8GB，见 WORKLOG）

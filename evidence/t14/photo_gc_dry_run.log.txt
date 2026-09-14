@@ -1,0 +1,14 @@
+-- references: {"asset_photos_rows": 96, "assets_photo_path_rows": 38, "asset_photos_tombstoned": 96, "assets_photo_path_tombstoned": 38}
+-- photos dir: C:\Users\JHarayden\AppData\Roaming\dev.jharayden\gringotts\photos
+-- before: total=94 referenced=87 foreign=0 orphan=7
+   orphan 3161b9ad029c4a60fd19a44f50a2c43da8e08fa37ee4cf53e731863caae6ca74.jpg (4303 bytes)
+   orphan 3ffa2587c277e26c1ce104e19fd4c49072e09cf2b563fe4264968f0cf7693428.jpg (4401 bytes)
+   orphan 469f85b27611fd101af8382f6c34b3a8b2517e4a3f25472cbcc82a6bc496b931.jpg (4254 bytes)
+   orphan 6089f121f0ec79e02cfe3f90410dec62347f24027bda1969c1c0c0b6abae0b57.jpg (4402 bytes)
+   orphan 70f1796a04fb8044a25d13a684e30f77a2020a5e77d23d5633003053f71612f7.jpg (4362 bytes)
+   orphan 994864107c17299b85931525e05f6d93a624b4782e51a69b2fdab43f799b8af3.jpg (4362 bytes)
+   orphan eed7974a1542d76f0f8476635de172133ab64da3e7d3bf2c26f0c8591f94bd57.jpg (4227 bytes)
+-- after : total=94 referenced=87 foreign=0 orphan=7
+-- removed=0 retained_bytes=407591
+-- report -> evidence\t14\photo_gc_dry_run.json
+-- (dry run - re-run with --apply to delete the orphans)

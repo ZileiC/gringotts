@@ -88,7 +88,7 @@ def main() -> int:
     backup: Path | None = None
     if args.apply:
         stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-        backup = args.db.with_suffix(f".sqlite.pre-t09e-{stamp}.bak")
+        backup = args.db.with_suffix(f".sqlite.pre-clean-{stamp}.bak")
         shutil.copy2(args.db, backup)
         print(f"backup -> {backup}")
 

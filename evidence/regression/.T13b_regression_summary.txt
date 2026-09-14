@@ -49,3 +49,10 @@ Duplicate md5 groups (all explained, same screen + same state):
 unique md5s: 56 of 68 frames
 frame files: PNGs stay local (evidence/**/*.png is gitignored); each script writes into
   evidence/regression/ or its own ticket dir - the md5 manifest below is the record.
+
+T-14 follow-up note (2026-09-14): two frame names were stale and are renamed -
+  t09e 02_keyboard_after_splash -> 02_home_after_splash, t09c 01_home_idle ->
+  01_quick_entry_idle. The stats-page spec alignment (negative net colour, gold
+  outline export key) changed the frames that show them. Current names and md5s:
+  evidence/t14/.T14_rerun_frame_md5.txt; logs evidence/regression/*.t14.log.
+  The table above records this T-13b run as it happened (names/md5s unchanged).

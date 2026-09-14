@@ -17,3 +17,4 @@ All tests passed (1 test, 21s)
 frames: evidence/t09c/.t09c_<name>.png - Dart PNG, md5 unique 8/8
 run #1 (pre-fix) and run #2 (pre-assertion script) are superseded; the
 byte-identical 01/02 pair of run #1 exposed the TouchedScale rest-state bug.
+# T-14 rename: 01_home_idle -> 01_quick_entry_idle (the snap is taken after 记一笔 opened the speed-entry page, so the frame is that page; the old name was the M1.0 IA). This log body is the verbatim T-09E-era run; the current md5 is in evidence/regression/.T13b_regression_frame_md5.txt.

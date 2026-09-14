@@ -3,6 +3,18 @@
 > 执行层（Codex）每次收工在顶部追加一段：做了什么 / 关键决策 / 遗留问题 / 下一步。管理层（Hermes）通过本文件验收进度。
 > ⚠️ 并发写入约定：追加前先重新读取文件最新版，在头部插入自己的段落，不要重建文件横幅；管理层 patch 前同样先重读。
 
+## 2026-09-14（**执行层 T-14 完工：收口小票（P3）**——统计页对齐 spec + 帧名/备份名 + 照片孤儿例行化）
+- **基线/结果**：`08e9ee4`（T-13b 验收）→ WIP `6133d61`（①②）+ 本条目所在收工 commit；`flutter analyze` → **No issues found**；`flutter test` → **All tests passed (196)**（194 + 新增 2）
+- **① 统计页净结余负值配色（`DESIGN_T09` §8.5）**：`stats_page.dart` 净值文字加颜色分支（`cents < 0` → `semanticExpense`；**零/正 → `ink`**）+ key `stats_net_value`；**单测 `test/stats_page_test.dart`**：零（`¥0`）、正（`¥3000`）为 ink，负（`¥-6000`）为 semanticExpense（同时断言渲染文本与颜色）；**帧**：链路 `04_stats` 目检 `¥-15` 为红（改动前为暖白 ink）
+- **② 统计页导出键形态（§8.5）**：`FilledButton.tonalIcon`（goldContainer 实心 pill）→ **`OutlinedButton.icon` + goldAccent hairline 边（width 1）+ 金字**、无背景填充（金色克制章程：金只作描边/文字，不作大面积填充）；key `stats_export_button`；**单测**断言 `side.color=goldAccent`/`width=1`、`foregroundColor=goldAccent`、`backgroundColor=null`、页面无 `FilledButton`；**帧**：链路 `10_stats_exported` 目检为描边键
+- **③ 证据帧名过时**：`t09e 02_keyboard_after_splash` → **`02_home_after_splash`**（内容=启动后主页）、`t09c 01_home_idle` → **`01_quick_entry_idle`**（内容=快记页 idle）；**帧本体不变**；记录同步 = `evidence/t09e/.t09e_frame_md5.txt` 更名并保留原 md5 + 指向注记、`evidence/t09c/.t09c_run_log.txt` 追加说明（**正文保持逐字原样**）、T-13b 回归清单追加指向说明（**不改写 T-13b 运行记录**）；现行名/md5 见 `evidence/t14/.T14_rerun_frame_md5.txt`
+- **④ 工具备份名**：`clean_dev_db.py` 备份前缀 `pre-t09e-<stamp>.bak` → **`pre-clean-<stamp>.bak`**；实测产出 `gringotts.sqlite.pre-clean-20260914-195410.bak`
+- **⑤ 照片孤儿例行化**：`python tool/photo_gc.py --report evidence/t14/photo_gc_dry_run.json` → **94 文件 / 87 引用 / 0 外来 / 7 孤儿 = 30311 字节（≈29.6KB）**，与工单实测一致；**未 apply**（工单要求 apply 前确认；一条命令即可）
+- **回归**：受影响的 5 个脚本重跑 **全绿**（t05 / t09a / t09c / t09e / t13b，日志 `evidence/regression/*.t14.log`）；其余 9 个（t04/t09b/t09c2/t09d/t10b/t11/t12/t12c/t13a）帧内不含统计页像素且无改名项，**T-13b 记录继续有效**
+- **md5 变化逐条解释**（`.T14_rerun_frame_md5.txt`）：与本次两处改动相关的帧 = t05 `state3b`、t13b `04_stats`（负值红）、t13b `10_stats_exported`（描边键）；**t05/t09a/t09c `state1` 的变化源于日期跨日**（09-13→09-14，帧含日期轴/今日标签）——已用「换回改动前 `stats_page.dart` 重跑」**确证**（旧代码同样产出新 md5，且 `state3b` 回到旧值），**非回归**
+- **遗留**：7 个照片孤儿待批准后 apply；本票无其他挂账
+- **下一步**：**等验收**（本轮 = `6133d61` + 本条目所在收工 commit）→ M2.0 正式波（BYO AI 配置 → 主页 AI 分析建议 → 对话窗口…，待派工）
+
 ## 2026-09-13（管理层验收记录：T-13b ✅ 通过 —— **M2.0 前置波关闭**；含 1 项口径瑕疵订正 + 4 项偏离裁决）
 - **验收基线**：`0c32108`（工具/测试卫生）+ `d82fdaf`（全链路 + 全量回归）+ 收工 `08e9ee4`；已 push，工作区干净
 - **五层验收**：

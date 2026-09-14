@@ -73,7 +73,9 @@ void main() {
     // ignore: avoid_print
     print('T09E_LAUNCH hold=${SplashGate.hold.inMilliseconds}ms '
         'fade=${SplashGate.fade.inMilliseconds}ms splash_removed=true home=记一笔');
-    await snap(tester, '02_keyboard_after_splash');
+    // T-14: the frame shows the analysis home once the brand moment is gone
+    // (the old name said "keyboard", which was the M1.0 IA).
+    await snap(tester, '02_home_after_splash');
   });
 
   testWidgets('T-09E: brand frame spec (canvas + logo 38% + Playfair wordmark)',

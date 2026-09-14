@@ -133,7 +133,9 @@ void main() {
     await tester.tap(find.byKey(const Key('home_record_cta')));
     await tester.pumpAndSettle(const Duration(seconds: 1));
     final ctaKey = find.byKey(const Key('confirm_cta'));
-    await snap(tester, '01_home_idle', [ctaKey]);
+    // T-14: this snap is taken after 记一笔 pushed the page, so the frame is the
+    // idle speed-entry page (the old name said "home", the M1.0 IA).
+    await snap(tester, '01_quick_entry_idle', [ctaKey]);
     final gesture = await tester.startGesture(tester.getCenter(ctaKey));
     for (var i = 0; i < 12; i++) {
       await tester.pump(const Duration(milliseconds: 16));

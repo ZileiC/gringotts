@@ -1,0 +1,12 @@
+Flutter assets will be downloaded from https://storage.flutter-io.cn. Make sure you trust this source!
+00:00 +0: loading C:/Users/JHarayden/Desktop/Gringotts/integration_test/t05_stats_test.dart
+Building Windows application...                                    27.1s
+√ Built build\windows\x64\runner\Debug\gringotts.exe
+00:00 +0: T-05 stats flow: range switch -> pie -> trend -> export
+SNAP_SAVED=state1_stats_daily file=.t05_state1_stats_daily.png md5=a2400be2e79b
+SNAP_SAVED=state2_stats_monthly file=.t05_state2_stats_monthly.png md5=09d4649cd8e5
+SNAP_SAVED=state3_stats_yearly file=.t05_state3_stats_yearly.png md5=c8df80212836
+SNAP_SAVED=state3b_category_pie file=.t05_state3b_category_pie.png md5=dd65ba813b35
+EXPORT_SNACKBAR_OK
+00:18 +1: (tearDownAll)
+00:18 +1: All tests passed!

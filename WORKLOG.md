@@ -3,6 +3,19 @@
 > 执行层（Codex）每次收工在顶部追加一段：做了什么 / 关键决策 / 遗留问题 / 下一步。管理层（Hermes）通过本文件验收进度。
 > ⚠️ 并发写入约定：追加前先重新读取文件最新版，在头部插入自己的段落，不要重建文件横幅；管理层 patch 前同样先重读。
 
+## 2026-09-14（管理层：workspace 内部清理 ≈6.8GB + 用户两项新要求立票 T-14b）
+- **内部清理（用户要求）**：共释放 **≈6.8GB**
+  - 仓库内 **6659MB**：`build/`(1.3G) + `.dart_tool/`(5.0G) + `windows/flutter/ephemeral/`(312M) + `.idea/` + `.ekko-tmp/`（执行层 harness 日志）+ `.flutter-plugins-dependencies` + 仓库根 **29 个 M1.x 遗留物**（`.t01~t06_*.png` / `.tile_cmd.sh` / `.tile_value.txt` / `.ui_dump*.xml`）
+  - 桌面 / 临时 / DB **≈139MB**：`gringotts-T11-release.apk` + `gringotts-T12c-release.apk`（已被 T-13b 版取代）+ 管理层的验收临时脚本与日志（t12c/t13a/t13b/t14 各一套，含证据备份目录）+ `%TEMP%` 下 `t13a-gc-*` 残留 + **16 个过期 dev 库备份**
+  - **刻意保留**：`evidence/`（5.4MB / 81 帧 —— 未来复核的视觉素材）、当前交付包 `gringotts-T13b-release.apk`、最新 2 个 dev 库备份（`pre-clean-20260914-195410` / `pre-t09e-20260913-133748`）、`android/` 下的 `gradlew*` 与 `gradle-wrapper.jar`（虽被 ignore 但构建必需）、`design/*.html`（设计稿记录）
+  - **⚠️ 自查失误（已修正）**：清理时误删 3 个**已被 git 跟踪**的 `.t02_*.png`（M1 时代已入库）→ 立即 `git checkout --` 还原，工作区零改动并已 push 验证。**教训：批量删除前必须先 `git status --porcelain --ignored` 分清「被跟踪」与「仅忽略」**（已补入 `HANDOFF_MANAGEMENT.md` §7 第 10 条）
+- **用户两项新要求，逐条立票（工单语义不变原则）**：
+  1. **导航语义修正（P1）**：「记一笔」越权成了三个 tab 共用的第二页面 → 只应属分析页 ⇒ **T-14b Part A**（资产/统计页不得有该入口；越权路径与断言全清；底栏高度恒定）
+  2. **底栏重设计（P1）**：现「记一笔」金渐变实心条 + 三个 tab 被用户判「丑」⇒ **T-14b Part B**（预览稿 `design/bottom_bar_preview.html` 三方向，用户拍板后才施工）
+- **管理层文档动作**：`DESIGN_MAIN.md` 新增 **§8 底栏 + 「记一笔」（v1 草案 · 方向 A）**（暂按推荐方向冻结，用户改选即同步改写）；`TICKETS_M2A.md` 新增 **T-14b**（Part A 立即可做 / Part B 待拍板）；`SESSION_PROMPTS.md` §B 重写为**执行层新 session 开场 prompt**（覆盖 T-14b → M2.0 正式波），旧 T-12c 续工 prompt 已归档；`PROJECT_STATE.md` 当前票 = T-14b
+- **⚠️ 待用户批准（防护栏拦截）**：`AGENTS.md` 的 UI 结构行订正（「记一笔仅属分析页」）——两次写入均被防护栏拦下（批准提示超时，按规矩不重试）。该文件**每回合注入执行层上下文**，建议尽快批准；未批准前由 `TICKETS_M2A.md` T-14b + `SESSION_PROMPTS.md` §B 承担同等约束传达
+- **下一步**：等用户挑底栏方向（A/B/C）→ 改选则同步改 spec → 派 T-14b（prompt 已就绪）→ 验收 → M2.0 正式波（T-15 起，需先拍 AI 三屏方向）
+
 ## 2026-09-14（管理层验收记录：T-14 ✅ 通过 —— 收口小票闭合，M2.0 前置波连带遗留全清）
 - **验收基线**：`6133d61`（WIP：统计页对齐）+ 收工 `79eaa74`；已 push，工作区干净
 - **五层验收**：

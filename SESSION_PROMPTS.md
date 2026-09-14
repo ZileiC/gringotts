@@ -17,24 +17,24 @@
 接手第一件事：读 HANDOFF §8 开放项，确认工作区是否有执行层遗留的未提交施工（若有 → 先 commit 保全，见 §7 第 9 条），再派工。
 ```
 
-## B. 【已归档】执行层 T-12c 续工 prompt（该票已于 2026-09-13 验收通过，仅存历史）
+## B. 执行层**新 session 开场 prompt**（复制即用；覆盖 T-14b → M2.0 正式波）
 
 ```
-继续 Gringotts 施工：T-12c 续工。先读 PROJECT_STATE.md + TICKETS_M2A.md 的 T-12c（「现状 / 剩余」两段）+ WORKLOG.md 顶部管理层条目；设计细节只在需要时读 DESIGN_MAIN §3 第 1 条。不要整篇读设计文档。
+你是 Gringotts 执行层的新 session（Codex）。档案 = C:/Users/JHarayden/Desktop/Gringotts；本目录开工会自动读 AGENTS.md。
 
-背景：T-12c 四部分上一轮已写完并保全在 commit cc26215（未验收，勿重做）。你的任务是把剩余项收干净。
+先读三样（其余不必读）：PROJECT_STATE.md → TICKETS_M2A.md 的 T-14b（当前票）→ WORKLOG.md 顶部两条。设计细节按需只读章节：DESIGN_MAIN.md §1（IA）/ §10（底栏与「记一笔」冻结稿），不要整篇读。
 
-剩余项：
-① test/home_shell_test.dart 会挂死整轮 flutter test（单独跑 90s 超时）——两个用例要修：AssetsPage 断言需 skipOffstage: false（IndexedStack 非选中页是 offstage）；「记一笔压栈」用例 pending drift Timer 未释放（补 close/addTearDown/pumpAndSettle）。
-② test/home_page_test.dart 的「月历 sheet 切换月」用例失败（伴随 deactivated widget ancestor）——查 sheet pop 后 setState 时序。
-③ 管理层裁决：从任一 tab 点「记一笔」，返回必须落回分析页 → _openQuickEntry 前 _index = 0，并补导航断言。
-④ 月历补「未来月灰显不可点」断言（原 future 箭头断言已随箭头删除），并断言箭头无残余 key。
-⑤ 证据：受影响 integration 逐个跑通（t10b/t11/t12 属回归，帧落 evidence/regression/，不覆盖原票 evidence）；新增 t12c 专属 integration（tab 切换不压栈 / 记一笔压栈 / 月历切换），帧 md5 唯一。反浪费：脚本先声明前提，播种用固定时间戳，失败不盲目重跑。
-⑥ 收工：重建 release APK（gringotts-T12c-release.apk）交付用户；申报「删了哪些测试 / 改了哪些 / 各自结果」与测试数量变化。
+本轮任务 = T-14b（M2 前置修正票，两部分）：
+Part A 导航语义修正（立即做）：「记一笔」只属分析页 —— 仅在分析 tab 选中时出现（分析页自己的固定操作条，位于底栏之上）；切到资产/统计则该入口不存在（不留空槽、不置灰、不可压栈）；快记页唯一入口＝分析页 CTA，返回必落分析页；审计并清理所有「从资产/统计进快记」的路径与断言（t12c_shell_test 的 pushed_from_stats 用例改为「统计 tab 无 CTA」的存在性断言；home_shell_test 同步）；底栏总高在三个 tab 间恒定。
+Part B 底栏重设计（按 DESIGN_MAIN §8 冻结稿 = 方向 A）：纯色金实心「＋ 记一笔」键（禁渐变！高 46 / radius 12 / 水平内边距 26 / 文字 15 w600），不撑满整条、右端留「今天 N 笔」信息位；三 tab 图标 20 + 文字 11.5 上下排，选中 goldAccent w600、未选中 inkSecondary，顶部 hairline；按下 0.96 微缩放 + 触感，reduce-motion 退化纯色变；色值/字号/间距只准引用 tokens.dart；资产/统计页无 CTA（见 A 部分）。若用户改选方向 B/C，管理层会同步改 §8，你以 §8 为准。
+Part C 出包：本票末 flutter build apk --release → 桌面 gringotts-T14b-release.apk（把 T-14 的统计页改动一并入包）+ 记录 md5。
 
-不要改 DESIGN_MAIN.md 与 AGENTS.md（管理层已按用户 2026-09-13 授权订正完毕，你改了会冲突）。
-规则：每完成一个 Part 立即 `git commit -m "WIP T-12c: Part X"`（掉线保险，AGENTS.md 工作流程第 4 条）；收工三连 WORKLOG → commit（T-12c: …）→ push；停下等验收。
+不要改 AGENTS.md / DESIGN_MAIN.md / TICKETS_M2A.md（管理层文档；AGENTS.md 的结构行订正由管理层负责）。
+验收标准见 TICKETS_M2A.md 的 T-14b「验收（全票）」七条，逐条给证据。
+规则：每完成一个 Part 立即 WIP 提交；收工三连 WORKLOG → commit（T-14b: …）→ push；停下等验收。
 ```
+
+> T-14b 验收通过后进入 **M2.0 正式波**：T-15 AI 基座 → T-16 主页 AI 建议 → T-17/T-18 → T-19 → T-20（拆票表见 `TICKETS_M2A.md`；**T-15 启用条件**：用户已就 `design/ai_wave_preview.html` 拍板 → 管理层冻结 `DESIGN_AI.md`）。
 
 ## C. 备查：M2.0 正式波（AI）—— T-15 施工 prompt
 

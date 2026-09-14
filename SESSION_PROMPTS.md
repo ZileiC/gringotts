@@ -26,7 +26,7 @@
 
 本轮任务 = T-14b（M2 前置修正票，两部分）：
 Part A 导航语义修正（立即做）：「记一笔」只属分析页 —— 仅在分析 tab 选中时出现（分析页自己的固定操作条，位于底栏之上）；切到资产/统计则该入口不存在（不留空槽、不置灰、不可压栈）；快记页唯一入口＝分析页 CTA，返回必落分析页；审计并清理所有「从资产/统计进快记」的路径与断言（t12c_shell_test 的 pushed_from_stats 用例改为「统计 tab 无 CTA」的存在性断言；home_shell_test 同步）；底栏总高在三个 tab 间恒定。
-Part B 底栏重设计：**先看 DESIGN_MAIN §8**（v2 待拍板：tab 态 T1/T2/T3 × 「记一笔」位置 P1/P2/P3 × 按钮本体 D1/D2/D3）。**若 §8 尚未写成终稿（用户没拍板）→ 只做 Part A + Part C，并在 WORKLOG 顶部记一行「Part B 待规格」，不要自行选型或凭感觉设计**。已冻结的不变量（无论选哪套）：底栏只放三个 tab；只用自绘 1.25px 线稿图标；禁投影/渐变/发光/循环动画；底栏总高恒定；色值字号间距只准引用 tokens.dart。
+Part B 底栏与「记一笔」重设计：**规格已冻结 = DESIGN_MAIN.md §8（T1/P2/D1）**，按 §8.1–§8.5 逐条落地：① 分析页顶栏加 `home_record_key`（视觉圆 36 = 1.25px 金环 + 矢量描边加号 16×16/stroke 1.75/圆头；热区 48×48；**不要文字**；顶栏总高 56；320dp 极窄屏不得溢出）② 底栏只放三 tab、图标改自绘 1.25px 线稿（弃 Icons.*）、选中＝金字 w600 + 下方 16×1.5 金线（180ms 位移；reduce-motion 无位移）③ 引入 MiSans（subset + 许可文件）并让底栏文字 12/w500·w600/字距 +0.08em、月份按钮同步换字体；Playfair 仍只限品牌时刻。验收按 §8.5 七条逐条给证据。**不要改 DESIGN_MAIN.md / AGENTS.md / TICKETS_M2A.md**。
 Part C 出包：本票末 flutter build apk --release → 桌面 gringotts-T14b-release.apk（把 T-14 的统计页改动一并入包）+ 记录 md5。
 
 不要改 AGENTS.md / DESIGN_MAIN.md / TICKETS_M2A.md（管理层文档；AGENTS.md 的结构行订正由管理层负责）。

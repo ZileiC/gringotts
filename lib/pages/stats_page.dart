@@ -136,13 +136,21 @@ class _StatsPageState extends ConsumerState<StatsPage>
                           style: Theme.of(context).textTheme.bodySmall),
                       const SizedBox(height: AppSpacing.xs),
                       CountUpNumber(
+                        key: const Key('stats_net_value'),
                         valueCents: totals.netCents,
                         builder: (context, cents) => Text(
                           _yuan(cents),
-                          style: Theme.of(context)
-                              .textTheme
-                              .displayLarge
-                              ?.copyWith(fontSize: AppFont.display - 12),
+                          style: Theme.of(context).textTheme.displayLarge
+                              ?.copyWith(
+                            fontSize: AppFont.display - 12,
+                            // DESIGN_T09 section 8.5: a negative balance is
+                            // semanticExpense; zero and positive stay warm ink
+                            // (the moment the spring crosses zero the label
+                            // flips with it, so the resting state is exact).
+                            color: cents < 0
+                                ? AppColors.semanticExpense
+                                : AppColors.ink,
+                          ),
                         ),
                       ),
                       const SizedBox(height: AppSpacing.s),
@@ -179,10 +187,26 @@ class _StatsPageState extends ConsumerState<StatsPage>
               ),
               const SizedBox(height: AppSpacing.l),
               // Export button.
-              FilledButton.tonalIcon(
+              // DESIGN_T09 section 8.5: the export is a hairline gold outline
+              // key - gold as border and label only, never as a large fill
+              // (the gold-discipline charter, DESIGN_MAIN section 7).
+              OutlinedButton.icon(
+                key: const Key('stats_export_button'),
                 onPressed: _export,
-                icon: const Icon(Icons.file_download),
+                icon: const Icon(Icons.file_download, size: 18),
                 label: const Text('导出 CSV / JSON（带 BOM）'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.goldAccent,
+                  side: const BorderSide(color: AppColors.goldAccent),
+                  shape: const RoundedRectangleBorder(
+                    borderRadius:
+                        BorderRadius.all(Radius.circular(AppRadius.m)),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.l,
+                    vertical: AppSpacing.s + AppSpacing.xs,
+                  ),
+                ),
               ),
             ],
           );

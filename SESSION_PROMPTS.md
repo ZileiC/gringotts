@@ -17,7 +17,7 @@
 接手第一件事：读 HANDOFF §8 开放项，确认工作区是否有执行层遗留的未提交施工（若有 → 先 commit 保全，见 §7 第 9 条），再派工。
 ```
 
-## B. 执行层 T-12c **续工** 的施工 prompt（复制即用）
+## B. 【已归档】执行层 T-12c 续工 prompt（该票已于 2026-09-13 验收通过，仅存历史）
 
 ```
 继续 Gringotts 施工：T-12c 续工。先读 PROJECT_STATE.md + TICKETS_M2A.md 的 T-12c（「现状 / 剩余」两段）+ WORKLOG.md 顶部管理层条目；设计细节只在需要时读 DESIGN_MAIN §3 第 1 条。不要整篇读设计文档。
@@ -36,20 +36,17 @@
 规则：每完成一个 Part 立即 `git commit -m "WIP T-12c: Part X"`（掉线保险，AGENTS.md 工作流程第 4 条）；收工三连 WORKLOG → commit（T-12c: …）→ push；停下等验收。
 ```
 
-## C. 备查：T-14 施工 prompt（下一票，收口小票）
+## C. 备查：M2.0 正式波（AI）—— T-15 施工 prompt
 
-> T-13a / T-13b 均已验收通过（M2.0 前置波关闭，2026-09-13）；其施工 prompt 已归档到 WORKLOG 验收记录，不再复用。
+> **启用条件**：用户已就 `design/ai_wave_preview.html` 拍板（配置页 / 主页 AI 位 / 对话窗口 各选一方向）且管理层已冻结 `DESIGN_AI.md`。**未拍板前不要派工**（UI 大改流程：先预览稿 → 拍板 → 冻 spec → 派工）。
+> T-14（`6133d61`+`79eaa74`）已于 2026-09-14 验收通过；M2.0 前置波全部关闭。
 
-**T-14（收口小票：四项 spec/记录对齐 + 照片孤儿例行化）**
+**T-15（AI 基座：BYO 配置页 + key 安全存取 + OpenAI 兼容客户端 + 测试连接）**
 ```
-继续 Gringotts 施工。M2.0 前置波已关闭（T-13b 验收通过）。先读 PROJECT_STATE.md + TICKETS_M2A.md 的 T-14 + DESIGN_T09 §8.5。
-任务（四小项，均 P3 收口）：
-① 统计页净结余负值配色对齐 spec：stats_page.dart:138-147 无颜色分支 ⇒ 负值仍暖白 ink → 改为「负值 AppColors.semanticExpense、零/正 AppColors.ink」，补单测（负值红 / 零与正值暖白）。
-② 统计页导出键形态对齐 spec：FilledButton.tonalIcon（goldContainer 实心 pill）→ hairline 金描边 outline 键（OutlinedButton + goldAccent fine 边 + 金字）。理由：项目「金色克制」章程——金只作描边/文字，不作大面积填充。
-③ 证据帧名过时：t09e 02_keyboard_after_splash（内容=启动后主页）、t09c 01_home_idle（内容=快记页 idle）→ 更名与实际内容一致，md5 清单同步更新（帧本体内容不变）。
-④ clean_dev_db.py 备份名前缀 pre-t09e-<stamp>.bak → pre-clean-<stamp>.bak。
-⑤ 收尾跑一次 `python tool/photo_gc.py`（dry-run 报数；若要 apply 先确认），WORKLOG 记一行孤儿数——全量回归会自然产生孤儿（上轮实测 7 个 ≈30KB）。
-验收：① 两项 spec 对齐有单测断言 + 帧（负值大数字为 semanticExpense、导出键为描边式）② 帧名/备份名改后相关脚本重跑全绿、md5 记录同步 ③ analyze 零错 + test 全绿（194 + 新增）④ 孤儿报数留档。
-规则：每完成一个 Part 立即 WIP 提交；收工三连 WORKLOG → commit（T-14: …）→ push；停下等验收。
+继续 Gringotts 施工。M2.0 正式波开工，本票 = T-15 AI 基座。先读 PROJECT_STATE.md + TICKETS_M2A.md 的 M2.0 正式波表与 T-15 + DESIGN_AI.md（用户已拍板的 UI 冻结稿）。
+任务：① BYO 配置页（provider / baseURL / apiKey / model，OpenAI 兼容协议；按 DESIGN_AI 选定方向落地）② key 只进 flutter_secure_storage（禁硬编码/禁进 git/禁进 log）③ 客户端：chat/completions 调用 + 超时与错误分类（未配置/401/超时/网络失败）④ 「测试连接」一键验证 + 三态反馈 ⑤ 设置入口（从任一 tab 可达）⑥ 无 key 时的全局引导态（AI 位与后续对话都指向配置页）。
+顺带（已批准）：开工先跑 `python tool/photo_gc.py`（dry-run 确认 7 个孤儿），确认后 `--apply --backup-dir <仓库内 tmp>` 清理并在 WORKLOG 记数；再跑一次 `flutter build apk --release` 出包（T-14 的统计页视觉改动至今未入包）。
+验收：① key 不出现在源码/日志/git（grep 断言）② 连接成功/失败/超时三态有明确文案且可复现（用假 baseURL 造失败）③ 配置页从任一 tab 可达 + 重启后配置留存（secure storage 读回断言）④ analyze 零错 + test 全绿（196 + 新增）⑤ APK 重建交付（gringotts-T15-release.apk + md5）。
+规则：每完成一个 Part 立即 WIP 提交；收工三连 WORKLOG → commit（T-15: …）→ push；停下等验收。
 ```
-> T-14 之后进入 **M2.0 正式波**（BYO AI 配置页 → 主页 AI 分析建议 → 对话窗口 → 图表 AI 解读 → 预算与周期账单 → Widget + 本地加密）；派工前由管理层先把该波拆票写进 `TICKETS_M2A.md`。
+> 之后按 `TICKETS_M2A.md` 波表顺序：**T-16 主页 AI 分析与建议**（价值兑现票，只喂聚合统计 JSON）→ T-17 / T-18 → T-19 → T-20。

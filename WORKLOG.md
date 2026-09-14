@@ -3,6 +3,20 @@
 > 执行层（Codex）每次收工在顶部追加一段：做了什么 / 关键决策 / 遗留问题 / 下一步。管理层（Hermes）通过本文件验收进度。
 > ⚠️ 并发写入约定：追加前先重新读取文件最新版，在头部插入自己的段落，不要重建文件横幅；管理层 patch 前同样先重读。
 
+## 2026-09-14（管理层验收记录：T-14 ✅ 通过 —— 收口小票闭合，M2.0 前置波连带遗留全清）
+- **验收基线**：`6133d61`（WIP：统计页对齐）+ 收工 `79eaa74`；已 push，工作区干净
+- **五层验收**：
+  1. **记录核对** ✓ 提交与 hash 一致；变更面 = `stats_page.dart`(+36) / `test/stats_page_test.dart`(125 新增) / `t09c`+`t09e` 帧名 / `clean_dev_db.py`(前缀) / 证据 10+ 文件
+  2. **独立复验** ✓（管理层亲跑）`flutter analyze` → **No issues found**；`flutter test` → **All tests passed (196)**（194 + 2）整轮正常退出 —— 与申报逐位一致
+  3. **源码级审查** ✓ ① 净值加 `cents < 0 ? AppColors.semanticExpense : AppColors.ink` 分支（+ key `stats_net_value`）② 导出键 = `OutlinedButton.icon`：`foregroundColor=goldAccent`、`side=BorderSide(goldAccent)`（默认 width 1.0 = hairline）、**无 backgroundColor**（+ key `stats_export_button`）③ 单测断言到位：零/正 = ink、负 = semanticExpense（文本与颜色同断言）；`side.width == 1.0`、`foregroundColor == goldAccent`、`backgroundColor == null`、页面无 `FilledButton` ④ **记录同步是真同步**：`t09e` 帧名改而**原 md5 逐字保留 + 指向注记**；`t09c` 运行日志**追加**说明（正文未动）；T-13b 回归清单**追加**指向而非改写 —— 原票证据零篡改
+  4. **独立 integration** ✓（管理层亲跑）`t13b_full_chain` **All tests passed**（`draft=false` / `export bom=true schema=3` / `teardown live_tx=0 live_assets=0`）+ `t05_stats` **All tests passed**；跑后直读 sqlite：`transactions / assets / asset_photos / budget_months` **live 全 0**
+     - **照片孤儿独立复核** ✓ `python tool/photo_gc.py --report <仓库外路径>` → **94 文件 / 87 引用 / 0 外来 / 7 孤儿**，我用文件清单逐项相加：4303+4401+4254+4402+4362+4362+4227 = **30311 字节**，与申报**精确吻合**；且 `--report` 写入仓库外成功（T-13a/T-13b 的工具挂账修复得到实战验证）
+  5. **UI 目检** ✓ 帧 `04_stats`：净结余 **`¥-15` 为红色**（改动前是暖白 `ink`）；帧 `10_stats_exported`：导出键为**金细边 + 金字、内部无金底填充**（outline 形态成立）；两帧无裁切，底栏「记一笔」+ 三 tab 正常
+- **裁决**：① **批准 apply 这 7 个照片孤儿**（≈29.6KB，dry-run 已存档 `evidence/t14/photo_gc_dry_run.json`）——由下一票开工时执行，`--apply` 前再跑一次 dry-run 确认数量 ② 本票无其他挂账
+- **执行层行为肯定**：帧 md5 变化做了**证伪实验** —— 把 `stats_page.dart` 换回改动前版本重跑，旧代码同样产出新 md5（`state3b` 回到旧值），从而证明 3 个 `state1` 帧的差异源于**跨日**（09-13→09-14，帧含日期轴/今日标签）而非回归。这是本项目「以源码+帧+数值裁决」纪律的正面样板，值得后续票沿用
+- **结论：T-14 ✅ 验收通过 → M2.0 前置波的连带遗留全部闭合。** 进入 **M2.0 正式波**（AI 上线）：拆票已写入 `TICKETS_M2A.md`，UI 预览稿 `design/ai_wave_preview.html`（配置页 / 主页 AI 位 / 对话窗口，各 2 方向）待用户拍板后冻结 `DESIGN_AI.md` 再派 T-15
+- **交付物提醒**：桌面 APK 仍为 T-13b 版（md5 `e7c75551f5894e22e952df892de914f6`）——T-14 的两处统计页视觉改动**尚未入包**，由 M2.0 波首票出包时一并刷新
+
 ## 2026-09-14（**执行层 T-14 完工：收口小票（P3）**——统计页对齐 spec + 帧名/备份名 + 照片孤儿例行化）
 - **基线/结果**：`08e9ee4`（T-13b 验收）→ WIP `6133d61`（①②）+ 本条目所在收工 commit；`flutter analyze` → **No issues found**；`flutter test` → **All tests passed (196)**（194 + 新增 2）
 - **① 统计页净结余负值配色（`DESIGN_T09` §8.5）**：`stats_page.dart` 净值文字加颜色分支（`cents < 0` → `semanticExpense`；**零/正 → `ink`**）+ key `stats_net_value`；**单测 `test/stats_page_test.dart`**：零（`¥0`）、正（`¥3000`）为 ink，负（`¥-6000`）为 semanticExpense（同时断言渲染文本与颜色）；**帧**：链路 `04_stats` 目检 `¥-15` 为红（改动前为暖白 ink）

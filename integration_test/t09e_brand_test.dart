@@ -59,20 +59,21 @@ void main() {
 
     // First frame of the real app: the brand moment is on screen and the start
     // page is already mounted underneath it (no navigation layer). Since T-12c
-    // that start page is the tab shell (analysis / assets / statistics) that
-    // carries the 记一笔 action - the old "keypad home" wording is gone.
+    // that start page is the tab shell (analysis / assets / statistics); since
+    // T-14b its record entry is the analysis top-bar key, not a text button.
     expect(find.byKey(SplashGate.brandMomentKey), findsOneWidget,
         reason: 'the splash is visible on the very first frame');
-    expect(find.text('记一笔'), findsOneWidget,
-        reason: 'the tab shell is mounted from frame one');
+    expect(find.byKey(const Key('home_record_key')), findsOneWidget,
+        reason: 'the analysis shell is mounted from frame one');
 
     await tester.pumpAndSettle(const Duration(seconds: 1));
     expect(find.byKey(SplashGate.brandMomentKey), findsNothing,
         reason: 'the brand moment removes itself when it ends');
-    expect(find.text('记一笔'), findsOneWidget);
+    expect(find.byKey(const Key('home_record_key')), findsOneWidget);
     // ignore: avoid_print
     print('T09E_LAUNCH hold=${SplashGate.hold.inMilliseconds}ms '
-        'fade=${SplashGate.fade.inMilliseconds}ms splash_removed=true home=记一笔');
+        'fade=${SplashGate.fade.inMilliseconds}ms splash_removed=true '
+        'home_record_key=true');
     // T-14: the frame shows the analysis home once the brand moment is gone
     // (the old name said "keyboard", which was the M1.0 IA).
     await snap(tester, '02_home_after_splash');

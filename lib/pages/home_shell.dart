@@ -1,12 +1,13 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
+import '../ui/line_icons.dart';
 import '../ui/tokens.dart';
 import 'assets_page.dart';
 import 'home_page.dart';
 import 'quick_entry_page.dart';
 import 'stats_page.dart';
 
-/// Root shell (T-12c / T-14b Part A): three peer tabs only.
+/// Root shell (T-12c / T-14b): three peer tabs only.
 ///
 /// IA ruling (2026-09-14): the 记一笔 action belongs to the analysis page and
 /// lives in its top bar; the bottom bar carries nothing but the three peer
@@ -52,9 +53,11 @@ class _HomeShellState extends State<HomeShell> {
   }
 }
 
-/// Bottom bar: exactly the three peer tabs (T-14b Part A). A fixed [height]
-/// keeps the total bar height identical on every tab; the 记一笔 action is not
-/// part of this bar anymore.
+/// Bottom bar (T-14b / DESIGN_MAIN section 8.3): exactly the three peer tabs,
+/// nothing else. A fixed [AppSpacing.navTabHeight] row keeps the bar height
+/// identical on every tab. Each tab is a hand-drawn 1.25px line icon plus a
+/// MiSans label; the selected tab is gold with a 16x1.5 gold line sliding
+/// under it (180ms; reduce-motion switches without displacement).
 class _BottomTabs extends StatelessWidget {
   const _BottomTabs({required this.index, required this.onSelect});
 
@@ -63,6 +66,7 @@ class _BottomTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final animationsDisabled = MediaQuery.disableAnimationsOf(context);
     // DecoratedBox (not Container) so the 1px top hairline paints *inside* the
     // fixed 56dp row instead of adding a layout pixel.
     return DecoratedBox(
@@ -75,16 +79,43 @@ class _BottomTabs extends StatelessWidget {
         top: false,
         child: SizedBox(
           height: AppSpacing.navTabHeight,
-          child: Row(
+          child: Stack(
             children: [
-              for (var i = 0; i < _tabs.length; i++)
-                Expanded(
-                  child: _TabButton(
-                    tab: _tabs[i],
-                    selected: index == i,
-                    onTap: () => onSelect(i),
+              Row(
+                children: [
+                  for (var i = 0; i < _tabs.length; i++)
+                    Expanded(
+                      child: _TabButton(
+                        tab: _tabs[i],
+                        selected: index == i,
+                        onTap: () => onSelect(i),
+                      ),
+                    ),
+                ],
+              ),
+              // T1 gold line: one tab-cell-wide child sliding between the
+              // cells, so alignment -1 / 0 / 1 lands exactly on the tab
+              // centres (a bare 16pt child would be off by the slack/2) and
+              // the 180ms move is a position transition, not a rebuild blink.
+              AnimatedAlign(
+                key: const Key('tab_selected_indicator_slide'),
+                alignment: Alignment(index - 1.0, 1),
+                duration:
+                    animationsDisabled ? Duration.zero : AppMotion.tabIndicator,
+                curve: Curves.easeOutCubic,
+                child: FractionallySizedBox(
+                  widthFactor: 1 / _tabs.length,
+                  child: Align(
+                    alignment: Alignment.bottomCenter,
+                    child: Container(
+                      key: const Key('tab_selected_indicator'),
+                      width: AppSpacing.tabIndicatorWidth,
+                      height: AppSpacing.tabIndicatorHeight,
+                      color: AppColors.goldAccent,
+                    ),
                   ),
                 ),
+              ),
             ],
           ),
         ),
@@ -94,20 +125,22 @@ class _BottomTabs extends StatelessWidget {
 }
 
 class _TabSpec {
-  const _TabSpec(this.key, this.label, this.icon);
+  const _TabSpec(this.key, this.label, this.icon, this.iconKey);
 
   final Key key;
   final String label;
-  final IconData icon;
+  final LineTabIcon icon;
+  final Key iconKey;
 }
 
 const List<_TabSpec> _tabs = <_TabSpec>[
-  _TabSpec(Key('tab_home'), '分析', Icons.insights),
-  _TabSpec(Key('tab_assets'), '资产', Icons.inventory_2),
-  _TabSpec(Key('tab_stats'), '统计', Icons.bar_chart),
+  _TabSpec(Key('tab_home'), '分析', LineTabIcon.analysis, Key('tab_icon_home')),
+  _TabSpec(Key('tab_assets'), '资产', LineTabIcon.assets, Key('tab_icon_assets')),
+  _TabSpec(Key('tab_stats'), '统计', LineTabIcon.stats, Key('tab_icon_stats')),
 ];
 
-/// One peer tab: icon + label, gold when active, muted otherwise.
+/// One peer tab: hand-drawn icon + MiSans label (12 / w500 idle, w600 active,
+/// +0.08em tracking), gold when active.
 class _TabButton extends StatelessWidget {
   const _TabButton({
     required this.tab,
@@ -128,14 +161,26 @@ class _TabButton extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(tab.icon, size: 22, color: color),
-          const SizedBox(height: 2),
-          Text(
-            tab.label,
-            style: TextStyle(
-              fontSize: AppFont.caption,
-              fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-              color: color,
+          LineTabIconView(
+            key: tab.iconKey,
+            icon: tab.icon,
+            color: color,
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          SizedBox(
+            height: AppFont.tabLabelHeight,
+            child: Center(
+              child: Text(
+                tab.label,
+                style: TextStyle(
+                  fontFamily: AppFont.uiFamily,
+                  fontSize: AppFont.tabLabel,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                  letterSpacing: AppFont.tabLetterSpacing,
+                  color: color,
+                  height: 1,
+                ),
+              ),
             ),
           ),
         ],

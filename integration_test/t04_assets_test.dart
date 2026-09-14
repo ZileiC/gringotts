@@ -70,7 +70,7 @@ void main() {
 
     // 1. Home state frame (T-12c: launch page = tab shell, analysis tab).
     await snapState(tester, 'state1_home', [
-      find.text('记一笔'),
+      find.byKey(const Key('home_record_key')),
       find.byKey(const Key('tab_assets')),
     ]);
 

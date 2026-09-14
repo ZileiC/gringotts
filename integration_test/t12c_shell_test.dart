@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gringotts/app/app.dart';
@@ -92,6 +93,21 @@ void main() {
         find.byKey(const Key('home_record_key'), skipOffstage: false);
     expect(cta, findsOneWidget);
     expect(shellIndex(tester), 0);
+
+    // T-14b: the real bundle carries the three subset faces (DESIGN_MAIN
+    // section 8.4); the size assertion is a cheap guard against a broken
+    // pubspec declaration / missing asset.
+    for (final name in const [
+      'MiSans-Regular.ttf',
+      'MiSans-Medium.ttf',
+      'MiSans-Demibold.ttf',
+    ]) {
+      final data = await rootBundle.load('fonts/$name');
+      expect(data.lengthInBytes, greaterThan(1000),
+          reason: 'the app bundle ships fonts/$name');
+    }
+    // ignore: avoid_print
+    print('T12C_FONTS misans=3 bundled=true');
 
     double barHeight() =>
         tester.getSize(find.byKey(const Key('home_bottom_tabs'))).height;

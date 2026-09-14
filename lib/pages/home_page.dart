@@ -11,6 +11,7 @@ import '../domain/models.dart';
 import '../services/budget_engine.dart';
 import '../services/statistics_service.dart';
 import '../ui/motion.dart';
+import '../ui/record_key.dart';
 import '../ui/tokens.dart';
 
 /// Home = analysis / guidance page (M2.0 pre-wave, DESIGN_MAIN §3).
@@ -171,10 +172,13 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 }
 
-/// Top bar: month button (left, opens the calendar sheet) + the record key +
-/// budget gear (right). The old ‹ › arrows were removed by user ruling
-/// (DESIGN_MAIN §3.1). T-14b Part A: the record entry lives here, on the
-/// analysis page only, so it can never be reached from the assets or stats tab.
+/// Top bar (T-14b / DESIGN_MAIN section 8.2): month button (left, opens the
+/// calendar sheet) + [RecordKey] + budget gear (right). Frozen size budget:
+/// 56 total (8 top padding + 48 content row), month button stays 40 and is
+/// vertically centred, the record key is 36 optic inside a 48x48 hit target
+/// with a 4dp gap to the 48x48 gear. The old ‹ › arrows were removed by
+/// user ruling (DESIGN_MAIN §3.1) and the record entry lives on the analysis
+/// page only, so it can never be reached from the assets or stats tab.
 class _MonthBar extends StatelessWidget {
   const _MonthBar({
     required this.month,
@@ -194,62 +198,74 @@ class _MonthBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(AppSpacing.m, AppSpacing.s, AppSpacing.s, 0),
-      child: Row(
-        children: [
-          SizedBox(
-            height: 40,
-            child: OutlinedButton(
-              key: const Key('home_month_button'),
-              onPressed: onMonthTap,
-              style: OutlinedButton.styleFrom(
-                backgroundColor: AppColors.elevated,
-                foregroundColor: AppColors.ink,
-                side: const BorderSide(color: AppColors.hairline),
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
-                minimumSize: const Size(0, 40),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.m),
+    // Width budget on a 320dp viewport: 16 (left) + month button (~130) +
+    // flexible gap (>=12) + 48 (record key) + 4 (gap) + 48 (gear) + 8 (right)
+    // = 266, so the gap absorbs the slack and nothing is squeezed.
+    return SizedBox(
+      key: const Key('home_top_bar'),
+      height: AppSpacing.topBarHeight,
+      child: Padding(
+        padding:
+            const EdgeInsets.fromLTRB(AppSpacing.m, AppSpacing.s, AppSpacing.s, 0),
+        child: Row(
+          children: [
+            SizedBox(
+              height: 40,
+              child: OutlinedButton(
+                key: const Key('home_month_button'),
+                onPressed: onMonthTap,
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: AppColors.elevated,
+                  foregroundColor: AppColors.ink,
+                  side: const BorderSide(color: AppColors.hairline),
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
+                  minimumSize: const Size(0, 40),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.m),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '${month.year} 年 ${month.month} 月',
+                      // T-14b: the month button switches to MiSans together
+                      // with the bottom tabs; amounts stay tabular.
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        fontFamily: AppFont.uiFamily,
+                        fontFeatures: AppFont.tabularFigures,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.xs),
+                    const Icon(
+                      Icons.arrow_drop_down,
+                      size: 18,
+                      color: AppColors.inkSecondary,
+                    ),
+                  ],
                 ),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    '${month.year} 年 ${month.month} 月',
-                    style: theme.textTheme.bodyLarge,
-                  ),
-                  const SizedBox(width: AppSpacing.xs),
-                  const Icon(
-                    Icons.arrow_drop_down,
-                    size: 18,
-                    color: AppColors.inkSecondary,
-                  ),
-                ],
+            ),
+            const Spacer(),
+            RecordKey(
+              key: const Key('home_record_key'),
+              onPressed: onRecord,
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            IconButton(
+              key: const Key('home_budget_entry'),
+              onPressed: onBudget,
+              icon: const Icon(Icons.tune),
+              tooltip: '预算设置',
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints.tightFor(
+                width: AppSpacing.recordKeyHit,
+                height: AppSpacing.recordKeyHit,
               ),
             ),
-          ),
-          const Spacer(),
-          TextButton(
-            key: const Key('home_record_key'),
-            onPressed: onRecord,
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.goldAccent,
-              minimumSize: const Size(0, 40),
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            child: const Text('记一笔'),
-          ),
-          IconButton(
-            key: const Key('home_budget_entry'),
-            onPressed: onBudget,
-            icon: const Icon(Icons.tune),
-            tooltip: '预算设置',
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

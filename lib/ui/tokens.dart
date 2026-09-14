@@ -134,6 +134,27 @@ abstract final class AppSpacing {
   /// height on every tab, so switching can never make the bar jump.
   static const double navTabHeight = 56;
 
+  /// Analysis top bar height (DESIGN_MAIN section 8.2): 8pt top padding plus a
+  /// 48pt content row, held constant while the page content scrolls.
+  static const double topBarHeight = 56;
+
+  /// Record key (DESIGN_MAIN section 8.2): a 36pt visual ring inside a 48x48
+  /// transparent hit target, with the vector plus drawn at 16x16.
+  static const double recordKeyVisual = 36;
+  static const double recordKeyHit = 48;
+  static const double recordRingStroke = 1.25;
+  static const double recordPlusSize = 16;
+  static const double recordPlusStroke = 1.75;
+
+  /// Bottom tab line icons (DESIGN_MAIN section 8.3): 20x20, 1.25pt stroke.
+  static const double tabIconSize = 20;
+  static const double tabIconStroke = 1.25;
+
+  /// Gold selection line under the active tab (DESIGN_MAIN section 8.3):
+  /// 16 x 1.5, sliding 180ms between tabs.
+  static const double tabIndicatorWidth = 16;
+  static const double tabIndicatorHeight = 1.5;
+
   // Speed-entry page geometry (T-11 / DESIGN_MAIN section 4.1-4.2).
   /// Project-name input height.
   static const double entryNameHeight = 44;
@@ -164,6 +185,17 @@ abstract final class AppSpacing {
 
   /// Speed-entry page vertical padding.
   static const double entryPagePadV = 11;
+}
+
+/// Motion durations shared by the T-14b chrome (DESIGN_MAIN sections 8.2-8.3).
+abstract final class AppMotion {
+  /// Record key: the ring interior fades in goldContainer on press, once
+  /// (120ms). reduce-motion keeps the colour change but drops the fade.
+  static const Duration recordPressFade = Duration(milliseconds: 120);
+
+  /// Bottom tab: the gold indicator slides to the selected tab (180ms).
+  /// reduce-motion switches without displacement.
+  static const Duration tabIndicator = Duration(milliseconds: 180);
 }
 
 /// Corner radius scale.
@@ -216,6 +248,20 @@ abstract final class AppFont {
 
   /// Caption / eyebrow.
   static const double caption = 12;
+
+  // T-14b UI font (DESIGN_MAIN section 8.4): MiSans is subset to the glyphs
+  // the bottom tabs and the month button actually render; Playfair stays
+  // reserved for brand moments.
+  /// Family name declared in pubspec.yaml (fonts/MiSans-*.ttf).
+  static const String uiFamily = 'MiSans';
+
+  /// Bottom tab label: 12 / +0.08em tracking (0.96 logical px at 12).
+  static const double tabLabel = 12;
+  static const double tabLetterSpacing = 0.96;
+
+  /// Reserved tab label line box, part of the frozen 56pt tab budget
+  /// (icon 20 + gap 4 + line 16 + padding 8 + 8).
+  static const double tabLabelHeight = 16;
 
   /// Keypad key caps.
   static const double keypad = 22;

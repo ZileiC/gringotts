@@ -130,6 +130,10 @@ abstract final class AppSpacing {
   /// never covers the one-shot sheen (T-09C2 ruling, landed in T-09D).
   static const double snackBarCtaInset = 88;
 
+  /// Bottom tab row height (DESIGN_MAIN section 8.3): the bar has exactly this
+  /// height on every tab, so switching can never make the bar jump.
+  static const double navTabHeight = 56;
+
   // Speed-entry page geometry (T-11 / DESIGN_MAIN section 4.1-4.2).
   /// Project-name input height.
   static const double entryNameHeight = 44;

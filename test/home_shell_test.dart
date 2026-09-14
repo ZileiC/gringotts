@@ -1,4 +1,4 @@
-import 'package:drift/native.dart';
+﻿import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,10 +11,11 @@ import 'package:gringotts/pages/quick_entry_page.dart';
 import 'package:gringotts/pages/stats_page.dart';
 import 'package:gringotts/ui/tokens.dart';
 
-/// T-12c Part A acceptance: three peer tabs switch without pushing; 记一笔
-/// pushes the speed-entry page (analysis child, so it always returns to
-/// analysis); the stats page reaches the ledger. A real in-memory database
-/// keeps the providers honest.
+/// T-12c Part A + T-14b Part A acceptance: three peer tabs switch without
+/// pushing; the 记一笔 entry lives on the analysis page only (never on assets
+/// or stats); it pushes the speed-entry child, so back always lands on
+/// analysis; the bottom bar keeps one constant height on every tab. A real
+/// in-memory database keeps the providers honest.
 void main() {
   late AppDatabase db;
 
@@ -61,6 +62,11 @@ void main() {
           .index ??
       0;
 
+  /// The record key with the offstage peers included - the structural finder
+  /// used to prove the key is not even mounted inside assets/stats.
+  Finder recordKeyAnywhere() =>
+      find.byKey(const Key('home_record_key'), skipOffstage: false);
+
   testWidgets('three peer tabs are siblings; switching does not push',
       (tester) async {
     await pumpShell(tester);
@@ -91,49 +97,102 @@ void main() {
     await disposeShell(tester);
   });
 
+  testWidgets('record entry is on the analysis tab only', (tester) async {
+    await pumpShell(tester);
+
+    // Analysis: the key is on stage and lives inside HomePage.
+    expect(find.byKey(const Key('home_record_key')), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(HomePage),
+        matching: find.byKey(const Key('home_record_key')),
+      ),
+      findsOneWidget,
+    );
+
+    // Assets: nothing on stage, and the key is not mounted under AssetsPage.
+    await tester.tap(find.byKey(const Key('tab_assets')));
+    await tester.pumpAndSettle();
+    expect(stackIndex(tester), 1);
+    expect(find.byKey(const Key('home_record_key')), findsNothing,
+        reason: 'the assets tab has no record entry');
+    expect(
+      find.descendant(
+        of: find.byType(AssetsPage, skipOffstage: false),
+        matching: recordKeyAnywhere(),
+      ),
+      findsNothing,
+      reason: 'no record key is mounted inside the assets page subtree',
+    );
+
+    // Statistics: same existence assertion.
+    await tester.tap(find.byKey(const Key('tab_stats')));
+    await tester.pumpAndSettle();
+    expect(stackIndex(tester), 2);
+    expect(find.byKey(const Key('home_record_key')), findsNothing,
+        reason: 'the stats tab has no record entry');
+    expect(
+      find.descendant(
+        of: find.byType(StatsPage, skipOffstage: false),
+        matching: recordKeyAnywhere(),
+      ),
+      findsNothing,
+      reason: 'no record key is mounted inside the stats page subtree',
+    );
+    expect(find.byType(QuickEntryPage), findsNothing);
+
+    // Back on analysis the key is available again.
+    await tester.tap(find.byKey(const Key('tab_home')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('home_record_key')), findsOneWidget);
+
+    await disposeShell(tester);
+  });
+
+  testWidgets('bottom bar height is identical on all three tabs',
+      (tester) async {
+    await pumpShell(tester);
+
+    double barHeight() =>
+        tester.getSize(find.byKey(const Key('home_bottom_tabs'))).height;
+
+    final analysisHeight = barHeight();
+    expect(analysisHeight, AppSpacing.navTabHeight,
+        reason: 'tab row is a fixed 56dp, plus the safe-area inset');
+
+    await tester.tap(find.byKey(const Key('tab_assets')));
+    await tester.pumpAndSettle();
+    expect(barHeight(), analysisHeight);
+
+    await tester.tap(find.byKey(const Key('tab_stats')));
+    await tester.pumpAndSettle();
+    expect(barHeight(), analysisHeight);
+
+    await tester.tap(find.byKey(const Key('tab_home')));
+    await tester.pumpAndSettle();
+    expect(barHeight(), analysisHeight);
+
+    await disposeShell(tester);
+  });
+
   testWidgets('记一笔 pushes the speed-entry child and back returns to analysis',
       (tester) async {
     await pumpShell(tester);
 
-    await tester.tap(find.byKey(const Key('home_record_cta')));
+    await tester.tap(find.byKey(const Key('home_record_key')));
     await tester.pumpAndSettle();
     expect(find.byType(QuickEntryPage), findsOneWidget);
     expect(find.byKey(const Key('entry_name')), findsOneWidget);
     // The push really is a route: while it is up the shell is offstage under
     // it. This is the baseline that "switching a peer tab does not push" is
     // measured against in the integration script.
-    expect(find.byKey(const Key('home_record_cta')), findsNothing);
+    expect(find.byKey(const Key('home_record_key')), findsNothing);
 
     await tester.tap(find.byKey(const Key('quick_back')));
     await tester.pumpAndSettle();
     expect(find.byType(QuickEntryPage), findsNothing);
     expect(stackIndex(tester), 0, reason: 'returns to the analysis tab');
-
-    await disposeShell(tester);
-  });
-
-  testWidgets('记一笔 from the statistics tab also returns to analysis',
-      (tester) async {
-    await pumpShell(tester);
-
-    await tester.tap(find.byKey(const Key('tab_stats')));
-    await tester.pumpAndSettle();
-    expect(stackIndex(tester), 2);
-
-    await tester.tap(find.byKey(const Key('home_record_cta')));
-    await tester.pumpAndSettle();
-    expect(find.byType(QuickEntryPage), findsOneWidget);
-    // The shell switches to analysis before the route covers it: the entry is
-    // the analysis page's child even when pushed from another peer tab.
-    expect(stackIndex(tester, skipOffstage: false), 0,
-        reason: 'the pushed page is analysis, not the calling tab');
-
-    await tester.tap(find.byKey(const Key('quick_back')));
-    await tester.pumpAndSettle();
-    expect(find.byType(QuickEntryPage), findsNothing);
-    expect(stackIndex(tester), 0,
-        reason: 'back from 记一笔 must land on analysis, not the caller tab');
-    expect(find.byType(HomePage), findsOneWidget);
+    expect(find.byKey(const Key('home_record_key')), findsOneWidget);
 
     await disposeShell(tester);
   });
@@ -155,7 +214,7 @@ void main() {
       (tester) async {
     await pumpShell(tester);
 
-    await tester.tap(find.byKey(const Key('home_record_cta')));
+    await tester.tap(find.byKey(const Key('home_record_key')));
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byKey(const Key('entry_name')), '瑞幸');

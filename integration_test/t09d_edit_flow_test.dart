@@ -323,7 +323,7 @@ void main() {
     await tester.pumpAndSettle(const Duration(seconds: 2));
 
     // T-10b IA: the keypad lives on the secondary speed-entry page.
-    await tester.tap(find.byKey(const Key('home_record_cta')));
+    await tester.tap(find.byKey(const Key('home_record_key')));
     await tester.pumpAndSettle(const Duration(seconds: 2));
     // The page scrolls on short surfaces: bring the keypad into view first.
     await tester.ensureVisible(find.byKey(const Key('key_1')));

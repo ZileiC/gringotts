@@ -143,13 +143,17 @@ void main() {
     }
     await snap(tester, '02_budget_set', [find.text('本月已花')]);
 
-    // ---- fixed bottom bar (record CTA + peer tabs) stays put while scrolling
-    final record = find.byKey(const Key('home_record_cta'));
+    // ---- fixed chrome: the analysis top-bar record key + the peer tabs stay
+    // put while the analysis list scrolls (T-14b Part A moved the key out of
+    // the bottom bar, so both ends are pinned now)
+    final record = find.byKey(const Key('home_record_key'));
     final tab = find.byKey(const Key('tab_home'));
     final barBefore = tester.getRect(record);
     expect(find.descendant(of: find.byType(ListView), matching: record),
         findsNothing,
         reason: 'the shell bottom bar lives outside the scroll content');
+    expect(barBefore.top, lessThan(120),
+        reason: 'the record key belongs to the analysis top bar');
     expect(barBefore.bottom, lessThanOrEqualTo(_screenHeight(tester) + 0.5));
     await tester.drag(find.byType(ListView).first, const Offset(0, -240));
     await tester.pumpAndSettle(const Duration(seconds: 1));
@@ -160,7 +164,8 @@ void main() {
     expect(tabRect.bottom, greaterThan(_screenHeight(tester) - 80),
         reason: 'the tab bar is pinned at the bottom of the screen');
     // ignore: avoid_print
-    print('T10B_FIXEDBAR record_bottom=${barBefore.bottom.toStringAsFixed(1)} '
+    print('T10B_FIXED_CHROME record_top=${barBefore.top.toStringAsFixed(1)} '
+        'record_bottom=${barBefore.bottom.toStringAsFixed(1)} '
         'tab_bottom=${tabRect.bottom.toStringAsFixed(1)} '
         'screen=${_screenHeight(tester).toStringAsFixed(1)}');
 

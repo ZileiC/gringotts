@@ -53,7 +53,7 @@ void main() {
     await tester.pumpAndSettle(const Duration(seconds: 2));
 
     // T-12c IA: launch = tab shell; 记一笔 pushes the speed-entry child.
-    await tester.tap(find.byKey(const Key('home_record_cta')));
+    await tester.tap(find.byKey(const Key('home_record_key')));
     await tester.pumpAndSettle(const Duration(seconds: 2));
     await snap(tester, '01_quick_entry', [
       find.byKey(const Key('entry_name')),

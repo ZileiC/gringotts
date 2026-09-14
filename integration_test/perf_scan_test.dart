@@ -61,7 +61,7 @@ void main() {
     await binding.watchPerformance(() async {
       // T-10b IA: the keypad is a secondary page; T-11's page scrolls, so keys
       // are brought into view before sampling.
-      await tester.tap(find.byKey(const Key('home_record_cta')));
+      await tester.tap(find.byKey(const Key('home_record_key')));
       await tester.pumpAndSettle(const Duration(seconds: 1));
       await tester.ensureVisible(find.byKey(const Key('key_1')));
       await tester.pumpAndSettle();

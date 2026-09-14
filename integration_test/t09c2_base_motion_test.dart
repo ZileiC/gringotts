@@ -79,7 +79,7 @@ String hex(Color? color) =>
     color == null ? 'none' : '#${color.toARGB32().toRadixString(16).padLeft(8, '0')}';
 
 Future<void> enterSpeedEntry(WidgetTester tester) async {
-  await tester.tap(find.byKey(const Key('home_record_cta')));
+  await tester.tap(find.byKey(const Key('home_record_key')));
   await tester.pumpAndSettle(const Duration(seconds: 2));
 }
 

@@ -130,7 +130,7 @@ void main() {
 
     // 1. Speed-entry page with key + CTA press states (TouchedScale).
     // T-10b IA: the keypad is a secondary page reached from the analysis home.
-    await tester.tap(find.byKey(const Key('home_record_cta')));
+    await tester.tap(find.byKey(const Key('home_record_key')));
     await tester.pumpAndSettle(const Duration(seconds: 1));
     final ctaKey = find.byKey(const Key('confirm_cta'));
     // T-14: this snap is taken after 记一笔 pushed the page, so the frame is the

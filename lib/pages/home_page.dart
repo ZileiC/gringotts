@@ -20,7 +20,12 @@ import '../ui/tokens.dart';
 /// records, and hosts the AI slot (placeholder until M2.0). The month title is
 /// a button that opens the calendar sheet (T-12c Part D).
 class HomePage extends ConsumerStatefulWidget {
-  const HomePage({super.key});
+  const HomePage({super.key, this.onRecord});
+
+  /// Pushes the speed-entry page (the analysis page's child). Owned by
+  /// HomeShell so the shell can pin the analysis tab before the push; the key
+  /// still renders when the page is mounted stand-alone in a test.
+  final VoidCallback? onRecord;
 
   @override
   ConsumerState<HomePage> createState() => _HomePageState();
@@ -130,6 +135,7 @@ class _HomePageState extends ConsumerState<HomePage> {
               month: _month,
               onMonthTap: _openMonthSheet,
               onBudget: () => _openBudgetSheet(null),
+              onRecord: widget.onRecord,
             ),
             Expanded(
               child: StreamBuilder<List<Transaction>>(
@@ -165,18 +171,25 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 }
 
-/// Top bar: month button (left, opens the calendar sheet) + budget gear
-/// (right). The old ‹ › arrows were removed by user ruling (DESIGN_MAIN §3.1).
+/// Top bar: month button (left, opens the calendar sheet) + the record key +
+/// budget gear (right). The old ‹ › arrows were removed by user ruling
+/// (DESIGN_MAIN §3.1). T-14b Part A: the record entry lives here, on the
+/// analysis page only, so it can never be reached from the assets or stats tab.
 class _MonthBar extends StatelessWidget {
   const _MonthBar({
     required this.month,
     required this.onMonthTap,
     required this.onBudget,
+    required this.onRecord,
   });
 
   final DateTime month;
   final VoidCallback onMonthTap;
   final VoidCallback onBudget;
+
+  /// Null when HomePage is mounted without a shell (tests); the key always
+  /// renders because it belongs to this page.
+  final VoidCallback? onRecord;
 
   @override
   Widget build(BuildContext context) {
@@ -219,6 +232,17 @@ class _MonthBar extends StatelessWidget {
             ),
           ),
           const Spacer(),
+          TextButton(
+            key: const Key('home_record_key'),
+            onPressed: onRecord,
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.goldAccent,
+              minimumSize: const Size(0, 40),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: const Text('记一笔'),
+          ),
           IconButton(
             key: const Key('home_budget_entry'),
             onPressed: onBudget,

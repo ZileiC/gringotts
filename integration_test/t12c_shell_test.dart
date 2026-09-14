@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -8,12 +8,18 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gringotts/app/app.dart';
+import 'package:gringotts/pages/assets_page.dart';
 import 'package:gringotts/pages/quick_entry_page.dart';
+import 'package:gringotts/pages/stats_page.dart';
 import 'package:gringotts/ui/tokens.dart';
 import 'package:integration_test/integration_test.dart';
 
-/// T-12c shell evidence on the real engine: the navigation shell (Part A) and
-/// the month calendar sheet (Part D).
+/// T-12c shell evidence on the real engine: the navigation shell (Part A,
+/// corrected by T-14b Part A) and the month calendar sheet (Part D).
+///
+/// T-14b Part A ruling: 记一笔 belongs to the analysis page only - it exists
+/// inside the analysis top bar and nowhere else. The bottom bar is exactly the
+/// three peer tabs and keeps one height on every tab.
 ///
 /// Preconditions declared up front (AGENTS.md evidence clause):
 /// - nothing is seeded, so the dev database is left exactly as found; no frame
@@ -59,7 +65,7 @@ Color? cellTextColor(WidgetTester tester, int month) => tester
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('T-12c shell: peer tabs / 记一笔 push / month calendar sheet',
+  testWidgets('T-12c shell: peer tabs / analysis-only 记一笔 / month sheet',
       (tester) async {
     final container = ProviderContainer();
     addTearDown(container.dispose);
@@ -81,27 +87,67 @@ void main() {
     );
     await tester.pumpAndSettle(const Duration(seconds: 2));
 
-    final cta = find.byKey(const Key('home_record_cta'));
+    final cta = find.byKey(const Key('home_record_key'));
+    final ctaAnywhere =
+        find.byKey(const Key('home_record_key'), skipOffstage: false);
     expect(cta, findsOneWidget);
     expect(shellIndex(tester), 0);
 
-    // ---- 1) peer tabs: an index change, never a route push ----
+    double barHeight() =>
+        tester.getSize(find.byKey(const Key('home_bottom_tabs'))).height;
+    final analysisBarHeight = barHeight();
+
+    // ---- 1) peer tabs: an index change, never a route push; no CTA outside
+    // the analysis tab (existence assertion, on stage and in the subtree) ----
     await tester.tap(find.byKey(const Key('tab_assets')));
     await tester.pumpAndSettle(const Duration(seconds: 1));
     expect(shellIndex(tester), 1);
-    expect(cta, findsOneWidget,
-        reason: 'the shell is still on stage: switching a tab is not a push');
+    expect(cta, findsNothing,
+        reason: 'the assets tab must not render a record entry');
+    expect(
+      find.descendant(
+        of: find.byType(AssetsPage, skipOffstage: false),
+        matching: ctaAnywhere,
+      ),
+      findsNothing,
+      reason: 'no record key is mounted inside the assets page subtree',
+    );
     expect(find.byType(QuickEntryPage), findsNothing);
-    await snap(tester, '01_tab_assets', [cta]);
+    expect(barHeight(), analysisBarHeight,
+        reason: 'bottom bar height is constant across tabs');
+    await snap(tester, '01_tab_assets', [
+      find.byKey(const Key('tab_assets')),
+      find.text('资产档案'),
+    ]);
+    // ignore: avoid_print
+    print('T12C_TABS assets=1 stats=2 record_cta_onstage=false');
 
     await tester.tap(find.byKey(const Key('tab_stats')));
     await tester.pumpAndSettle(const Duration(seconds: 1));
     expect(shellIndex(tester), 2);
-    expect(cta, findsOneWidget);
+    expect(cta, findsNothing,
+        reason: 'the stats tab must not render a record entry');
+    expect(
+      find.descendant(
+        of: find.byType(StatsPage, skipOffstage: false),
+        matching: ctaAnywhere,
+      ),
+      findsNothing,
+      reason: 'no record key is mounted inside the stats page subtree',
+    );
+    expect(find.byType(QuickEntryPage), findsNothing);
+    expect(barHeight(), analysisBarHeight,
+        reason: 'bottom bar height is constant across tabs');
     // ignore: avoid_print
-    print('T12C_TABS assets=1 stats=2 record_cta_onstage=true');
+    print('T12C_STATS no_cta=true bar_height=${barHeight().toStringAsFixed(1)}');
 
-    // ---- 2) 记一笔: one push, and back always lands on analysis ----
+    // ---- 2) 记一笔: available on analysis only; one push; back lands there ----
+    await tester.tap(find.byKey(const Key('tab_home')));
+    await tester.pumpAndSettle(const Duration(seconds: 1));
+    expect(shellIndex(tester), 0);
+    expect(cta, findsOneWidget);
+    expect(barHeight(), analysisBarHeight,
+        reason: 'bottom bar height is constant across tabs');
     await tester.tap(cta);
     await tester.pumpAndSettle(const Duration(seconds: 1));
     expect(find.byType(QuickEntryPage), findsOneWidget);
@@ -109,7 +155,7 @@ void main() {
     expect(cta, findsNothing,
         reason: 'the pushed entry route covers the shell (real push)');
     expect(shellIndex(tester), 0,
-        reason: 'the shell switched to the analysis tab before pushing');
+        reason: 'the shell stays on the analysis tab while the child is up');
     // Type a name so the frame is this run's push (an untouched entry page is
     // byte-identical to the idle frame T-11 already recorded); nothing is
     // confirmed, so no row is written.
@@ -125,17 +171,19 @@ void main() {
     expect(find.byType(QuickEntryPage), findsNothing);
     expect(cta, findsOneWidget);
     expect(shellIndex(tester), 0,
-        reason: 'back from a stats-tab 记一笔 lands on analysis, not stats');
+        reason: 'back from 记一笔 lands on analysis');
     expect(find.byKey(const Key('home_month_button')), findsOneWidget);
+    expect(barHeight(), analysisBarHeight,
+        reason: 'bottom bar height is constant across tabs');
     // ignore: avoid_print
-    print('T12C_ENTRY pushed_from_stats=2 landed=0');
+    print('T12C_ENTRY analysis_only=true pushed=1 landed=0');
 
     // ---- 3) month calendar sheet: past selectable, future greyed out ----
     await tester.tap(find.byKey(const Key('home_month_button')));
     await tester.pumpAndSettle(const Duration(seconds: 1));
     expect(find.byKey(const Key('home_month_sheet')), findsOneWidget);
     expect(find.text('${now.year}'), findsOneWidget);
-    // The removed ‹ › month arrows must leave no key behind.
+    // The removed \u2039 \u203a month arrows must leave no key behind.
     expect(find.byKey(const Key('home_month_prev')), findsNothing);
     expect(find.byKey(const Key('home_month_next')), findsNothing);
     if (now.month < 12) {

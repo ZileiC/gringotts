@@ -111,7 +111,7 @@ void main() {
     print('T11_PRECONDITION live_tx_before=${liveBefore.length}');
 
     // T-12c IA: launch = tab shell -> 记一笔 -> speed-entry page (child).
-    await tester.tap(find.byKey(const Key('home_record_cta')));
+    await tester.tap(find.byKey(const Key('home_record_key')));
     await tester.pumpAndSettle(const Duration(seconds: 2));
 
     // The top bar keeps back + the expense/income switch; the old
@@ -252,7 +252,7 @@ void main() {
         'spent=${snapshot.spentCents} remaining=${snapshot.remainingCents} '
         'remaining_days=${snapshot.remainingDays}');
 
-    await tester.tap(find.byKey(const Key('home_record_cta')));
+    await tester.tap(find.byKey(const Key('home_record_key')));
     await tester.pumpAndSettle(const Duration(seconds: 2));
 
     // Link row is live before keying (amount 0).

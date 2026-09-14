@@ -91,7 +91,7 @@ void main() {
     await tester.pumpAndSettle(const Duration(seconds: 2));
 
     // ---------- 1. shell: three peer tabs + 记一笔 ----------
-    final cta = find.byKey(const Key('home_record_cta'));
+    final cta = find.byKey(const Key('home_record_key'));
     expect(cta, findsOneWidget);
     expect(find.byKey(const Key('tab_home')), findsOneWidget);
     expect(find.byKey(const Key('tab_assets')), findsOneWidget);

@@ -1,4 +1,4 @@
-﻿/// Domain-level enums shared by the data layer and services.
+/// Domain-level enums shared by the data layer and services.
 ///
 /// All enums are persisted as text values so that adding new members never
 /// breaks existing SQLite rows.
@@ -14,7 +14,7 @@ enum TransactionType { income, expense, transfer }
 enum AssetStatus { inService, retired, sold }
 
 /// Asset classification (aligned with the "youshu" reference set).
-enum AssetCategory { hardCurrency, digital, nonStandard, ordinary }
+enum AssetCategory { hardCurrency, digital, nonStandard, ordinary, savings }
 
 /// Where a transaction came from.
 ///

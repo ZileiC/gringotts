@@ -208,6 +208,7 @@ class AssetRepository {
     required int valueCents,
     required DateTime purchasedAt,
     String? photoPath,
+    String? note,
     AssetStatus status = AssetStatus.inService,
   }) {
     assert(valueCents >= 0, 'value_cents must be a non-negative integer');
@@ -218,9 +219,21 @@ class AssetRepository {
             valueCents: valueCents,
             purchasedAt: purchasedAt,
             photoPath: Value(photoPath),
+            note: Value(note),
             status: Value(status),
           ),
         );
+  }
+
+  /// The planned-savings asset generated for [lastDayNoon], if it exists
+  /// (T-21 idempotency: one month must never produce a second row).
+  Future<Asset?> findPlannedSavingsAsset(DateTime lastDayNoon) {
+    return (_db.select(_db.assets)
+          ..where((a) =>
+              a.deletedAt.isNull() &
+              a.category.equalsValue(AssetCategory.savings) &
+              a.purchasedAt.equals(lastDayNoon)))
+        .getSingleOrNull();
   }
 
   /// Updates mutable asset fields (T-09C edit entry).

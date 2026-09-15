@@ -154,6 +154,8 @@ void main() {
             ),
           );
       await db.customStatement('DROP TABLE budget_months');
+      // A genuine V2 file also predates the T-21 assets.note column.
+      await db.customStatement('ALTER TABLE assets DROP COLUMN note');
       await db.customStatement('PRAGMA user_version = 2');
       await db.close();
 

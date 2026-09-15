@@ -76,6 +76,14 @@ class _StubBudgetRepo implements BudgetRepository {
       throw UnimplementedError();
 
   @override
+  Future<int> markSavingsConfirmed(String id, {DateTime? at}) =>
+      throw UnimplementedError();
+
+  @override
+  Future<int> markSavingsSkipped(String id, {DateTime? at}) =>
+      throw UnimplementedError();
+
+  @override
   Future<int> softDelete(String id) => throw UnimplementedError();
 }
 

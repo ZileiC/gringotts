@@ -7,6 +7,7 @@ import '../data/app_database.dart';
 import '../data/repositories/budget_repository.dart';
 import '../domain/models.dart';
 import '../services/budget_engine.dart';
+import '../services/savings_plan.dart';
 import '../services/statistics_service.dart';
 import '../ui/motion.dart';
 import '../ui/month_sheet.dart';
@@ -75,6 +76,27 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 
+  /// Confirms the month's plan: one savings asset, then the budget row stops
+  /// prompting (the card disappears with the refreshed stream).
+  Future<void> _confirmSavings(BudgetMonth budget) async {
+    final service = SavingsPlanService(
+      budgetRepo: ref.read(budgetRepositoryProvider),
+      assetRepo: ref.read(assetRepositoryProvider),
+    );
+    final asset = await service.confirm(budget);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('已生成资产 \u00a5${_money(asset.valueCents)}'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  /// 这个月没攒够: only the timestamp is written.
+  Future<void> _skipSavings(BudgetMonth budget) =>
+      ref.read(budgetRepositoryProvider).markSavingsSkipped(budget.id);
+
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
@@ -114,10 +136,13 @@ class _HomePageState extends ConsumerState<HomePage> {
                       );
                       return _HomeContent(
                         controller: _scroll,
+                        month: _month,
                         budget: budget,
                         snapshot: snapshot,
                         transactions: transactions,
                         onSetBudget: () => _openBudgetSheet(budget),
+                        onSavingsConfirm: () => _confirmSavings(budget!),
+                        onSavingsSkip: () => _skipSavings(budget!),
                       );
                     },
                   );
@@ -234,17 +259,23 @@ class _MonthBar extends StatelessWidget {
 class _HomeContent extends StatelessWidget {
   const _HomeContent({
     required this.controller,
+    required this.month,
     required this.budget,
     required this.snapshot,
     required this.transactions,
     required this.onSetBudget,
+    required this.onSavingsConfirm,
+    required this.onSavingsSkip,
   });
 
   final ScrollController controller;
+  final DateTime month;
   final BudgetMonth? budget;
   final BudgetSnapshot snapshot;
   final List<Transaction> transactions;
   final VoidCallback onSetBudget;
+  final VoidCallback onSavingsConfirm;
+  final VoidCallback onSavingsSkip;
 
   @override
   Widget build(BuildContext context) {
@@ -257,6 +288,16 @@ class _HomeContent extends StatelessWidget {
           _OnboardingCard(onSetBudget: onSetBudget)
         else
           _HeroCard(snapshot: snapshot),
+        if (SavingsPlan.shouldPrompt(budget)) ...[
+          const SizedBox(height: AppSpacing.m),
+          _SavingsCard(
+            budget: budget!,
+            month: month,
+            monthEnd: SavingsPlan.isMonthEnd(DateTime.now(), month),
+            onConfirm: onSavingsConfirm,
+            onSkip: onSavingsSkip,
+          ),
+        ],
         const SizedBox(height: AppSpacing.m),
         _ProgressCard(budget: budget, snapshot: snapshot),
         const SizedBox(height: AppSpacing.m),
@@ -318,6 +359,78 @@ class _HeroCard extends StatelessWidget {
   }
 }
 
+/// T-21 / DESIGN_MAIN 11.5: month-end planned-savings -> asset card.
+///
+/// Two actions only: 存进资产 (creates one savings asset) and 这个月没攒够
+/// (writes the skip timestamp, zero assets). The card disappears as soon as
+/// either timestamp is set, because the budget stream refreshes.
+class _SavingsCard extends StatelessWidget {
+  const _SavingsCard({
+    required this.budget,
+    required this.month,
+    required this.monthEnd,
+    required this.onConfirm,
+    required this.onSkip,
+  });
+
+  final BudgetMonth budget;
+  final DateTime month;
+  final bool monthEnd;
+  final VoidCallback onConfirm;
+  final VoidCallback onSkip;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      key: const Key('home_savings_card'),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.l),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('本月计划存款', style: theme.textTheme.titleLarge),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              '计划把 \u00a5${_money(budget.savingsTargetCents)} 存成资产'
+              '（${SavingsPlan.assetName(month)}）',
+              style: theme.textTheme.bodySmall,
+            ),
+            if (monthEnd) ...[
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                '这个月快结束了',
+                key: const Key('home_savings_month_end'),
+                style: theme.textTheme.bodySmall
+                    ?.copyWith(color: AppColors.goldAccent),
+              ),
+            ],
+            const SizedBox(height: AppSpacing.m),
+            Row(
+              children: [
+                Expanded(
+                  child: FilledButton(
+                    key: const Key('savings_confirm'),
+                    onPressed: onConfirm,
+                    child: const Text('存进资产'),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.s),
+                Expanded(
+                  child: OutlinedButton(
+                    key: const Key('savings_skip'),
+                    onPressed: onSkip,
+                    child: const Text('这个月没攒够'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 /// Onboarding state: no budget row for the displayed month.
 class _OnboardingCard extends StatelessWidget {
   const _OnboardingCard({required this.onSetBudget});

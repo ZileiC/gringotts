@@ -87,6 +87,26 @@ class BudgetRepository {
         .watch();
   }
 
+  /// Marks the month's planned savings as turned into an asset (T-21).
+  Future<int> markSavingsConfirmed(String id, {DateTime? at}) {
+    final now = (at ?? DateTime.now()).toUtc();
+    return (_db.update(_db.budgetMonths)..where((b) => b.id.equals(id)))
+        .write(BudgetMonthsCompanion(
+      savingsConfirmedAt: Value(now),
+      updatedAt: Value(now),
+    ));
+  }
+
+  /// Marks the month's planned savings as skipped (T-21). No asset is written.
+  Future<int> markSavingsSkipped(String id, {DateTime? at}) {
+    final now = (at ?? DateTime.now()).toUtc();
+    return (_db.update(_db.budgetMonths)..where((b) => b.id.equals(id)))
+        .write(BudgetMonthsCompanion(
+      savingsSkippedAt: Value(now),
+      updatedAt: Value(now),
+    ));
+  }
+
   /// Tombstones a budget row (never physically deletes).
   Future<int> softDelete(String id) {
     final now = DateTime.now().toUtc();

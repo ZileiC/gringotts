@@ -1295,6 +1295,15 @@ class $AssetsTable extends Assets with TableInfo<$AssetsTable, Asset> {
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _photoPathMeta = const VerificationMeta(
     'photoPath',
   );
@@ -1378,6 +1387,7 @@ class $AssetsTable extends Assets with TableInfo<$AssetsTable, Asset> {
     category,
     valueCents,
     purchasedAt,
+    note,
     photoPath,
     status,
     soldPriceCents,
@@ -1427,6 +1437,12 @@ class $AssetsTable extends Assets with TableInfo<$AssetsTable, Asset> {
       );
     } else if (isInserting) {
       context.missing(_purchasedAtMeta);
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+        _noteMeta,
+        note.isAcceptableOrUnknown(data['note']!, _noteMeta),
+      );
     }
     if (data.containsKey('photo_path')) {
       context.handle(
@@ -1498,6 +1514,10 @@ class $AssetsTable extends Assets with TableInfo<$AssetsTable, Asset> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}purchased_at'],
       )!,
+      note: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}note'],
+      ),
       photoPath: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}photo_path'],
@@ -1553,6 +1573,10 @@ class Asset extends DataClass implements Insertable<Asset> {
   final int valueCents;
   final DateTime purchasedAt;
 
+  /// Free-form note (T-21: a generated planned-savings asset records its
+  /// origin here; the column is nullable for every hand-made asset).
+  final String? note;
+
   /// Local file path only; photo files use content-hash naming.
   final String? photoPath;
 
@@ -1569,6 +1593,7 @@ class Asset extends DataClass implements Insertable<Asset> {
     required this.category,
     required this.valueCents,
     required this.purchasedAt,
+    this.note,
     this.photoPath,
     required this.status,
     this.soldPriceCents,
@@ -1589,6 +1614,9 @@ class Asset extends DataClass implements Insertable<Asset> {
     }
     map['value_cents'] = Variable<int>(valueCents);
     map['purchased_at'] = Variable<DateTime>(purchasedAt);
+    if (!nullToAbsent || note != null) {
+      map['note'] = Variable<String>(note);
+    }
     if (!nullToAbsent || photoPath != null) {
       map['photo_path'] = Variable<String>(photoPath);
     }
@@ -1618,6 +1646,7 @@ class Asset extends DataClass implements Insertable<Asset> {
       category: Value(category),
       valueCents: Value(valueCents),
       purchasedAt: Value(purchasedAt),
+      note: note == null && nullToAbsent ? const Value.absent() : Value(note),
       photoPath: photoPath == null && nullToAbsent
           ? const Value.absent()
           : Value(photoPath),
@@ -1649,6 +1678,7 @@ class Asset extends DataClass implements Insertable<Asset> {
       ),
       valueCents: serializer.fromJson<int>(json['valueCents']),
       purchasedAt: serializer.fromJson<DateTime>(json['purchasedAt']),
+      note: serializer.fromJson<String?>(json['note']),
       photoPath: serializer.fromJson<String?>(json['photoPath']),
       status: $AssetsTable.$converterstatus.fromJson(
         serializer.fromJson<String>(json['status']),
@@ -1671,6 +1701,7 @@ class Asset extends DataClass implements Insertable<Asset> {
       ),
       'valueCents': serializer.toJson<int>(valueCents),
       'purchasedAt': serializer.toJson<DateTime>(purchasedAt),
+      'note': serializer.toJson<String?>(note),
       'photoPath': serializer.toJson<String?>(photoPath),
       'status': serializer.toJson<String>(
         $AssetsTable.$converterstatus.toJson(status),
@@ -1689,6 +1720,7 @@ class Asset extends DataClass implements Insertable<Asset> {
     AssetCategory? category,
     int? valueCents,
     DateTime? purchasedAt,
+    Value<String?> note = const Value.absent(),
     Value<String?> photoPath = const Value.absent(),
     AssetStatus? status,
     Value<int?> soldPriceCents = const Value.absent(),
@@ -1702,6 +1734,7 @@ class Asset extends DataClass implements Insertable<Asset> {
     category: category ?? this.category,
     valueCents: valueCents ?? this.valueCents,
     purchasedAt: purchasedAt ?? this.purchasedAt,
+    note: note.present ? note.value : this.note,
     photoPath: photoPath.present ? photoPath.value : this.photoPath,
     status: status ?? this.status,
     soldPriceCents: soldPriceCents.present
@@ -1723,6 +1756,7 @@ class Asset extends DataClass implements Insertable<Asset> {
       purchasedAt: data.purchasedAt.present
           ? data.purchasedAt.value
           : this.purchasedAt,
+      note: data.note.present ? data.note.value : this.note,
       photoPath: data.photoPath.present ? data.photoPath.value : this.photoPath,
       status: data.status.present ? data.status.value : this.status,
       soldPriceCents: data.soldPriceCents.present
@@ -1743,6 +1777,7 @@ class Asset extends DataClass implements Insertable<Asset> {
           ..write('category: $category, ')
           ..write('valueCents: $valueCents, ')
           ..write('purchasedAt: $purchasedAt, ')
+          ..write('note: $note, ')
           ..write('photoPath: $photoPath, ')
           ..write('status: $status, ')
           ..write('soldPriceCents: $soldPriceCents, ')
@@ -1761,6 +1796,7 @@ class Asset extends DataClass implements Insertable<Asset> {
     category,
     valueCents,
     purchasedAt,
+    note,
     photoPath,
     status,
     soldPriceCents,
@@ -1778,6 +1814,7 @@ class Asset extends DataClass implements Insertable<Asset> {
           other.category == this.category &&
           other.valueCents == this.valueCents &&
           other.purchasedAt == this.purchasedAt &&
+          other.note == this.note &&
           other.photoPath == this.photoPath &&
           other.status == this.status &&
           other.soldPriceCents == this.soldPriceCents &&
@@ -1793,6 +1830,7 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
   final Value<AssetCategory> category;
   final Value<int> valueCents;
   final Value<DateTime> purchasedAt;
+  final Value<String?> note;
   final Value<String?> photoPath;
   final Value<AssetStatus> status;
   final Value<int?> soldPriceCents;
@@ -1807,6 +1845,7 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
     this.category = const Value.absent(),
     this.valueCents = const Value.absent(),
     this.purchasedAt = const Value.absent(),
+    this.note = const Value.absent(),
     this.photoPath = const Value.absent(),
     this.status = const Value.absent(),
     this.soldPriceCents = const Value.absent(),
@@ -1822,6 +1861,7 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
     required AssetCategory category,
     required int valueCents,
     required DateTime purchasedAt,
+    this.note = const Value.absent(),
     this.photoPath = const Value.absent(),
     this.status = const Value.absent(),
     this.soldPriceCents = const Value.absent(),
@@ -1840,6 +1880,7 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
     Expression<String>? category,
     Expression<int>? valueCents,
     Expression<DateTime>? purchasedAt,
+    Expression<String>? note,
     Expression<String>? photoPath,
     Expression<String>? status,
     Expression<int>? soldPriceCents,
@@ -1855,6 +1896,7 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
       if (category != null) 'category': category,
       if (valueCents != null) 'value_cents': valueCents,
       if (purchasedAt != null) 'purchased_at': purchasedAt,
+      if (note != null) 'note': note,
       if (photoPath != null) 'photo_path': photoPath,
       if (status != null) 'status': status,
       if (soldPriceCents != null) 'sold_price_cents': soldPriceCents,
@@ -1872,6 +1914,7 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
     Value<AssetCategory>? category,
     Value<int>? valueCents,
     Value<DateTime>? purchasedAt,
+    Value<String?>? note,
     Value<String?>? photoPath,
     Value<AssetStatus>? status,
     Value<int?>? soldPriceCents,
@@ -1887,6 +1930,7 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
       category: category ?? this.category,
       valueCents: valueCents ?? this.valueCents,
       purchasedAt: purchasedAt ?? this.purchasedAt,
+      note: note ?? this.note,
       photoPath: photoPath ?? this.photoPath,
       status: status ?? this.status,
       soldPriceCents: soldPriceCents ?? this.soldPriceCents,
@@ -1917,6 +1961,9 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
     }
     if (purchasedAt.present) {
       map['purchased_at'] = Variable<DateTime>(purchasedAt.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
     }
     if (photoPath.present) {
       map['photo_path'] = Variable<String>(photoPath.value);
@@ -1955,6 +2002,7 @@ class AssetsCompanion extends UpdateCompanion<Asset> {
           ..write('category: $category, ')
           ..write('valueCents: $valueCents, ')
           ..write('purchasedAt: $purchasedAt, ')
+          ..write('note: $note, ')
           ..write('photoPath: $photoPath, ')
           ..write('status: $status, ')
           ..write('soldPriceCents: $soldPriceCents, ')
@@ -2473,6 +2521,29 @@ class $BudgetMonthsTable extends BudgetMonths
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _savingsConfirmedAtMeta =
+      const VerificationMeta('savingsConfirmedAt');
+  @override
+  late final GeneratedColumn<DateTime> savingsConfirmedAt =
+      GeneratedColumn<DateTime>(
+        'savings_confirmed_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _savingsSkippedAtMeta = const VerificationMeta(
+    'savingsSkippedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> savingsSkippedAt =
+      GeneratedColumn<DateTime>(
+        'savings_skipped_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -2514,6 +2585,8 @@ class $BudgetMonthsTable extends BudgetMonths
     yearMonth,
     incomeCents,
     savingsTargetCents,
+    savingsConfirmedAt,
+    savingsSkippedAt,
     createdAt,
     updatedAt,
     deletedAt,
@@ -2563,6 +2636,24 @@ class $BudgetMonthsTable extends BudgetMonths
     } else if (isInserting) {
       context.missing(_savingsTargetCentsMeta);
     }
+    if (data.containsKey('savings_confirmed_at')) {
+      context.handle(
+        _savingsConfirmedAtMeta,
+        savingsConfirmedAt.isAcceptableOrUnknown(
+          data['savings_confirmed_at']!,
+          _savingsConfirmedAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('savings_skipped_at')) {
+      context.handle(
+        _savingsSkippedAtMeta,
+        savingsSkippedAt.isAcceptableOrUnknown(
+          data['savings_skipped_at']!,
+          _savingsSkippedAtMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -2610,6 +2701,14 @@ class $BudgetMonthsTable extends BudgetMonths
         DriftSqlType.int,
         data['${effectivePrefix}savings_target_cents'],
       )!,
+      savingsConfirmedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}savings_confirmed_at'],
+      ),
+      savingsSkippedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}savings_skipped_at'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -2642,6 +2741,12 @@ class BudgetMonth extends DataClass implements Insertable<BudgetMonth> {
 
   /// Planned savings for the month, in integer cents.
   final int savingsTargetCents;
+
+  /// When the user turned this month's plan into a savings asset (T-21).
+  final DateTime? savingsConfirmedAt;
+
+  /// When the user answered 这个月没攒够: the month stops prompting (T-21).
+  final DateTime? savingsSkippedAt;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -2652,6 +2757,8 @@ class BudgetMonth extends DataClass implements Insertable<BudgetMonth> {
     required this.yearMonth,
     required this.incomeCents,
     required this.savingsTargetCents,
+    this.savingsConfirmedAt,
+    this.savingsSkippedAt,
     required this.createdAt,
     required this.updatedAt,
     this.deletedAt,
@@ -2663,6 +2770,12 @@ class BudgetMonth extends DataClass implements Insertable<BudgetMonth> {
     map['year_month'] = Variable<String>(yearMonth);
     map['income_cents'] = Variable<int>(incomeCents);
     map['savings_target_cents'] = Variable<int>(savingsTargetCents);
+    if (!nullToAbsent || savingsConfirmedAt != null) {
+      map['savings_confirmed_at'] = Variable<DateTime>(savingsConfirmedAt);
+    }
+    if (!nullToAbsent || savingsSkippedAt != null) {
+      map['savings_skipped_at'] = Variable<DateTime>(savingsSkippedAt);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     if (!nullToAbsent || deletedAt != null) {
@@ -2677,6 +2790,12 @@ class BudgetMonth extends DataClass implements Insertable<BudgetMonth> {
       yearMonth: Value(yearMonth),
       incomeCents: Value(incomeCents),
       savingsTargetCents: Value(savingsTargetCents),
+      savingsConfirmedAt: savingsConfirmedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(savingsConfirmedAt),
+      savingsSkippedAt: savingsSkippedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(savingsSkippedAt),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       deletedAt: deletedAt == null && nullToAbsent
@@ -2695,6 +2814,12 @@ class BudgetMonth extends DataClass implements Insertable<BudgetMonth> {
       yearMonth: serializer.fromJson<String>(json['yearMonth']),
       incomeCents: serializer.fromJson<int>(json['incomeCents']),
       savingsTargetCents: serializer.fromJson<int>(json['savingsTargetCents']),
+      savingsConfirmedAt: serializer.fromJson<DateTime?>(
+        json['savingsConfirmedAt'],
+      ),
+      savingsSkippedAt: serializer.fromJson<DateTime?>(
+        json['savingsSkippedAt'],
+      ),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
@@ -2708,6 +2833,8 @@ class BudgetMonth extends DataClass implements Insertable<BudgetMonth> {
       'yearMonth': serializer.toJson<String>(yearMonth),
       'incomeCents': serializer.toJson<int>(incomeCents),
       'savingsTargetCents': serializer.toJson<int>(savingsTargetCents),
+      'savingsConfirmedAt': serializer.toJson<DateTime?>(savingsConfirmedAt),
+      'savingsSkippedAt': serializer.toJson<DateTime?>(savingsSkippedAt),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
@@ -2719,6 +2846,8 @@ class BudgetMonth extends DataClass implements Insertable<BudgetMonth> {
     String? yearMonth,
     int? incomeCents,
     int? savingsTargetCents,
+    Value<DateTime?> savingsConfirmedAt = const Value.absent(),
+    Value<DateTime?> savingsSkippedAt = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
     Value<DateTime?> deletedAt = const Value.absent(),
@@ -2727,6 +2856,12 @@ class BudgetMonth extends DataClass implements Insertable<BudgetMonth> {
     yearMonth: yearMonth ?? this.yearMonth,
     incomeCents: incomeCents ?? this.incomeCents,
     savingsTargetCents: savingsTargetCents ?? this.savingsTargetCents,
+    savingsConfirmedAt: savingsConfirmedAt.present
+        ? savingsConfirmedAt.value
+        : this.savingsConfirmedAt,
+    savingsSkippedAt: savingsSkippedAt.present
+        ? savingsSkippedAt.value
+        : this.savingsSkippedAt,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
@@ -2741,6 +2876,12 @@ class BudgetMonth extends DataClass implements Insertable<BudgetMonth> {
       savingsTargetCents: data.savingsTargetCents.present
           ? data.savingsTargetCents.value
           : this.savingsTargetCents,
+      savingsConfirmedAt: data.savingsConfirmedAt.present
+          ? data.savingsConfirmedAt.value
+          : this.savingsConfirmedAt,
+      savingsSkippedAt: data.savingsSkippedAt.present
+          ? data.savingsSkippedAt.value
+          : this.savingsSkippedAt,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
@@ -2754,6 +2895,8 @@ class BudgetMonth extends DataClass implements Insertable<BudgetMonth> {
           ..write('yearMonth: $yearMonth, ')
           ..write('incomeCents: $incomeCents, ')
           ..write('savingsTargetCents: $savingsTargetCents, ')
+          ..write('savingsConfirmedAt: $savingsConfirmedAt, ')
+          ..write('savingsSkippedAt: $savingsSkippedAt, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt')
@@ -2767,6 +2910,8 @@ class BudgetMonth extends DataClass implements Insertable<BudgetMonth> {
     yearMonth,
     incomeCents,
     savingsTargetCents,
+    savingsConfirmedAt,
+    savingsSkippedAt,
     createdAt,
     updatedAt,
     deletedAt,
@@ -2779,6 +2924,8 @@ class BudgetMonth extends DataClass implements Insertable<BudgetMonth> {
           other.yearMonth == this.yearMonth &&
           other.incomeCents == this.incomeCents &&
           other.savingsTargetCents == this.savingsTargetCents &&
+          other.savingsConfirmedAt == this.savingsConfirmedAt &&
+          other.savingsSkippedAt == this.savingsSkippedAt &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.deletedAt == this.deletedAt);
@@ -2789,6 +2936,8 @@ class BudgetMonthsCompanion extends UpdateCompanion<BudgetMonth> {
   final Value<String> yearMonth;
   final Value<int> incomeCents;
   final Value<int> savingsTargetCents;
+  final Value<DateTime?> savingsConfirmedAt;
+  final Value<DateTime?> savingsSkippedAt;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<DateTime?> deletedAt;
@@ -2798,6 +2947,8 @@ class BudgetMonthsCompanion extends UpdateCompanion<BudgetMonth> {
     this.yearMonth = const Value.absent(),
     this.incomeCents = const Value.absent(),
     this.savingsTargetCents = const Value.absent(),
+    this.savingsConfirmedAt = const Value.absent(),
+    this.savingsSkippedAt = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
@@ -2808,6 +2959,8 @@ class BudgetMonthsCompanion extends UpdateCompanion<BudgetMonth> {
     required String yearMonth,
     required int incomeCents,
     required int savingsTargetCents,
+    this.savingsConfirmedAt = const Value.absent(),
+    this.savingsSkippedAt = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
@@ -2820,6 +2973,8 @@ class BudgetMonthsCompanion extends UpdateCompanion<BudgetMonth> {
     Expression<String>? yearMonth,
     Expression<int>? incomeCents,
     Expression<int>? savingsTargetCents,
+    Expression<DateTime>? savingsConfirmedAt,
+    Expression<DateTime>? savingsSkippedAt,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? deletedAt,
@@ -2831,6 +2986,9 @@ class BudgetMonthsCompanion extends UpdateCompanion<BudgetMonth> {
       if (incomeCents != null) 'income_cents': incomeCents,
       if (savingsTargetCents != null)
         'savings_target_cents': savingsTargetCents,
+      if (savingsConfirmedAt != null)
+        'savings_confirmed_at': savingsConfirmedAt,
+      if (savingsSkippedAt != null) 'savings_skipped_at': savingsSkippedAt,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deletedAt != null) 'deleted_at': deletedAt,
@@ -2843,6 +3001,8 @@ class BudgetMonthsCompanion extends UpdateCompanion<BudgetMonth> {
     Value<String>? yearMonth,
     Value<int>? incomeCents,
     Value<int>? savingsTargetCents,
+    Value<DateTime?>? savingsConfirmedAt,
+    Value<DateTime?>? savingsSkippedAt,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<DateTime?>? deletedAt,
@@ -2853,6 +3013,8 @@ class BudgetMonthsCompanion extends UpdateCompanion<BudgetMonth> {
       yearMonth: yearMonth ?? this.yearMonth,
       incomeCents: incomeCents ?? this.incomeCents,
       savingsTargetCents: savingsTargetCents ?? this.savingsTargetCents,
+      savingsConfirmedAt: savingsConfirmedAt ?? this.savingsConfirmedAt,
+      savingsSkippedAt: savingsSkippedAt ?? this.savingsSkippedAt,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
@@ -2874,6 +3036,14 @@ class BudgetMonthsCompanion extends UpdateCompanion<BudgetMonth> {
     }
     if (savingsTargetCents.present) {
       map['savings_target_cents'] = Variable<int>(savingsTargetCents.value);
+    }
+    if (savingsConfirmedAt.present) {
+      map['savings_confirmed_at'] = Variable<DateTime>(
+        savingsConfirmedAt.value,
+      );
+    }
+    if (savingsSkippedAt.present) {
+      map['savings_skipped_at'] = Variable<DateTime>(savingsSkippedAt.value);
     }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
@@ -2897,6 +3067,8 @@ class BudgetMonthsCompanion extends UpdateCompanion<BudgetMonth> {
           ..write('yearMonth: $yearMonth, ')
           ..write('incomeCents: $incomeCents, ')
           ..write('savingsTargetCents: $savingsTargetCents, ')
+          ..write('savingsConfirmedAt: $savingsConfirmedAt, ')
+          ..write('savingsSkippedAt: $savingsSkippedAt, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
@@ -3743,6 +3915,7 @@ typedef $$AssetsTableCreateCompanionBuilder = AssetsCompanion Function({
   required AssetCategory category,
   required int valueCents,
   required DateTime purchasedAt,
+  Value<String?> note,
   Value<String?> photoPath,
   Value<AssetStatus> status,
   Value<int?> soldPriceCents,
@@ -3758,6 +3931,7 @@ typedef $$AssetsTableUpdateCompanionBuilder = AssetsCompanion Function({
   Value<AssetCategory> category,
   Value<int> valueCents,
   Value<DateTime> purchasedAt,
+  Value<String?> note,
   Value<String?> photoPath,
   Value<AssetStatus> status,
   Value<int?> soldPriceCents,
@@ -3823,6 +3997,11 @@ class $$AssetsTableFilterComposer
 
   ColumnFilters<DateTime> get purchasedAt => $composableBuilder(
     column: $table.purchasedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get note => $composableBuilder(
+    column: $table.note,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3922,6 +4101,11 @@ class $$AssetsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get photoPath => $composableBuilder(
     column: $table.photoPath,
     builder: (column) => ColumnOrderings(column),
@@ -3985,6 +4169,9 @@ class $$AssetsTableAnnotationComposer
     column: $table.purchasedAt,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
 
   GeneratedColumn<String> get photoPath =>
       $composableBuilder(column: $table.photoPath, builder: (column) => column);
@@ -4068,6 +4255,7 @@ class $$AssetsTableTableManager
                 Value<AssetCategory> category = const Value.absent(),
                 Value<int> valueCents = const Value.absent(),
                 Value<DateTime> purchasedAt = const Value.absent(),
+                Value<String?> note = const Value.absent(),
                 Value<String?> photoPath = const Value.absent(),
                 Value<AssetStatus> status = const Value.absent(),
                 Value<int?> soldPriceCents = const Value.absent(),
@@ -4082,6 +4270,7 @@ class $$AssetsTableTableManager
                 category: category,
                 valueCents: valueCents,
                 purchasedAt: purchasedAt,
+                note: note,
                 photoPath: photoPath,
                 status: status,
                 soldPriceCents: soldPriceCents,
@@ -4098,6 +4287,7 @@ class $$AssetsTableTableManager
                 required AssetCategory category,
                 required int valueCents,
                 required DateTime purchasedAt,
+                Value<String?> note = const Value.absent(),
                 Value<String?> photoPath = const Value.absent(),
                 Value<AssetStatus> status = const Value.absent(),
                 Value<int?> soldPriceCents = const Value.absent(),
@@ -4112,6 +4302,7 @@ class $$AssetsTableTableManager
                 category: category,
                 valueCents: valueCents,
                 purchasedAt: purchasedAt,
+                note: note,
                 photoPath: photoPath,
                 status: status,
                 soldPriceCents: soldPriceCents,
@@ -4531,6 +4722,8 @@ typedef $$BudgetMonthsTableCreateCompanionBuilder =
       required String yearMonth,
       required int incomeCents,
       required int savingsTargetCents,
+      Value<DateTime?> savingsConfirmedAt,
+      Value<DateTime?> savingsSkippedAt,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<DateTime?> deletedAt,
@@ -4542,6 +4735,8 @@ typedef $$BudgetMonthsTableUpdateCompanionBuilder =
       Value<String> yearMonth,
       Value<int> incomeCents,
       Value<int> savingsTargetCents,
+      Value<DateTime?> savingsConfirmedAt,
+      Value<DateTime?> savingsSkippedAt,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<DateTime?> deletedAt,
@@ -4574,6 +4769,16 @@ class $$BudgetMonthsTableFilterComposer
 
   ColumnFilters<int> get savingsTargetCents => $composableBuilder(
     column: $table.savingsTargetCents,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get savingsConfirmedAt => $composableBuilder(
+    column: $table.savingsConfirmedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get savingsSkippedAt => $composableBuilder(
+    column: $table.savingsSkippedAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4622,6 +4827,16 @@ class $$BudgetMonthsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get savingsConfirmedAt => $composableBuilder(
+    column: $table.savingsConfirmedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get savingsSkippedAt => $composableBuilder(
+    column: $table.savingsSkippedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -4660,6 +4875,16 @@ class $$BudgetMonthsTableAnnotationComposer
 
   GeneratedColumn<int> get savingsTargetCents => $composableBuilder(
     column: $table.savingsTargetCents,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get savingsConfirmedAt => $composableBuilder(
+    column: $table.savingsConfirmedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get savingsSkippedAt => $composableBuilder(
+    column: $table.savingsSkippedAt,
     builder: (column) => column,
   );
 
@@ -4708,6 +4933,8 @@ class $$BudgetMonthsTableTableManager
                 Value<String> yearMonth = const Value.absent(),
                 Value<int> incomeCents = const Value.absent(),
                 Value<int> savingsTargetCents = const Value.absent(),
+                Value<DateTime?> savingsConfirmedAt = const Value.absent(),
+                Value<DateTime?> savingsSkippedAt = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
@@ -4717,6 +4944,8 @@ class $$BudgetMonthsTableTableManager
                 yearMonth: yearMonth,
                 incomeCents: incomeCents,
                 savingsTargetCents: savingsTargetCents,
+                savingsConfirmedAt: savingsConfirmedAt,
+                savingsSkippedAt: savingsSkippedAt,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
@@ -4728,6 +4957,8 @@ class $$BudgetMonthsTableTableManager
                 required String yearMonth,
                 required int incomeCents,
                 required int savingsTargetCents,
+                Value<DateTime?> savingsConfirmedAt = const Value.absent(),
+                Value<DateTime?> savingsSkippedAt = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
@@ -4737,6 +4968,8 @@ class $$BudgetMonthsTableTableManager
                 yearMonth: yearMonth,
                 incomeCents: incomeCents,
                 savingsTargetCents: savingsTargetCents,
+                savingsConfirmedAt: savingsConfirmedAt,
+                savingsSkippedAt: savingsSkippedAt,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,

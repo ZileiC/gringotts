@@ -177,6 +177,8 @@ class _DetailBody extends StatelessWidget {
         return '非标品';
       case AssetCategory.ordinary:
         return '普通物品';
+      case AssetCategory.savings:
+        return '存款';
     }
   }
 
@@ -678,6 +680,7 @@ class _EditAssetSheetState extends ConsumerState<_EditAssetSheet> {
               ButtonSegment(
                   value: AssetCategory.nonStandard, label: Text('非标品')),
               ButtonSegment(value: AssetCategory.ordinary, label: Text('普通')),
+              ButtonSegment(value: AssetCategory.savings, label: Text('存款')),
             ],
             selected: {_category},
             onSelectionChanged: (s) => setState(() => _category = s.first),

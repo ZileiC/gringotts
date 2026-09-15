@@ -97,6 +97,10 @@ class Assets extends Table {
   IntColumn get valueCents => integer()();
   DateTimeColumn get purchasedAt => dateTime()();
 
+  /// Free-form note (T-21: a generated planned-savings asset records its
+  /// origin here; the column is nullable for every hand-made asset).
+  TextColumn get note => text().nullable()();
+
   /// Local file path only; photo files use content-hash naming.
   TextColumn get photoPath => text().nullable()();
 
@@ -164,6 +168,12 @@ class BudgetMonths extends Table {
   /// Planned savings for the month, in integer cents.
   IntColumn get savingsTargetCents => integer()();
 
+  /// When the user turned this month's plan into a savings asset (T-21).
+  DateTimeColumn get savingsConfirmedAt => dateTime().nullable()();
+
+  /// When the user answered 这个月没攒够: the month stops prompting (T-21).
+  DateTimeColumn get savingsSkippedAt => dateTime().nullable()();
+
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
 
@@ -184,7 +194,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -218,6 +228,21 @@ class AppDatabase extends _$AppDatabase {
             // V2 -> V3: introduce budget_months. No backfill: months without a
             // budget are a normal state (home shows the onboarding card).
             await m.createTable(budgetMonths);
+          }
+          if (from < 4) {
+            // V3 -> V4 (T-21): planned-savings confirmation state plus the
+            // note of the generated savings asset. All added columns are
+            // nullable, so existing rows keep reading without a backfill.
+            //
+            // assets exists since V1, so its column is always added. The two
+            // budget_months columns are only missing on a genuine V3 file: a
+            // V1/V2 upgrade creates that table above with the full current
+            // shape, and adding them again would fail.
+            await m.addColumn(assets, assets.note);
+            if (from >= 3) {
+              await m.addColumn(budgetMonths, budgetMonths.savingsConfirmedAt);
+              await m.addColumn(budgetMonths, budgetMonths.savingsSkippedAt);
+            }
           }
         },
       );

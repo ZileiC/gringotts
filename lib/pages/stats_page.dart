@@ -49,9 +49,15 @@ class _StatsPageState extends ConsumerState<StatsPage>
   List<PeriodPoint> _trend(List<Transaction> transactions) {
     switch (_range) {
       case StatsRange.daily:
-        return StatisticsService.dailyTrend(transactions);
+        return StatisticsService.monthDays(
+          transactions,
+          month: DateTime.now(),
+        );
       case StatsRange.monthly:
-        return StatisticsService.monthlyTrend(transactions);
+        return StatisticsService.monthlyTrend(
+          transactions,
+          year: DateTime.now().year,
+        );
       case StatsRange.yearly:
         return StatisticsService.yearlyTrend(transactions);
     }

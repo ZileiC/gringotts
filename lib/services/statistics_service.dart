@@ -8,6 +8,7 @@ library;
 
 import '../data/app_database.dart';
 import '../domain/models.dart';
+import 'budget_engine.dart';
 
 /// One aggregated bucket (e.g. one category's total in a period).
 class CategoryTotal {
@@ -20,14 +21,65 @@ class CategoryTotal {
 }
 
 /// One period bucket for the trend line chart.
+///
+/// [incomeCents] is the confirmed income flow in the bucket (temporary
+/// income); [baselineIncomeCents] is the guaranteed monthly income allocated
+/// to that bucket (amortised over the days in the day view). The chart-2
+/// income line plots [incomeLineCents], so a month with a budget can never
+/// collapse onto the x axis.
 class PeriodPoint {
-  const PeriodPoint({required this.label, required this.expenseCents, required this.incomeCents});
+  const PeriodPoint({
+    required this.label,
+    required this.expenseCents,
+    required this.incomeCents,
+    this.baselineIncomeCents = 0,
+  });
 
   final String label;
   final int expenseCents;
   final int incomeCents;
+  final int baselineIncomeCents;
+
+  /// Income line value: 保底均摊 + 临时收入.
+  int get incomeLineCents => baselineIncomeCents + incomeCents;
 
   int get netCents => incomeCents - expenseCents;
+}
+
+/// One bar of chart 1 (每日支出  额度对照).
+///
+/// [index] is the x value; it is ALWAYS the integer data-point index, so the
+/// bottom labels can never drift away from the bars (T-21 diagnosis 2).
+class SpendBar {
+  const SpendBar({
+    required this.index,
+    required this.label,
+    required this.expenseCents,
+    required this.tempIncomeCents,
+    this.allowanceCents,
+  });
+
+  final int index;
+  final String label;
+  final int expenseCents;
+
+  /// Confirmed income flow on this bucket (drawn as the green dot).
+  final int tempIncomeCents;
+
+  /// Spendable allowance for the bucket: day quota in the day view, the month
+  /// budget in the month view, the year's budget in the year view. Null when
+  /// that period has no budget row - then no baseline is drawn.
+  final int? allowanceCents;
+
+  bool get overLimit => allowanceCents != null && expenseCents > allowanceCents!;
+
+  /// The part of the bar inside the allowance (elevated fill + hairline edge).
+  int get baseCents => overLimit ? allowanceCents! : expenseCents;
+
+  /// The part of the bar past the allowance (painted semanticExpense).
+  int get overCents => overLimit ? expenseCents - allowanceCents! : 0;
+
+  bool get hasTempIncome => tempIncomeCents > 0;
 }
 
 /// One slice of a category chart (pie / donut).
@@ -138,46 +190,133 @@ class StatisticsService {
     ];
   }
 
-  /// Day trend: 7 buckets (6 days ago .. today).
-  static List<PeriodPoint> dailyTrend(List<Transaction> transactions, {DateTime? now}) {
-    final today = (now ?? DateTime.now());
-    final labels = <String>[];
-    for (var i = 6; i >= 0; i--) {
-      final d = today.subtract(Duration(days: i));
-      labels.add('${d.month}/${d.day}');
-    }
-    return trend(
-      transactions,
+  /// Labels for every day of [month] (`M/D`): 28/29/30/31 entries.
+  static List<String> monthDayLabels(DateTime month) {
+    final days = BudgetEngine.daysInMonth(month.year, month.month);
+    return [for (var d = 1; d <= days; d++) '${month.month}/$d'];
+  }
+
+  /// Guaranteed income amortised over the days of [month]:
+  /// `budget.incomeCents / daysInMonth`. Null without a live budget row.
+  ///
+  /// This is the 保底收入 side of the T-21 income semantics. It is derived on
+  /// every read and never stored (data iron rule: no derived columns).
+  static int? incomeBaselinePerDay({
+    required BudgetMonth? budget,
+    required DateTime month,
+  }) {
+    if (budget == null || budget.deletedAt != null) return null;
+    return budget.incomeCents ~/ BudgetEngine.daysInMonth(month.year, month.month);
+  }
+
+  /// Day buckets for the whole selected month (28/29/30/31 bars).
+  ///
+  /// [baselineIncomePerDayCents] is the amortised guaranteed income (null when
+  /// the month has no budget); it is stamped on every point so chart 2 can plot
+  /// 保底均摊 + 临时收入 and never collapse onto the x axis.
+  static List<PeriodPoint> monthDays(
+    List<Transaction> transactions, {
+    required DateTime month,
+    int? baselineIncomePerDayCents,
+  }) {
+    final inMonth = transactions
+        .where((t) =>
+            t.occurredAt.year == month.year && t.occurredAt.month == month.month)
+        .toList();
+    final points = trend(
+      inMonth,
       key: (dt) => '${dt.month}/${dt.day}',
-      orderedLabels: labels,
+      orderedLabels: monthDayLabels(month),
     );
+    if (baselineIncomePerDayCents == null) return points;
+    return [
+      for (final p in points)
+        PeriodPoint(
+          label: p.label,
+          expenseCents: p.expenseCents,
+          incomeCents: p.incomeCents,
+          baselineIncomeCents: baselineIncomePerDayCents,
+        ),
+    ];
   }
-
-  /// Month trend: 12 buckets (Jan .. Dec of the current year).
-  static List<PeriodPoint> monthlyTrend(List<Transaction> transactions, {DateTime? now}) {
-
-    final labels = [for (var m = 1; m <= 12; m++) '$m月'];
-    return trend(
-      transactions,
+  /// Month trend: 12 buckets (Jan .. Dec of [year]).
+  ///
+  /// [baselineIncomeByMonth] maps 1..12 to that month's guaranteed income
+  /// (budget.incomeCents); months without a budget stay 0. Rows from other
+  /// years are excluded, so two Septembers can no longer merge.
+  static List<PeriodPoint> monthlyTrend(
+    List<Transaction> transactions, {
+    required int year,
+    Map<int, int> baselineIncomeByMonth = const <int, int>{},
+  }) {
+    final inYear = transactions.where((t) => t.occurredAt.year == year).toList();
+    final points = trend(
+      inYear,
       key: (dt) => '${dt.month}月',
-      orderedLabels: labels,
+      orderedLabels: [for (var m = 1; m <= 12; m++) '$m月'],
     );
+    return [
+      for (var i = 0; i < points.length; i++)
+        PeriodPoint(
+          label: points[i].label,
+          expenseCents: points[i].expenseCents,
+          incomeCents: points[i].incomeCents,
+          baselineIncomeCents: baselineIncomeByMonth[i + 1] ?? 0,
+        ),
+    ];
   }
-
   /// Year trend: all years seen in the data, ascending.
-  static List<PeriodPoint> yearlyTrend(List<Transaction> transactions) {
+  ///
+  /// [baselineIncomeByYear] holds each year's guaranteed income total.
+  static List<PeriodPoint> yearlyTrend(
+    List<Transaction> transactions, {
+    Map<int, int> baselineIncomeByYear = const <int, int>{},
+  }) {
     final years = <int>{};
     for (final t in transactions) {
       years.add(t.occurredAt.year);
     }
     final labels = years.map((y) => '$y年').toList()..sort();
-    return trend(
+    final points = trend(
       transactions,
       key: (dt) => '${dt.year}年',
       orderedLabels: labels,
     );
+    return [
+      for (final p in points)
+        PeriodPoint(
+          label: p.label,
+          expenseCents: p.expenseCents,
+          incomeCents: p.incomeCents,
+          baselineIncomeCents: baselineIncomeByYear[
+                  int.tryParse(p.label.replaceAll('年', '')) ?? 0] ??
+              0,
+        ),
+    ];
   }
 
+  /// Builds chart-1 bars from [points].
+  ///
+  /// [allowanceByIndex] carries the spendable allowance per data point (the day
+  /// quota in the day view, the month budget in the month view, the year's
+  /// budget in the year view). A missing or null entry means 无预算 for that
+  /// bucket: no baseline is drawn and nothing is painted red.
+  static List<SpendBar> spendBars(
+    List<PeriodPoint> points, {
+    List<int?> allowanceByIndex = const <int?>[],
+  }) {
+    return [
+      for (var i = 0; i < points.length; i++)
+        SpendBar(
+          index: i,
+          label: points[i].label,
+          expenseCents: points[i].expenseCents,
+          tempIncomeCents: points[i].incomeCents,
+          allowanceCents:
+              i < allowanceByIndex.length ? allowanceByIndex[i] : null,
+        ),
+    ];
+  }
   /// Totals for a set of transactions (net balance math).
   static ({int expenseCents, int incomeCents, int netCents}) totals(
       List<Transaction> transactions) {

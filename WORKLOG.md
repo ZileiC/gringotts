@@ -17,6 +17,8 @@
 - **观察（非缺陷，供真机留意）**：资产页右下角本身有一个「＋」添加资产键（既有功能），与顶栏的记一笔「＋」**同形不同义**；若实机上觉得容易混，可在后续票换形（如资产用带文字的键或换图标）
 - **结论：T-14b ✅ 验收通过**。M2.0 正式波按用户安排仍处暂缓；**T-14b 关闭后，前置波 + 用户追加的两项修正（导航语义 / 底栏重设计）全部结清**
 
+## 2026-09-15（执行层：T-21 统计页图表重整 + 收入/存款语义，分块施工）
+- **Part 1 完成**（服务层）：`lib/services/statistics_service.dart` - 新增 `monthDayLabels` / `monthDays`（日视图 = 所选月整月 28/29/30/31 桶，标签 `M/D`，x 恒为数据点 index）、`incomeBaselinePerDay`（budget.incomeCents / 当月天数，无预算或墓碑 = null）、`monthlyTrend(year)`（12 桶且跨年不再混桶）、`yearlyTrend(baseline)`、`spendBars`（额度内/超额分段 + 临时收入，纯函数）；**删除**旧的 7 桶 `dailyTrend`，旧调用点已改。证据：`flutter test test/statistics_service_test.dart` -> 18 passed（含 28/29/30/31 四例与有/无预算两态）；`flutter analyze` -> No issues found
 ## 2026-09-14（执行层：T-14b 收尾：陈旧断言 2 处 + 帧 md5 清单 + APK；待验收）
 - **起手**：`844a8bf`（Part A `14c942e` + Part B `0cc6190` 已保全）。本轮**只收尾、不重做**：`lib/` 零改动，唯一源码改动 = `integration_test/t13b_full_chain_test.dart`
 - **(1) 陈旧断言共修 2 处（同一根因）**：Part A 后「记一笔」只属分析页，所以当前不在分析 tab 时 `home_record_key` 就 offstage（壳是 IndexedStack）。修法统一为「先断言已回到壳（`tab_home` 在台上）加上 key 不在台上」，不降断言、不加 skip：

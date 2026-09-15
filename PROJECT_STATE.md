@@ -2,13 +2,12 @@
 
 > 每个 session 先读本文件；细节以档案为准。新的管理层 session 另读 `HANDOFF_MANAGEMENT.md`（协议/成本/路线图详情，只需读一次）。
 
-## 状态（2026-09-14，**T-14b 规格已冻结，可派施工**；M2.0 正式波待启动）
-- **M2.0 前置波**：全部 ✅ 关闭（T-10a → T-14）；**当前票 = T-14b（P1）**，规格已定稿：① Part A 导航语义修正——「记一笔」仅属分析页 ② Part B 底栏重设计 = **`DESIGN_MAIN.md` §8 终稿（T1/P2/D1：底栏金细线滑动 + 记一笔移到分析页顶栏、只要加号 + 引入 MiSans）**
-- **派工 prompt**：`SESSION_PROMPTS.md` §B（执行层新 session 开场 prompt，已含 Part A/B/C 与验收标准，**直接可派**）
-- **待拍板（另一件）**：`design/ai_wave_preview.html`（AI 三屏各 2 方向）—— **T-15 的启用前提**
-- **M2.0 正式波（含 T-15~T-20）按用户安排暂缓**（2026-09-14 用户：「M2.0 以及它的各个部分都可以先放一下，我有自己的安排」）→ 拆票表保留在 `TICKETS_M2A.md` 备查，**未获用户指示前不派工、不催办**；用户另有安排时按其指示推进
-- **当前波**：**M2.0 正式波（AI 上线）**拆票见 `TICKETS_M2A.md`（T-15 AI 基座 → T-16 主页 AI 建议 → T-17/T-18 → T-19 → T-20）
-- **交付物**：桌面 `gringotts-T13b-release.apk`（md5 `e7c75551f5894e22e952df892de914f6`）；T-14 统计页改动 + T-14b 底栏改动由 **T-14b 末出包**（`gringotts-T14b-release.apk`）一并入包；仓库 github.com/jharayden/gringotts（private）
+## 状态（2026-09-14，T-14b **施工中断已保全区** —— Part A/B 完成全绿，剩收尾五项）
+- **T-14b 进度**：Part A（`14c942e`）+ Part B（`0cc6190`）**已完成并已 push**；管理层实测 `flutter analyze` 零问题、**`flutter test` 207 全绿**；回归 14 个 integration **13 个 exit=0**
+- **剩余（收尾 prompt 已就绪）**：① 修 `t13b_full_chain_test.dart:181` 陈旧断言（明细返回落统计 tab，key 不在台上）② 补 `evidence/t14b/` 帧 md5 清单与断言映射 ③ WORKLOG 执行层条目 ④ 出包 `gringotts-T14b-release.apk` ⑤ 收工三连 → 派工 prompt = `SESSION_PROMPTS.md` §B（含**熔断规则**）
+- **中断事故记录**：上一轮 harness 反复重跑同一脚本（用户截断后 `DSH ACP: Internal error` 刷屏）→ 已保全 WIP、收窄重跑范围、写死熔断规则（见 WORKLOG 顶部与管理层 HANDOFF §7 第 11 条）
+- **M2.0 正式波（含 T-15~T-20）按用户安排暂缓**（2026-09-14）→ 拆票表保留在 `TICKETS_M2A.md` 备查，**未获用户指示前不派工、不催办**
+- **交付物**：桌面 `gringotts-T13b-release.apk`（md5 `e7c75551f5894e22e952df892de914f6`）；**T-14b 完成后出包** `gringotts-T14b-release.apk`（含 T-14 统计页改动 + 底栏重设计）；仓库 github.com/jharayden/gringotts（private）
 - **质量基线**：**196 单测全绿且整轮正常退出**；全量回归 14/14 脚本；dev 库回归后 live 全 0；对比度 ≥ AA（最低 4.89）；零硬编码色值；工作区已内部清理（释放 ≈6.8GB，见 WORKLOG）
 
 ## 用户已定调（要点）

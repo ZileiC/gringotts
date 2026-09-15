@@ -85,8 +85,15 @@
 > 用户 2026-09-14 实机反馈两条：① **「记一笔」越权成了三个 tab 共用的第二页面**——它只应是**分析页的第二页面**，资产/统计页不该有它；② **底栏丑**：现在的「记一笔」金渐变实心条 + 三个 tab 需要重新设计。
 > Part B 设计稿 = `design/bottom_bar_preview.html`（管理层出，用户拍板后冻结进 `DESIGN_MAIN.md`）。
 
+### 现状与剩余（⚠️ 施工中断后管理层核查，2026-09-14 —— **先读本节**）
+- **Part A + Part B 代码已完成且全绿，不要重做**：WIP `14c942e`（Part A）+ `0cc6190`（Part B）**已 push**；管理层实测 `flutter analyze` 零问题、`flutter test` → **All tests passed (207)**（196 → +11）。**严禁重构、严禁重做**
+- **唯一失败（管理层已定位到行号与修法）**：`integration_test/t13b_full_chain_test.dart:181` —— 从「明细」返回后断言 `home_record_key` 存在，但返回落点是**统计 tab**（明细是统计页子页），分析页顶栏的入口不在台上 ⇒ **陈旧断言**。改法：① 先断言「已回到壳 + `home_record_key` 不在台上」② `tap(Key('tab_home'))` 后断言 `home_record_key` 在台上 ③ 继续跑完 export 段（CSV BOM + 编辑后商户/金额 + JSON 资产，逐字节）
+- **回归现状**：14 个 integration 中 **13 个 exit=0**（日志 `evidence/t14b/regression/*.t14b.log` + `.run_status*.txt`）⇒ **只重跑被修脚本 + 受影响脚本，禁止全量重跑**
+- **剩余五项**：① 修上述断言并跑通该脚本 ② 补 `evidence/t14b/` 帧 md5 清单 + 「哪帧证明哪条 §8.5 断言」映射（`visual_checks.txt` 已有像素级校验可作基础）③ WORKLOG 顶部追加执行层条目 ④ `flutter build apk --release` → 桌面 `gringotts-T14b-release.apk` + md5 ⑤ 收工三连
+- **已完成勿重复**：照片孤儿 apply（94→87，7 orphan→0，`evidence/t14b/photo_gc_applied.json`）；MiSans subset（`fonts/MiSans-*.ttf` 各 ≈13.8KB + 许可 PDF）
+
 ## Part A 导航语义修正（用户指令①，规格已定，不等设计稿即可做）
-- **「记一笔」入口归属分析页**：**仅当分析 tab 选中时出现**（位于分析页内容区底部、底栏之上 = 分析页自己的固定操作条）；**切到资产/统计时该入口不存在**（底栏仅三 tab，不留空槽、不压栈、不置灰）
+- **「记一笔」入口归属分析页**：**仅当分析 tab 选中时出现**（入口位置与形态以 `DESIGN_MAIN.md` §8 终稿为准 = **分析页顶栏的圆环＋号键**，P2）；**切到资产/统计时该入口不存在**（底栏仅三 tab，不留空槽、不压栈、不置灰）
 - **快记页 = 分析页的子页**：唯一入口是分析页的 CTA；返回必落分析页（保留现有 `_index = 0` 归零作双保险）
 - **清理越权路径**：全仓审计「从资产/统计进入快记」的路径与断言——`integration_test/t12c_shell_test.dart` 的 `T12C_ENTRY pushed_from_stats=2 landed=0` 用例须改为「统计 tab **无 CTA**」（键存在性断言）；`test/home_shell_test.dart` 同步
 - **底栏高度恒定**：三个 tab 间切换时底栏总高不变（内容区高度可有差，底栏不许跳动）

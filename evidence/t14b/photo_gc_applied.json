@@ -1,0 +1,88 @@
+{
+  "ticket": "T-13a",
+  "tool": "tool/photo_gc.py",
+  "applied": true,
+  "database": "C:\\Users\\JHarayden\\AppData\\Roaming\\dev.jharayden\\gringotts\\gringotts.sqlite",
+  "photos_dir": "C:\\Users\\JHarayden\\AppData\\Roaming\\dev.jharayden\\gringotts\\photos",
+  "backup_dir": "C:\\Users\\JHARAY~1\\AppData\\Local\\Temp\\gringotts_photo_gc_t14b",
+  "reference_counts": {
+    "asset_photos_rows": 96,
+    "assets_photo_path_rows": 38,
+    "asset_photos_tombstoned": 96,
+    "assets_photo_path_tombstoned": 38
+  },
+  "before": {
+    "total": 94,
+    "referenced": 87,
+    "foreign": 0,
+    "orphan": 7
+  },
+  "after": {
+    "total": 87,
+    "referenced": 87,
+    "foreign": 0,
+    "orphan": 0
+  },
+  "orphans": [
+    {
+      "name": "3161b9ad029c4a60fd19a44f50a2c43da8e08fa37ee4cf53e731863caae6ca74.jpg",
+      "bytes": 4303
+    },
+    {
+      "name": "3ffa2587c277e26c1ce104e19fd4c49072e09cf2b563fe4264968f0cf7693428.jpg",
+      "bytes": 4401
+    },
+    {
+      "name": "469f85b27611fd101af8382f6c34b3a8b2517e4a3f25472cbcc82a6bc496b931.jpg",
+      "bytes": 4254
+    },
+    {
+      "name": "6089f121f0ec79e02cfe3f90410dec62347f24027bda1969c1c0c0b6abae0b57.jpg",
+      "bytes": 4402
+    },
+    {
+      "name": "70f1796a04fb8044a25d13a684e30f77a2020a5e77d23d5633003053f71612f7.jpg",
+      "bytes": 4362
+    },
+    {
+      "name": "994864107c17299b85931525e05f6d93a624b4782e51a69b2fdab43f799b8af3.jpg",
+      "bytes": 4362
+    },
+    {
+      "name": "eed7974a1542d76f0f8476635de172133ab64da3e7d3bf2c26f0c8591f94bd57.jpg",
+      "bytes": 4227
+    }
+  ],
+  "removed": [
+    {
+      "name": "3161b9ad029c4a60fd19a44f50a2c43da8e08fa37ee4cf53e731863caae6ca74.jpg",
+      "bytes": 4303
+    },
+    {
+      "name": "3ffa2587c277e26c1ce104e19fd4c49072e09cf2b563fe4264968f0cf7693428.jpg",
+      "bytes": 4401
+    },
+    {
+      "name": "469f85b27611fd101af8382f6c34b3a8b2517e4a3f25472cbcc82a6bc496b931.jpg",
+      "bytes": 4254
+    },
+    {
+      "name": "6089f121f0ec79e02cfe3f90410dec62347f24027bda1969c1c0c0b6abae0b57.jpg",
+      "bytes": 4402
+    },
+    {
+      "name": "70f1796a04fb8044a25d13a684e30f77a2020a5e77d23d5633003053f71612f7.jpg",
+      "bytes": 4362
+    },
+    {
+      "name": "994864107c17299b85931525e05f6d93a624b4782e51a69b2fdab43f799b8af3.jpg",
+      "bytes": 4362
+    },
+    {
+      "name": "eed7974a1542d76f0f8476635de172133ab64da3e7d3bf2c26f0c8591f94bd57.jpg",
+      "bytes": 4227
+    }
+  ],
+  "foreign_kept": [],
+  "reference_rule": "asset_photos.path + assets.photo_path, live AND tombstoned rows"
+}

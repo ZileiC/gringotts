@@ -17,24 +17,34 @@
 接手第一件事：读 HANDOFF §8 开放项，确认工作区是否有执行层遗留的未提交施工（若有 → 先 commit 保全，见 §7 第 9 条），再派工。
 ```
 
-## B. 执行层**新 session 开场 prompt**（复制即用；覆盖 T-14b → M2.0 正式波）
+## B. 执行层**新 session 开场 prompt**（T-14b **收尾版**，复制即用）
+
+> 上一轮施工中断（harness 反复重跑同一脚本 + `DSH ACP: Internal error`）；Part A/B 已完成并保全（`14c942e` + `0cc6190`）。本 prompt 含**熔断规则**，专门防复现同类 loop。
 
 ```
 你是 Gringotts 执行层的新 session（Codex）。档案 = C:/Users/JHarayden/Desktop/Gringotts；本目录开工会自动读 AGENTS.md。
 
-先读三样（其余不必读）：PROJECT_STATE.md → TICKETS_M2A.md 的 T-14b（当前票）→ WORKLOG.md 顶部两条。设计细节按需只读章节：DESIGN_MAIN.md §1（IA）/ §10（底栏与「记一笔」冻结稿），不要整篇读。
+先读三样（其余不必读）：PROJECT_STATE.md → TICKETS_M2A.md 的 T-14b「现状与剩余」（**先读这一节**）→ WORKLOG.md 顶部两条。设计真相源按需只读 DESIGN_MAIN.md §8，不要整篇读。
 
-本轮任务 = T-14b（M2 前置修正票，两部分）：
-Part A 导航语义修正（立即做）：「记一笔」只属分析页 —— 仅在分析 tab 选中时出现（分析页自己的固定操作条，位于底栏之上）；切到资产/统计则该入口不存在（不留空槽、不置灰、不可压栈）；快记页唯一入口＝分析页 CTA，返回必落分析页；审计并清理所有「从资产/统计进快记」的路径与断言（t12c_shell_test 的 pushed_from_stats 用例改为「统计 tab 无 CTA」的存在性断言；home_shell_test 同步）；底栏总高在三个 tab 间恒定。
-Part B 底栏与「记一笔」重设计：**规格已冻结 = DESIGN_MAIN.md §8（T1/P2/D1）**，按 §8.1–§8.5 逐条落地：① 分析页顶栏加 `home_record_key`（视觉圆 36 = 1.25px 金环 + 矢量描边加号 16×16/stroke 1.75/圆头；热区 48×48；**不要文字**；顶栏总高 56；320dp 极窄屏不得溢出）② 底栏只放三 tab、图标改自绘 1.25px 线稿（弃 Icons.*）、选中＝金字 w600 + 下方 16×1.5 金线（180ms 位移；reduce-motion 无位移）③ 引入 MiSans（subset + 许可文件）并让底栏文字 12/w500·w600/字距 +0.08em、月份按钮同步换字体；Playfair 仍只限品牌时刻。验收按 §8.5 七条逐条给证据。**不要改 DESIGN_MAIN.md / AGENTS.md / TICKETS_M2A.md**。
-Part C 出包：本票末 flutter build apk --release → 桌面 gringotts-T14b-release.apk（把 T-14 的统计页改动一并入包）+ 记录 md5。
+上一轮施工中断，但 Part A + Part B 已完成并保全：WIP 14c942e + 0cc6190 已 push；管理层实测 flutter analyze 零问题、flutter test 207 全绿。**你的任务是收尾，不是重做 —— 不要重构 Part A/B 的任何实现。**
 
-不要改 AGENTS.md / DESIGN_MAIN.md / TICKETS_M2A.md（管理层文档；AGENTS.md 的结构行订正由管理层负责）。
-验收标准见 TICKETS_M2A.md 的 T-14b「验收（全票）」七条，逐条给证据。
-规则：每完成一个 Part 立即 WIP 提交；收工三连 WORKLOG → commit（T-14b: …）→ push；停下等验收。
+剩余五项（逐项做完即停）：
+① 修 integration_test/t13b_full_chain_test.dart:181：从「明细」返回后落点是**统计 tab**（明细是统计页子页），此时 home_record_key 不在台上 ⇒ 改为「先断言已回到壳 + key 不在台上 → tap(Key('tab_home')) → 断言 key 在台上」，然后继续跑完 export 段（CSV BOM + 编辑后商户/金额 + JSON 资产，逐字节）。
+② 只重跑 t13b_full_chain_test（若你的改动触及 t12c_shell_test 则一并跑）。**禁止全量重跑 14 个 integration** —— 13 个已 exit=0，日志在 evidence/t14b/regression/。
+③ 补 evidence/t14b/ 的帧 md5 清单（帧 md5 清单入库、PNG 本地）+ 一行「哪帧证明哪条 §8.5 断言」的映射表（visual_checks.txt 已有像素级校验可作基础）。
+④ flutter build apk --release → 桌面 gringotts-T14b-release.apk + 记录 md5（把 T-14 的统计页改动一并入包）。
+⑤ WORKLOG 顶部追加执行层条目 → 本票 commit（T-14b: …）→ push。
+
+熔断规则（硬性；上一轮就是踩了这个坑）：
+- 同一条命令 / 同一个脚本最多跑 2 次，且第 2 次必须由新事实驱动（改了代码或加了日志）。**第 3 次禁止** —— 改为把失败断言原文 + 已排除的假设写进 WORKLOG 顶部，commit WIP，然后**停下报告**，不要继续试。
+- 若出现 harness 内部错误（如 `DSH ACP: Internal error`）或工具返回异常：**立即停手**，不要重试刷屏；把现场（最后一条命令 + 最后一段输出）写进 WORKLOG 后停下。
+- 不要为了跑绿而降低断言、加 skip 或删测试；失败如实上报。
+- 照片孤儿已 apply、MiSans subset 已完成 —— 都不要重复执行；不要改 AGENTS.md / DESIGN_MAIN.md / TICKETS_M2A.md。
+
+验收依据：DESIGN_MAIN.md §8.5 七条 + 本票「验收（全票）」；停下等验收。
 ```
 
-> T-14b 验收通过后进入 **M2.0 正式波**：T-15 AI 基座 → T-16 主页 AI 建议 → T-17/T-18 → T-19 → T-20（拆票表见 `TICKETS_M2A.md`；**T-15 启用条件**：用户已就 `design/ai_wave_preview.html` 拍板 → 管理层冻结 `DESIGN_AI.md`）。
+> M2.0 正式波（T-15 起）**按用户安排暂缓**；本票验收通过后由管理层请用户指示，不要自行启动。
 
 ## C. 备查：M2.0 正式波（AI）—— T-15 施工 prompt
 

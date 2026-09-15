@@ -3,6 +3,19 @@
 > 执行层（Codex）每次收工在顶部追加一段：做了什么 / 关键决策 / 遗留问题 / 下一步。管理层（Hermes）通过本文件验收进度。
 > ⚠️ 并发写入约定：追加前先重新读取文件最新版，在头部插入自己的段落，不要重建文件横幅；管理层 patch 前同样先重读。
 
+## 2026-09-14（管理层：T-14b 施工**中断事故** —— Part A/B 已保全，剩一例断言待修 + 收尾）
+- **事故**：deepseek harness 执行 T-14b 到回归阶段开始**反复重跑同一脚本**（用户手动截断后 harness 抛 `Error: DSH ACP: Internal error` 刷屏）——属**反浪费铁律（AGENTS.md 工作流程第 2 条）违背形态**，已作为下一轮 prompt 的重点防线
+- **保全动作（管理层）**：两个 WIP 提交 `14c942e`（Part A）+ `0cc6190`（Part B）原本**未 push**（本地 ahead 2）→ 已 `git push` 保全；`evidence/t14b/`（回归日志 + 像素校验 + photo GC 记录）随后一并提交，**已采集证据不致丢失**
+- **管理层独立核查（当前状态，实测）**：
+  1. `flutter analyze` → **No issues found**；`flutter test` → **All tests passed (207)**（196 → +11，含新增 `test/t14b_design_test.dart` 454 行）⇒ **Part A/B 代码层完成且全绿**
+  2. **Part A**（`14c942e`）：`home_shell.dart` 瘦身（底栏只剩三 tab）、`home_page.dart` 顶栏入口、`tokens.dart`(+4)、`home_shell_test.dart` 重写、`t12c_shell_test.dart`(+80) 等
+  3. **Part B**（`0cc6190`）：`lib/ui/line_icons.dart`(107 自绘线稿) / `lib/ui/record_key.dart`(138 圆环＋号键) / `tool/subset_misans.py` + **`fonts/MiSans-{Regular,Medium,Demibold}.ttf`（各 ≈13.8KB，已 subset）** + `MiSans-LICENSE.pdf` + `fonts/README.md` / `pubspec.yaml`(+12) / `tokens.dart`(+46)
+  4. **回归**：14 个 integration **13 个 exit=0**；**唯一失败 `t13b_full_chain_test`** —— 管理层已定位到断言原文：**`t13b_full_chain_test.dart:181` 从「明细」返回后断言 `home_record_key` 存在，但那是统计 tab（明细是统计页子页），分析页顶栏的入口不在台上** ⇒ IA 改动后的**陈旧断言**，应改为「返回后仍在统计 tab（key 不在台上）」+ 切回分析 tab 再断言 key 在台上；**export 段本轮未跑到**
+  5. **已批准事项完成**：照片孤儿 apply（94→87，7 个孤儿清零；`evidence/t14b/photo_gc_applied.json`）
+  6. **视觉像素校验**（`evidence/t14b/visual_checks.txt`）：圆环键 bbox **36×36** 且为分析页顶栏唯一金色簇；加号横竖各 3 连通段、内部对角为空（**描边非实心**）；底栏金线位于选中 tab 中心；**资产页顶栏金色像素 = 0**（证明入口不在资产页）—— 与 `DESIGN_MAIN §8` 逐条吻合
+- **剩余（= 下一轮 prompt 的全部内容）**：① 修 `t13b_full_chain_test.dart:181` 并跑完该脚本（含 export 段）② 补 `evidence/t14b/` 帧 md5 清单 + 「哪帧证明哪条 §8.5 断言」映射 ③ WORKLOG 顶部追加执行层条目 ④ `flutter build apk --release` → `gringotts-T14b-release.apk` + md5 ⑤ 收工三连
+- **prompt 重设计（针对本次事故）**：把「已知失败 + 精确行号 + 修法」直接写进 prompt（零重发现成本）；**收窄重跑范围**（只跑被修脚本 + 必要回归，不再全量 14 个）；加**熔断规则**（同一脚本最多 2 次，第 3 次禁止；失败即写 WORKLOG 停手）；加**遇 harness 内部错误立即停手**的明文指示
+
 ## 2026-09-14（管理层：T-14b 底栏设计**拍板定稿** T1/P2/D1 —— 规格冻结，可派工）
 - **用户裁决**：组合 = **`T1 / P2 / D1`**（底栏金细线滑动 + 「记一笔」移到**分析页顶栏** + 圆环键形态），并追加三条要求：
   1. **「记一笔」只要加号、不要文字** → 终稿采用**矢量描边加号**（16×16 / stroke 1.75 / 圆头线帽），**禁用字体里的「＋」**（各平台粗细与位置不一，是"看着不精致"的常见根因）

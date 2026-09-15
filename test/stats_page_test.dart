@@ -47,6 +47,17 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  /// The stats body is a lazy ListView: the trend card sits below the fold in
+  /// the test viewport, so it must be scrolled into range before inspecting it.
+  Future<void> revealTrend(WidgetTester tester) async {
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('stats_trend_card')),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+  }
+
   Future<void> seed({int incomeCents = 0, int expenseCents = 0}) async {
     final repo = TransactionRepository(db);
     final now = DateTime.now();
@@ -226,6 +237,98 @@ void main() {
       await pumpStats(tester);
       expect(find.byKey(const Key('stats_spend_empty')), findsOneWidget);
       expect(find.text('这个周期还没有记录'), findsWidgets);
+      await disposeTree(tester);
+    });
+
+    testWidgets('chart 2: the income line carries the amortised baseline',
+        (tester) async {
+      final now = DateTime.now();
+      final days = BudgetEngine.daysInMonth(now.year, now.month);
+      await BudgetRepository(db).upsert(
+        yearMonth: BudgetEngine.monthKey(now),
+        incomeCents: 300000,
+        savingsTargetCents: 0,
+      );
+      await seed(expenseCents: 1500);
+      await pumpStats(tester);
+      await revealTrend(tester);
+
+      final chart = tester.widget<LineChart>(find.descendant(
+        of: find.byKey(const Key('stats_trend_card')),
+        matching: find.byType(LineChart),
+      ));
+      final baseline = 300000 ~/ days;
+      expect(
+        chart.data.lineBarsData[1].spots.every((s) => s.y == baseline.toDouble()),
+        isTrue,
+        reason: 'T-21 acceptance 3: the income line must not sit on the axis',
+      );
+      expect(chart.data.maxY, closeTo(baseline * 1.15, 0.001),
+          reason: 'y scale = max(expense, amortised income) * 1.15');
+      await disposeTree(tester);
+    });
+
+    testWidgets('chart 2: temp income is annotated, not scaled in',
+        (tester) async {
+      final now = DateTime.now();
+      final day = now.day;
+      final days = BudgetEngine.daysInMonth(now.year, now.month);
+      await BudgetRepository(db).upsert(
+        yearMonth: BudgetEngine.monthKey(now),
+        incomeCents: 300000,
+        savingsTargetCents: 0,
+      );
+      await seed(expenseCents: 1500);
+      await TransactionRepository(db).create(
+        amountCents: 80000,
+        type: TransactionType.income,
+        occurredAt: now,
+      );
+      await pumpStats(tester);
+      await revealTrend(tester);
+
+      final chart = tester.widget<LineChart>(find.descendant(
+        of: find.byKey(const Key('stats_trend_card')),
+        matching: find.byType(LineChart),
+      ));
+      final baseline = 300000 ~/ days;
+      expect(chart.data.maxY, closeTo(baseline * 1.15, 0.001),
+          reason: 'the 80000 spike must not enter the y scale');
+      expect(chart.data.lineBarsData[1].spots[day - 1].y,
+          (baseline + 80000).toDouble(),
+          reason: 'income = 保底均摊 + 临时收入');
+      final leaders = chart.data.lineBarsData.where((b) =>
+          b.dashArray != null &&
+          b.spots.length == 2 &&
+          b.spots.first.x == (day - 1).toDouble());
+      expect(leaders.length, 1,
+          reason: 'one dashed leader per temp-income bucket');
+      expect(leaders.first.spots.last.y, greaterThan(chart.data.maxY * 0.9));
+      expect(chart.data.lineBarsData.any((b) => b.barWidth == 0), isTrue,
+          reason: 'the 3.5px endpoint dot series');
+      expect(find.text('$day 号 临时收入 +\u00a5800'), findsWidgets);
+      await disposeTree(tester);
+    });
+
+    testWidgets('chart 2: no budget -> explanatory note under the chart',
+        (tester) async {
+      await seed(expenseCents: 1500);
+      await pumpStats(tester);
+      await revealTrend(tester);
+      expect(find.byKey(const Key('stats_no_budget_note')), findsOneWidget);
+      expect(find.text('未设本月预算，收入线仅含临时收入'), findsOneWidget);
+      await disposeTree(tester);
+    });
+
+    testWidgets('yearly view with a single year renders both charts',
+        (tester) async {
+      await seed(expenseCents: 1500);
+      await pumpStats(tester);
+      await tester.tap(find.text('年'));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('stats_spend_chart')), findsOneWidget);
+      await revealTrend(tester);
+      expect(find.byKey(const Key('stats_trend_card')), findsOneWidget);
       await disposeTree(tester);
     });
   });

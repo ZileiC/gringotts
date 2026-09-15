@@ -290,6 +290,7 @@ class _StatsPageState extends ConsumerState<StatsPage>
                     key: const Key('stats_trend_chart'),
                     points: series.points,
                     range: _range,
+                    hasBudget: bars.any((b) => b.allowanceCents != null),
                   ),
                   const SizedBox(height: AppSpacing.l),
                   // Category pie.
@@ -410,11 +411,11 @@ TextStyle? _axisStyle(BuildContext context) =>
           fontFeatures: AppFont.tabularFigures,
         );
 
-String _tempIncomeLabel(StatsRange range, SpendBar bar) {
-  final amount = statsMoney(bar.tempIncomeCents);
+String _tempIncomeLabel(StatsRange range, int index, String label, int cents) {
+  final amount = statsMoney(cents);
   return range == StatsRange.daily
-      ? '${bar.index + 1} 号 临时收入 +$amount'
-      : '${bar.label} 临时收入 +$amount';
+      ? '${index + 1} 号 临时收入 +$amount'
+      : '$label 临时收入 +$amount';
 }
 
 /// Chart 1 (A): 每日支出 - 额度对照 (bars + allowance baseline + temp income).
@@ -503,7 +504,7 @@ class _SpendChartCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: AppSpacing.xs),
-                      Text(_tempIncomeLabel(range, b),
+                      Text(_tempIncomeLabel(range, b.index, b.label, b.tempIncomeCents),
                           style: theme.textTheme.bodySmall),
                     ],
                   ),
@@ -614,19 +615,31 @@ class _SpendChartCard extends StatelessWidget {
       );
 }
 
-/// Chart 2 (B): dual-line trend (expense vs income).
+/// Chart 2 (B): 收支趋势 (dual line).
+///
+/// The income line is 保底均摊 + 临时收入 (`PeriodPoint.incomeLineCents`), so a
+/// month with a budget can no longer collapse onto the x axis. Temporary income
+/// deliberately stays OUT of the y scaling: each such bucket gets a dashed
+/// vertical leader to the top of the plot, a 3.5px dot and a value label
+/// (DESIGN_MAIN 11.3, user ruling 2026-09-15).
 class _TrendChart extends StatelessWidget {
-  const _TrendChart({super.key, required this.points, required this.range});
+  const _TrendChart({
+    super.key,
+    required this.points,
+    required this.range,
+    required this.hasBudget,
+  });
 
   final List<PeriodPoint> points;
   final StatsRange range;
+  final bool hasBudget;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final style = _axisStyle(context);
-    final hasRecords = points.any(
-        (p) => p.expenseCents > 0 || p.incomeCents > 0 || p.baselineIncomeCents > 0);
+    final hasRecords = points.any((p) =>
+        p.expenseCents > 0 || p.incomeCents > 0 || p.baselineIncomeCents > 0);
     if (points.isEmpty || !hasRecords) {
       return Card(
         child: SizedBox(
@@ -641,66 +654,137 @@ class _TrendChart extends StatelessWidget {
         ),
       );
     }
+
+    // Scale rule: max(expense, amortised guaranteed income) * 1.15. Temporary
+    // income is excluded on purpose - a single spike must not flatten the
+    // spending line.
     var maxY = 0;
     for (final p in points) {
       if (p.expenseCents > maxY) maxY = p.expenseCents;
-      if (p.incomeCents > maxY) maxY = p.incomeCents;
+      if (p.baselineIncomeCents > maxY) maxY = p.baselineIncomeCents;
     }
     final chartMax = maxY <= 0 ? 100.0 : maxY * 1.15;
+    final top = chartMax * 0.98;
+    final tempPoints = <({int index, int cents})>[
+      for (var i = 0; i < points.length; i++)
+        if (points[i].incomeCents > 0) (index: i, cents: points[i].incomeCents),
+    ];
 
     return Card(
+      key: const Key('stats_trend_card'),
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.m),
-        child: SizedBox(
-          height: 210,
-          child: LineChart(
-            LineChartData(
-              minY: 0,
-              maxY: chartMax,
-              gridData: const FlGridData(show: true, drawVerticalLine: false),
-              borderData: FlBorderData(show: false),
-              titlesData: FlTitlesData(
-                leftTitles: _leftAxis(chartMax, style: style),
-                topTitles:
-                    const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                rightTitles:
-                    const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                bottomTitles: _bottomAxis(
-                  [for (final p in points) p.label],
-                  step: range == StatsRange.daily ? 5 : (range == StatsRange.monthly ? 2 : 1),
-                  style: style,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              height: 210,
+              child: LineChart(
+                LineChartData(
+                  minY: 0,
+                  maxY: chartMax,
+                  minX: 0,
+                  maxX: points.length <= 1 ? 1.0 : (points.length - 1).toDouble(),
+                  gridData:
+                      const FlGridData(show: true, drawVerticalLine: false),
+                  borderData: FlBorderData(show: false),
+                  titlesData: FlTitlesData(
+                    leftTitles: _leftAxis(chartMax, style: style),
+                    topTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false)),
+                    rightTitles: const AxisTitles(
+                        sideTitles: SideTitles(showTitles: false)),
+                    bottomTitles: _bottomAxis(
+                      [for (final p in points) p.label],
+                      step: range == StatsRange.daily
+                          ? 5
+                          : (range == StatsRange.monthly ? 2 : 1),
+                      style: style,
+                    ),
+                  ),
+
+                  lineBarsData: [
+                    LineChartBarData(
+                      spots: [
+                        for (var i = 0; i < points.length; i++)
+                          FlSpot(i.toDouble(), points[i].expenseCents.toDouble()),
+                      ],
+                      isCurved: true,
+                      color: AppColors.semanticExpense,
+                      barWidth: 2,
+                      dotData: FlDotData(show: points.length < 14),
+                    ),
+                    LineChartBarData(
+                      spots: [
+                        for (var i = 0; i < points.length; i++)
+                          FlSpot(
+                              i.toDouble(), points[i].incomeLineCents.toDouble()),
+                      ],
+                      isCurved: true,
+                      color: AppColors.semanticIncome,
+                      barWidth: 2,
+                      dotData: FlDotData(show: points.length < 14),
+                    ),
+                    for (final t in tempPoints)
+                      LineChartBarData(
+                        spots: [
+                          FlSpot(t.index.toDouble(),
+                              points[t.index].incomeLineCents.toDouble()),
+                          FlSpot(t.index.toDouble(), top),
+                        ],
+                        color: AppColors.semanticIncome,
+                        barWidth: 1,
+                        dashArray: const <int>[4, 3],
+                        dotData: const FlDotData(show: false),
+                      ),                    // Temp-income leader endpoints: 3.5px semanticIncome dots.
+                    if (tempPoints.isNotEmpty)
+                      LineChartBarData(
+                        spots: [
+                          for (final t in tempPoints)
+                            FlSpot(t.index.toDouble(), top),
+                        ],
+                        color: Colors.transparent,
+                        barWidth: 0,
+                        dotData: FlDotData(
+                          show: true,
+                          getDotPainter: (spot, percent, bar, index) =>
+                              FlDotCirclePainter(
+                            radius: 3.5,
+                            color: AppColors.semanticIncome,
+                            strokeWidth: 0,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
-              lineBarsData: [
-                LineChartBarData(
-                  spots: [
-                    for (var i = 0; i < points.length; i++)
-                      FlSpot(i.toDouble(), points[i].expenseCents.toDouble()),
-                  ],
-                  isCurved: true,
-                  color: AppColors.semanticExpense,
-                  barWidth: 2,
-                  dotData: FlDotData(show: points.length < 14),
-                ),
-                LineChartBarData(
-                  spots: [
-                    for (var i = 0; i < points.length; i++)
-                      FlSpot(i.toDouble(), points[i].incomeCents.toDouble()),
-                  ],
-                  isCurved: true,
-                  color: AppColors.semanticIncome,
-                  barWidth: 2,
-                  dotData: FlDotData(show: points.length < 14),
-                ),
-              ],
             ),
-          ),
+            if (!hasBudget) ...[
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                '未设本月预算，收入线仅含临时收入',
+                key: const Key('stats_no_budget_note'),
+                style: theme.textTheme.bodySmall
+                    ?.copyWith(color: AppColors.inkSecondary),
+              ),
+            ],
+            if (tempPoints.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.s),
+              for (final t in tempPoints)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text(
+                    _tempIncomeLabel(range, t.index, points[t.index].label, t.cents),
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ),
+            ],
+          ],
         ),
       ),
     );
   }
-}
-/// Category pie card with legend.
+}/// Category pie card with legend.
 class _CategoryPieCard extends ConsumerWidget {
   const _CategoryPieCard({
     required this.transactions,

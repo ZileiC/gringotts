@@ -72,3 +72,27 @@ app.*.map.json
 # into git is always the md5 manifest + run log. (Ruling 2026-09-13, T-12c
 # acceptance - replaces the earlier per-ticket patterns.)
 evidence/**/*.png
+
+# ---------------------------------------------------------------------------
+# Internal working documents - kept on the development machine, never published.
+#
+# The public repository carries the product: source, tests, docs/, README,
+# licence and policy files. The operating papers (agent contract, project
+# state, work log, ticket queue, dispatch prompts, internal design specs,
+# preview drafts, raw evidence) stay local. Ruling: 2026-09-15, after the
+# repository went public with these files in it by mistake.
+# ---------------------------------------------------------------------------
+AGENTS.md
+PROJECT_STATE.md
+HANDOFF_MANAGEMENT.md
+WORKLOG.md
+WORKLOG_ARCHIVE.md
+TICKETS_M1.md
+TICKETS_M2A.md
+SESSION_PROMPTS.md
+FEATURES.md
+DESIGN_MAIN.md
+DESIGN_T09.md
+/design/
+/evidence/
+/docs/legacy/

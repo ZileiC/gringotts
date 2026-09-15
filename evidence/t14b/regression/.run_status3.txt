@@ -1,7 +1,0 @@
-# T-14b regression status (append-only; .run_status.txt / .run_status2.txt stay as the stall record)
-# 2026-09-14 rerun after the stale-assertion fix: only the fixed script was re-run (rule:
-# no full 14-script rerun).
-t13b_full_chain_test exit=0  (log: t13b_full_chain_test.t14b.rerun.log; export segment incl.:
-                              CSV BOM + edited merchant/amount + JSON asset, all asserted)
-# the other 13 scripts keep their regression results (.run_status.txt + .run_status2.txt):
-# t04/t05/t09a/t09b/t09c/t09c2/t09d/t09e/t10b/t11/t12/t12c/t13a all exit=0

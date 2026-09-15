@@ -18,8 +18,8 @@ email to the address on the maintainer's GitHub profile.
 
 Include, as far as you can:
 
-- what the issue is and which build it affects (`gringotts-TXX-release.apk` + the md5 recorded in
-  `evidence/TXX/apk_md5.txt` is the most useful identifier),
+- what the issue is and which build it affects — the APK filename and, if you have it, its md5
+  (for example `gringotts-T21-release.apk`, md5 `8cd0d04b0aaad7f4df7b9bab00c21d87`),
 - the steps to reproduce,
 - what an attacker gains — data read, data written, bypassed confirmation, crash with data loss.
 

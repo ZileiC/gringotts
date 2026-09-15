@@ -1,7 +1,0 @@
--- references: {"asset_photos_rows": 62, "assets_photo_path_rows": 25, "asset_photos_tombstoned": 58, "assets_photo_path_tombstoned": 25}
--- photos dir: C:\Users\JHarayden\AppData\Roaming\dev.jharayden\gringotts\photos
--- before: total=56 referenced=56 foreign=0 orphan=0
--- after : total=56 referenced=56 foreign=0 orphan=0
--- removed=0 retained_bytes=242831
--- report -> evidence\t13b\photo_gc_dry_run.json
--- (dry run - re-run with --apply to delete the orphans)

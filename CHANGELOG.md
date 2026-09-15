@@ -9,11 +9,22 @@ not cut a tagged release yet, so entries are grouped by milestone instead of by 
 Design in progress. Planned, in dispatch order: AI provider configuration (provider / baseURL /
 apiKey / model, OpenAI-compatible) · AI analysis and suggestions on the analysis page ·
 conversation window · period-report commentary · recurring bills and subscriptions · home-screen
-widget · local encryption. See [`TICKETS_M2A.md`](TICKETS_M2A.md) for the full ticket table.
+widget · local encryption. The milestone plan and its current state live in the
+[README roadmap](README.md#roadmap).
 
 Ground rules already frozen for this milestone: the model receives aggregated statistics only —
 never raw transactions — and the API key lives in `flutter_secure_storage`, never in logs, the
 repository or the APK's assets.
+
+## M1.1 — in progress
+
+### Fixed
+- **Statistics net balance now counts the monthly budget income.** The summary card showed the
+  guarantee income (monthly income from the budget) as its own line but excluded it from the net
+  figure, so the card contradicted the trend chart above it. Net is now
+  `guarantee income + one-off income − spending` for the selected period, with no budget treated as
+  zero rather than as a guess. Planned savings stay out of it: they reduce the spendable budget, they
+  are not spending.
 
 ## M2.0 pre-wave — 2026-09-15
 
@@ -64,5 +75,5 @@ repository or the APK's assets.
   table, integer-cent money, additive migrations, photo content-hashing with compression.
 
 ### Notes
-- M1.0 ticket history lives in [`TICKETS_M1.md`](TICKETS_M1.md) and the archived work log
-  [`WORKLOG_ARCHIVE.md`](WORKLOG_ARCHIVE.md).
+- M1.0 was closed before this repository went public; the milestone plan in the
+  [README](README.md#roadmap) is the durable record of what shipped in it.

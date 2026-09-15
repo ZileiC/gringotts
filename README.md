@@ -139,8 +139,9 @@ to hard-code either. Two rules do most of the visual work:
 - **No fake depth.** Hairlines and tonality instead of shadows, a single 0.96 press scale instead
   of bounce, and every animation degrades cleanly under `reduce-motion`.
 
-The full specs live in [`DESIGN_T09.md`](DESIGN_T09.md) (brand, motion, accessibility) and
-[`DESIGN_MAIN.md`](DESIGN_MAIN.md) (page-by-page specs, including the allowance and chart rules).
+The full reference — colour roles, type scale, spacing, motion, component language, the rules for
+presenting money and measured contrast values — is in
+[`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md).
 
 ## Getting started
 
@@ -158,14 +159,16 @@ flutter build apk --release        # the actual deliverable
 
 ## Quality and evidence
 
-This project treats "it works on my machine" as a bug report. Every ticket ships with
+This project treats "it works on my machine" as a bug report. Every change ships with
 
 - `flutter analyze` at zero issues and the unit suite green (237 tests at the time of writing),
-- real-engine integration scripts that assert on values, not vibes — export files are checked
-  byte-wise (BOM, edited merchant, edited amount, JSON payload),
-- evidence frames recorded as md5 manifests under `evidence/` (raw PNGs stay local), with the
-  in-run uniqueness of every frame stated explicitly,
-- and migrations verified against real previous-version database files.
+- widget and service tests that pin **values, not pictures**: a number, a colour, a geometry or a
+  database row,
+- real-engine integration scripts, where an export is checked byte-wise (BOM, the edited merchant,
+  the edited amount, the JSON payload) rather than eyeballed,
+- migrations verified against real previous-version database files,
+- and frame-based evidence only where a value assertion cannot express the claim, with every frame's
+  in-run uniqueness stated explicitly.
 
 ## Roadmap
 
@@ -176,18 +179,6 @@ This project treats "it works on my machine" as a bug report. Every ticket ships
 | **M2.0** | Bring-your-own AI: provider config, AI analysis and suggestions on the analysis page, conversation window, report commentary, recurring-bill tracking, widget, local encryption | in design |
 | **M3.0** | Expert skill packs (economics/personal finance), daily briefings, weekly and monthly reviews, anomaly detection | planned |
 | **M4.0** | Windows companion: mirrored app plus an analysis workbench, encrypted export/import first, LAN sync later | planned |
-
-## Repository as a build log
-
-This repo is also a working experiment: it is built by an AI **management layer** that scopes,
-dispatches and reviews, and an AI **execution layer** that writes the code — with the user as the
-only arbiter of design and scope. The paperwork is public on purpose:
-
-- [`AGENTS.md`](AGENTS.md) — the contract the coding agent works under
-- [`HANDOFF_MANAGEMENT.md`](HANDOFF_MANAGEMENT.md) — review protocol, cost discipline, lessons paid for in incidents
-- [`WORKLOG.md`](WORKLOG.md) — every ticket's decisions, evidence and leftovers
-- [`TICKETS_M2A.md`](TICKETS_M2A.md) — the current ticket queue, acceptance criteria included
-- [`design/`](design) — the HTML preview drafts the owner approved before any spec was frozen
 
 ## Contributing
 

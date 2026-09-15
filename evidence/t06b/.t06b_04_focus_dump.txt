@@ -1,2 +1,0 @@
-  mCurrentFocus=Window{fc7df18 u0 dev.jharayden.gringotts/dev.jharayden.gringotts.MainActivity}
-      mLastPausedActivity: ActivityRecord{88c8867 u0 com.google.android.apps.nexuslauncher/.NexusLauncherActivity t7}

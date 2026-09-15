@@ -1,6 +1,0 @@
-# T-12c release deliverable
-# build: `flutter build apk --release` -> build/app/outputs/flutter-apk/app-release.apk
-# log:   evidence/t12c/.t12c_apk_build_log.txt (Gradle assembleRelease 128.4s)
-# copy:  C:/Users/JHarayden/Desktop/gringotts-T12c-release.apk
-gringotts-T12c-release.apk  bytes=65877476  md5=8e508b6b83d138ec8eac9e818c2d8e03
-gringotts-T11-release.apk   (prev release, md5=3754a60a... per PROJECT_STATE)

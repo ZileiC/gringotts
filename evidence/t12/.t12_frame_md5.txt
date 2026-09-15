@@ -1,7 +1,0 @@
-# T-12 ledger evidence frames (Dart PNG, md5 unique)
-# Seeded 4 rows (today x2 incl. income, yesterday draft, day-before); all
-# tombstoned at teardown. 02 reproduced byte-identical across runs; 01/03 are
-# animation/overlay mid-states (same class of jitter accepted for T-09C2/T-11).
-.t12_01_list.png          md5=8a80c3dc6eb3  bytes=28753  magic=89504e47
-.t12_02_filter_income.png md5=e734d790efa4  bytes=19405  magic=89504e47
-.t12_03_edit_sheet.png    md5=de1ab9eddf27  bytes=52358  magic=89504e47

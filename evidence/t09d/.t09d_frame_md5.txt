@@ -1,8 +1,0 @@
-.t09d_01_list_cover_before.png  264fb5efe41d  57181
-.t09d_02_edit_sheet.png  7bc6afbad34f  265338
-.t09d_03_date_picked.png  c52e19e2d866  265366
-.t09d_04_photos_added.png  dcffac475bcc  292991
-.t09d_05_cover_swapped.png  82660a86e5dd  280277
-.t09d_06_detail_after_save.png  4bac9281cc3b  268543
-.t09d_07_list_cover_after.png  43abe77d7923  94479
-.t09d_08_snackbar_above_cta.png  22c6dfd1679d  40429

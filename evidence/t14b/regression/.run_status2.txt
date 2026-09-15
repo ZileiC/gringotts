@@ -1,4 +1,0 @@
-t12_ledger_test exit=0
-t12c_shell_test exit=0
-t13a_assets_sheet_test exit=0
-t13b_full_chain_test exit=1

@@ -47,7 +47,8 @@ A pull request that changes behaviour is expected to carry:
 - `flutter analyze` at zero issues and `flutter test` green (state the test count),
 - a **value-level assertion** for the behaviour you changed — a widget or service test that checks
   the number, colour, geometry or database row, not a screenshot,
-- an updated `evidence/` md5 manifest only if you produced frames (raw PNGs stay out of git),
+- frame-based evidence only if a value assertion cannot express the claim, with the raw PNGs kept out
+  of git and each frame's md5 recorded next to the run,
 - and, for migrations, a test against a real previous-version database file.
 
 Screenshots are welcome as illustration, but they never stand in for an assertion here.

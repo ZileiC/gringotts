@@ -1,9 +1,0 @@
-t03_flow_test  exit=0  00:14 +1: All tests passed!
-t04_assets_test  exit=0  00:22 +1: All tests passed!
-t05_stats_test  exit=0  00:16 +1: All tests passed!
-t09a_reskin_test  exit=0  00:15 +1: All tests passed!
-t09b_detail_flow_test  exit=0  00:30 +1: All tests passed!
-t09c_motion_test  exit=0  00:22 +1: All tests passed!
-t09c2_base_motion_test  exit=0  00:25 +2: All tests passed!
-t09d_edit_flow_test  exit=0  00:37 +2: All tests passed!
-t09e_brand_test  exit=0  00:03 +2: All tests passed!

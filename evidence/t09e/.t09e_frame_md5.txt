@@ -1,6 +1,0 @@
-.t09e_01_splash_brand_frame.png  45da58b2d03f  83049  magic=89504e47
-.t09e_02_home_after_splash.png      1539df5b8277  35942  magic=89504e47
-# T-14 rename: content = the analysis home once the brand moment is gone (the
-# old name "keyboard_after_splash" was the M1.0 IA). md5 above is the T-09E-era
-# frame; the current md5 of this frame is recorded in
-# evidence/regression/.T13b_regression_frame_md5.txt (regenerated in T-14).

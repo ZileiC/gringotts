@@ -25,8 +25,8 @@ class CategoryTotal {
 /// [incomeCents] is the confirmed income flow in the bucket (temporary
 /// income); [baselineIncomeCents] is the guaranteed monthly income allocated
 /// to that bucket (amortised over the days in the day view). The chart-2
-/// income line plots [incomeLineCents], so a month with a budget can never
-/// collapse onto the x axis.
+/// income line plots [baselineIncomeCents] only; temporary income never enters
+/// that line and is rendered as an annotation.
 class PeriodPoint {
   const PeriodPoint({
     required this.label,
@@ -40,7 +40,7 @@ class PeriodPoint {
   final int incomeCents;
   final int baselineIncomeCents;
 
-  /// Income line value: 保底均摊 + 临时收入.
+  /// Compatibility sum (保底 + 临时); chart 2 no longer plots it.
   int get incomeLineCents => baselineIncomeCents + incomeCents;
 
   /// Net balance of this bucket under the frozen DESIGN_MAIN 11.7 scope:
@@ -111,7 +111,8 @@ class PeriodSummary {
   /// 支出: the period's confirmed expense flows.
   final int expenseCents;
 
-  /// What chart 2 plots and what the card shows as income: 保底 + 临时.
+  /// What the summary card shows as income: 保底 + 临时. Chart 2 draws only
+  /// the baseline income line.
   int get incomeCents => baselineIncomeCents + tempIncomeCents;
 
   /// 净结余 = 保底 + 临时 - 支出 (DESIGN_MAIN 11.7).

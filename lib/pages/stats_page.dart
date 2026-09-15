@@ -7,6 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../app/app.dart';
 import '../data/app_database.dart';
 import '../data/repositories/repositories.dart';
+import '../data/repositories/budget_repository.dart';
+import '../services/budget_engine.dart';
 import '../pages/ledger_page.dart';
 import '../services/export_service.dart';
 import '../services/statistics_service.dart';
@@ -31,36 +33,30 @@ class _StatsPageState extends ConsumerState<StatsPage>
 
   TransactionRepository get _txRepo => ref.read(transactionRepositoryProvider);
 
+  /// Monthly budgets for the chart allowances and the amortised baseline.
+  BudgetRepository get _budgetRepo => ref.read(budgetRepositoryProvider);
+
+  /// Statistics-page month. T-21 part 4 replaces this with the shared
+  /// selected-month state so the analysis / ledger / stats pages stay in sync.
+  DateTime get _month {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, 1);
+  }
+
   @override
   void dispose() {
     _scroll.dispose();
     super.dispose();
   }
+
   CategoryRepository get _categoryRepo =>
       ref.read(categoryRepositoryProvider);
 
-  /// T-12c Part A: the ledger is the statistics page's child (明细 ›).
+  /// T-12c Part A: the ledger is the statistics page's child (明细 >).
   void _openLedger() {
     Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => const LedgerPage()),
     );
-  }
-
-  List<PeriodPoint> _trend(List<Transaction> transactions) {
-    switch (_range) {
-      case StatsRange.daily:
-        return StatisticsService.monthDays(
-          transactions,
-          month: DateTime.now(),
-        );
-      case StatsRange.monthly:
-        return StatisticsService.monthlyTrend(
-          transactions,
-          year: DateTime.now().year,
-        );
-      case StatsRange.yearly:
-        return StatisticsService.yearlyTrend(transactions);
-    }
   }
 
   Future<void> _export() async {
@@ -86,6 +82,106 @@ class _StatsPageState extends ConsumerState<StatsPage>
     return '$home${Platform.pathSeparator}Documents';
   }
 
+  /// The live budget row of [month], or null.
+  static BudgetMonth? _budgetOf(List<BudgetMonth> budgets, DateTime month) {
+    final key = BudgetEngine.monthKey(month);
+    for (final b in budgets) {
+      if (b.yearMonth == key) return b;
+    }
+    return null;
+  }
+
+  /// Spendable budget of a row (income - planned savings); null = no row.
+  static int? _spendableOf(BudgetMonth? b) => b == null
+      ? null
+      : BudgetEngine.budgetCents(
+          incomeCents: b.incomeCents,
+          savingsTargetCents: b.savingsTargetCents,
+        );
+
+  String get _periodLabel => switch (_range) {
+        StatsRange.daily => '${_month.year} 年 ${_month.month} 月',
+        StatsRange.monthly => '${_month.year} 年',
+        StatsRange.yearly => '全部年份',
+      };
+
+  /// Chart series for the selected range: the points (one per x tick) plus the
+  /// spendable allowance that applies to each index (null = 无预算).
+  ({List<PeriodPoint> points, List<int?> allowances}) _series(
+    List<Transaction> txs,
+    List<BudgetMonth> budgets,
+  ) {
+    switch (_range) {
+      case StatsRange.daily:
+        final budget = _budgetOf(budgets, _month);
+        final spendable = _spendableOf(budget);
+        final days = BudgetEngine.daysInMonth(_month.year, _month.month);
+        final dayAllowance = spendable == null
+            ? null
+            : BudgetEngine.fixedDailyCents(
+                budgetCents: spendable,
+                daysInMonth: days,
+              );
+        final points = StatisticsService.monthDays(
+          txs,
+          month: _month,
+          baselineIncomePerDayCents: StatisticsService.incomeBaselinePerDay(
+            budget: budget,
+            month: _month,
+          ),
+        );
+        return (
+          points: points,
+          allowances: List<int?>.filled(points.length, dayAllowance),
+        );
+      case StatsRange.monthly:
+        final year = _month.year;
+        final incomeByMonth = <int, int>{};
+        final allowanceByMonth = <int, int?>{};
+        for (final b in budgets) {
+          final parts = b.yearMonth.split('-');
+          if (parts.length != 2) continue;
+          final y = int.tryParse(parts[0]);
+          final m = int.tryParse(parts[1]);
+          if (y != year || m == null) continue;
+          incomeByMonth[m] = b.incomeCents;
+          allowanceByMonth[m] = _spendableOf(b);
+        }
+        final points = StatisticsService.monthlyTrend(
+          txs,
+          year: year,
+          baselineIncomeByMonth: incomeByMonth,
+        );
+        return (
+          points: points,
+          allowances: [
+            for (var i = 0; i < points.length; i++) allowanceByMonth[i + 1],
+          ],
+        );
+      case StatsRange.yearly:
+        final incomeByYear = <int, int>{};
+        final spendableByYear = <int, int>{};
+        for (final b in budgets) {
+          final y = int.tryParse(b.yearMonth.split('-').first);
+          if (y == null) continue;
+          incomeByYear[y] = (incomeByYear[y] ?? 0) + b.incomeCents;
+          spendableByYear[y] = (spendableByYear[y] ?? 0) + (_spendableOf(b) ?? 0);
+        }
+        final points = StatisticsService.yearlyTrend(
+          txs,
+          baselineIncomeByYear: incomeByYear,
+        );
+        return (
+          points: points,
+          allowances: [
+            for (final p in points)
+              spendableByYear[
+                  int.tryParse(p.label.replaceAll('年', '')) ?? 0],
+          ],
+        );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -106,115 +202,129 @@ class _StatsPageState extends ConsumerState<StatsPage>
           const SizedBox(width: AppSpacing.s),
         ],
       ),
-      body: StreamBuilder<List<Transaction>>(
-        stream: _txRepo.watchAll(),
-        builder: (context, snapshot) {
-          final transactions = snapshot.data ?? const <Transaction>[];
-          final trend = _trend(transactions);
-          final totals = StatisticsService.totals(transactions);
+      body: StreamBuilder<List<BudgetMonth>>(
+        stream: _budgetRepo.watchMonths(),
+        builder: (context, budgetSnapshot) {
+          final budgets = budgetSnapshot.data ?? const <BudgetMonth>[];
+          return StreamBuilder<List<Transaction>>(
+            stream: _txRepo.watchAll(),
+            builder: (context, snapshot) {
+              final transactions = snapshot.data ?? const <Transaction>[];
+              final series = _series(transactions, budgets);
+              final totals = StatisticsService.totals(transactions);
+              final bars = StatisticsService.spendBars(
+                series.points,
+                allowanceByIndex: series.allowances,
+              );
 
-          return ListView(
-            controller: _scroll,
-            physics: const InertialScrollPhysics(),
-            padding: const EdgeInsets.all(AppSpacing.m),
-            children: [
-              // Range switch.
-              SegmentedButton<StatsRange>(
-                segments: const [
-                  ButtonSegment(value: StatsRange.daily, label: Text('日')),
-                  ButtonSegment(value: StatsRange.monthly, label: Text('月')),
-                  ButtonSegment(value: StatsRange.yearly, label: Text('年')),
-                ],
-                selected: {_range},
-                onSelectionChanged: (s) => setState(() => _range = s.first),
-              ),
-              const SizedBox(height: AppSpacing.m),
-              // Net balance card (sinks away on scroll).
-              SinkAwayHeader(
+              return ListView(
                 controller: _scroll,
-                child: Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.l),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('净结余（收入 − 支出）',
-                          style: Theme.of(context).textTheme.bodySmall),
-                      const SizedBox(height: AppSpacing.xs),
-                      CountUpNumber(
-                        key: const Key('stats_net_value'),
-                        valueCents: totals.netCents,
-                        builder: (context, cents) => Text(
-                          _yuan(cents),
-                          style: Theme.of(context).textTheme.displayLarge
-                              ?.copyWith(
-                            fontSize: AppFont.display - 12,
-                            // DESIGN_T09 section 8.5: a negative balance is
-                            // semanticExpense; zero and positive stay warm ink
-                            // (the moment the spring crosses zero the label
-                            // flips with it, so the resting state is exact).
-                            color: cents < 0
-                                ? AppColors.semanticExpense
-                                : AppColors.ink,
-                          ),
+                physics: const InertialScrollPhysics(),
+                padding: const EdgeInsets.all(AppSpacing.m),
+                children: [
+                  // Range switch.
+                  SegmentedButton<StatsRange>(
+                    segments: const [
+                      ButtonSegment(value: StatsRange.daily, label: Text('日')),
+                      ButtonSegment(value: StatsRange.monthly, label: Text('月')),
+                      ButtonSegment(value: StatsRange.yearly, label: Text('年')),
+                    ],
+                    selected: {_range},
+                    onSelectionChanged: (s) => setState(() => _range = s.first),
+                  ),
+                  const SizedBox(height: AppSpacing.m),
+                  // Net balance card (sinks away on scroll).
+                  SinkAwayHeader(
+                    controller: _scroll,
+                    child: Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(AppSpacing.l),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('净结余（收入 \u2212 支出）',
+                                style: Theme.of(context).textTheme.bodySmall),
+                            const SizedBox(height: AppSpacing.xs),
+                            CountUpNumber(
+                              key: const Key('stats_net_value'),
+                              valueCents: totals.netCents,
+                              builder: (context, cents) => Text(
+                                _yuan(cents),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .displayLarge
+                                    ?.copyWith(
+                                  fontSize: AppFont.display - 12,
+                                  // DESIGN_T09 section 8.5: a negative balance
+                                  // is semanticExpense; zero and positive stay
+                                  // warm ink.
+                                  color: cents < 0
+                                      ? AppColors.semanticExpense
+                                      : AppColors.ink,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.s),
+                            Text(
+                              '收入 ${_yuan(totals.incomeCents)} \u00b7 支出 ${_yuan(totals.expenseCents)}',
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.s),
-                      Text(
-                        '收入 ${_yuan(totals.incomeCents)} · 支出 ${_yuan(totals.expenseCents)}',
-                        style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.l),
+                  // Chart 1 (A): bars + allowance baseline + temporary income.
+                  _SpendChartCard(
+                    range: _range,
+                    bars: bars,
+                    periodLabel: _periodLabel,
+                  ),
+                  const SizedBox(height: AppSpacing.l),
+                  // Chart 2 (B): dual-line trend.
+                  Text('收支趋势',
+                      style: Theme.of(context).textTheme.titleLarge),
+                  const SizedBox(height: AppSpacing.s),
+                  _TrendChart(
+                    key: const Key('stats_trend_chart'),
+                    points: series.points,
+                    range: _range,
+                  ),
+                  const SizedBox(height: AppSpacing.l),
+                  // Category pie.
+                  Text('支出类别占比', style: Theme.of(context).textTheme.titleLarge),
+                  const SizedBox(height: AppSpacing.s),
+                  _CategoryPieCard(
+                    transactions: transactions,
+                    categoryRepo: _categoryRepo,
+                  ),
+                  const SizedBox(height: AppSpacing.l),
+                  // Export button.
+                  // DESIGN_T09 section 8.5: the export is a hairline gold
+                  // outline key - gold as border and label only, never as a
+                  // large fill (the gold-discipline charter).
+                  OutlinedButton.icon(
+                    key: const Key('stats_export_button'),
+                    onPressed: _export,
+                    icon: const Icon(Icons.file_download, size: 18),
+                    label: const Text('导出 CSV / JSON（带 BOM）'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.goldAccent,
+                      side: const BorderSide(color: AppColors.goldAccent),
+                      shape: const RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.all(Radius.circular(AppRadius.m)),
                       ),
-                    ],
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.l,
+                        vertical: AppSpacing.s + AppSpacing.xs,
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              ),
-              const SizedBox(height: AppSpacing.l),
-              // Trend dual-line chart.
-              Text('趋势（支出/收入双线）',
-                  style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: AppSpacing.s),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.m),
-                  child: SizedBox(
-                    height: 220,
-                    child: _TrendChart(points: trend),
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.l),
-              // Category pie.
-              Text('支出类别占比', style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: AppSpacing.s),
-              _CategoryPieCard(
-                transactions: transactions,
-                categoryRepo: _categoryRepo,
-              ),
-              const SizedBox(height: AppSpacing.l),
-              // Export button.
-              // DESIGN_T09 section 8.5: the export is a hairline gold outline
-              // key - gold as border and label only, never as a large fill
-              // (the gold-discipline charter, DESIGN_MAIN section 7).
-              OutlinedButton.icon(
-                key: const Key('stats_export_button'),
-                onPressed: _export,
-                icon: const Icon(Icons.file_download, size: 18),
-                label: const Text('导出 CSV / JSON（带 BOM）'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.goldAccent,
-                  side: const BorderSide(color: AppColors.goldAccent),
-                  shape: const RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.all(Radius.circular(AppRadius.m)),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.l,
-                    vertical: AppSpacing.s + AppSpacing.xs,
-                  ),
-                ),
-              ),
-            ],
+                ],
+              );
+            },
           );
         },
       ),
@@ -225,93 +335,371 @@ class _StatsPageState extends ConsumerState<StatsPage>
     final display = cents % 100 == 0
         ? (cents ~/ 100).toString()
         : (cents / 100).toStringAsFixed(2);
-    return '¥$display';
+    return '\u00a5$display';
+  }}
+
+/// Money label with thousands separators (DESIGN_MAIN 11.2: 1,200).
+String statsMoney(int cents) {
+  final sign = cents < 0 ? '-' : '';
+  final abs = cents.abs();
+  final yuan = (abs ~/ 100).toString();
+  final buf = StringBuffer();
+  for (var i = 0; i < yuan.length; i++) {
+    if (i > 0 && (yuan.length - i) % 3 == 0) buf.write(',');
+    buf.write(yuan[i]);
   }
+  final rest = abs % 100;
+  if (rest == 0) return '$sign\u00a5$buf';
+  return '$sign\u00a5$buf.${rest.toString().padLeft(2, '0')}';
 }
 
-/// Dual-line chart: expense + income per period.
-class _TrendChart extends StatelessWidget {
-  const _TrendChart({required this.points});
+/// Bottom axis: integer x positions only, so labels can never drift away from
+/// the bars / points (T-21 diagnosis 2: the old length/6 interval is banned).
+/// [step] sets the density; the first and last data points always get a label.
+AxisTitles _bottomAxis(
+  List<String> labels, {
+  required int step,
+  required TextStyle? style,
+}) {
+  final last = labels.length - 1;
+  return AxisTitles(
+    sideTitles: SideTitles(
+      showTitles: true,
+      reservedSize: 22,
+      interval: 1,
+      getTitlesWidget: (value, meta) {
+        final index = value.round();
+        if ((value - index).abs() > 0.001) return const SizedBox.shrink();
+        if (index < 0 || index >= labels.length) return const SizedBox.shrink();
+        final show = index == 0 || index == last || index % step == 0;
+        if (!show) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text(labels[index], style: style),
+        );
+      },
+    ),
+  );
+}
 
-  final List<PeriodPoint> points;
+/// Left axis: four money ticks (0 / 1/3 / 2/3 / max), tabular figures.
+AxisTitles _leftAxis(double maxY, {required TextStyle? style}) {
+  final interval = maxY > 0 ? maxY / 3 : 1.0;
+  return AxisTitles(
+    sideTitles: SideTitles(
+      showTitles: true,
+      reservedSize: 58,
+      interval: interval,
+      getTitlesWidget: (value, meta) {
+        if (value < -0.001 || value > maxY * 1.0001) {
+          return const SizedBox.shrink();
+        }
+        return Padding(
+          padding: const EdgeInsets.only(right: 4),
+          child: Text(statsMoney(value.round()), style: style),
+        );
+      },
+    ),
+  );
+}
+
+TextStyle? _axisStyle(BuildContext context) =>
+    Theme.of(context).textTheme.bodySmall?.copyWith(
+          fontSize: 10,
+          color: AppColors.inkSecondary,
+          fontFeatures: AppFont.tabularFigures,
+        );
+
+String _tempIncomeLabel(StatsRange range, SpendBar bar) {
+  final amount = statsMoney(bar.tempIncomeCents);
+  return range == StatsRange.daily
+      ? '${bar.index + 1} 号 临时收入 +$amount'
+      : '${bar.label} 临时收入 +$amount';
+}
+
+/// Chart 1 (A): 每日支出 - 额度对照 (bars + allowance baseline + temp income).
+///
+/// Month / year views draw paired expense / income bars instead of the day
+/// bars; the allowance rule stays (month budget vs month spend, year budget vs
+/// year spend).
+class _SpendChartCard extends StatelessWidget {
+  const _SpendChartCard({
+    required this.range,
+    required this.bars,
+    required this.periodLabel,
+  });
+
+  final StatsRange range;
+  final List<SpendBar> bars;
+  final String periodLabel;
+
+  bool get _paired => range != StatsRange.daily;
+
+  String get _title => switch (range) {
+        StatsRange.daily => '每日支出 \u00b7 额度对照',
+        StatsRange.monthly => '每月支出 \u00b7 预算对照',
+        StatsRange.yearly => '每年支出 \u00b7 预算对照',
+      };
 
   @override
   Widget build(BuildContext context) {
-    if (points.isEmpty) {
-      return const Center(child: Text('暂无数据'));
-    }
-    final maxY = points
-        .expand((p) => [p.expenseCents, p.incomeCents])
-        .reduce((a, b) => a > b ? a : b);
-    final chartMax = maxY <= 0 ? 100.0 : maxY.toDouble();
+    final theme = Theme.of(context);
+    final style = _axisStyle(context);
+    final hasBudget = bars.any((b) => b.allowanceCents != null);
+    final flatAllowance =
+        range == StatsRange.daily && bars.isNotEmpty ? bars.first.allowanceCents : null;
+    final tempBars = [for (final b in bars) if (b.hasTempIncome) b];
+    final hasRecords =
+        bars.any((b) => b.expenseCents > 0 || b.tempIncomeCents > 0);
 
-    return LineChart(
-      LineChartData(
+    return Card(
+      key: const Key('stats_spend_chart'),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.m),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(_title, style: theme.textTheme.titleLarge),
+            const SizedBox(height: AppSpacing.xs),
+            if (!hasBudget)
+              Text(
+                '先设置本月预算',
+                key: const Key('stats_no_budget_hint'),
+                style: theme.textTheme.bodySmall
+                    ?.copyWith(color: AppColors.inkSecondary),
+              ),
+            const SizedBox(height: AppSpacing.s),
+            if (!hasRecords)
+              SizedBox(
+                height: 150,
+                child: Center(
+                  child: Text(
+                    '这个周期还没有记录',
+                    key: const Key('stats_spend_empty'),
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ),
+              )
+            else
+              SizedBox(
+                height: 210,
+                child: _barChart(context, style, flatAllowance),
+              ),
+            if (!_paired && tempBars.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.s),
+              for (final b in tempBars)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Row(
+                    key: Key('stats_temp_income_${b.index}'),
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: const BoxDecoration(
+                          color: AppColors.semanticIncome,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.xs),
+                      Text(_tempIncomeLabel(range, b),
+                          style: theme.textTheme.bodySmall),
+                    ],
+                  ),
+                ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _barChart(BuildContext context, TextStyle? style, int? flatAllowance) {
+    var maxValue = 0;
+    for (final b in bars) {
+      final candidates = <int>[
+        b.expenseCents,
+        b.allowanceCents ?? 0,
+        if (_paired) b.tempIncomeCents,
+      ];
+      for (final c in candidates) {
+        if (c > maxValue) maxValue = c;
+      }
+    }
+    final chartMax = maxValue <= 0 ? 100.0 : maxValue * 1.1;
+    // The temp-income dot is a 4px marker: convert px to data units over the
+    // 210dp plot box.
+    final dot = chartMax * 4 / 210;
+
+    return BarChart(
+      BarChartData(
         minY: 0,
-        maxY: chartMax * 1.1,
-        gridData: const FlGridData(show: true),
+        maxY: chartMax,
+        alignment: BarChartAlignment.spaceAround,
+        gridData: const FlGridData(show: true, drawVerticalLine: false),
+        borderData: FlBorderData(show: false),
         titlesData: FlTitlesData(
-          leftTitles: const AxisTitles(
-            sideTitles: SideTitles(showTitles: false),
+          leftTitles: _leftAxis(chartMax, style: style),
+          topTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          bottomTitles: _bottomAxis(
+            [for (final b in bars) b.label],
+            step: _paired ? 2 : 5,
+            style: style,
           ),
-          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              interval: (points.length / 6).clamp(1, double.infinity).toDouble(),
-              getTitlesWidget: (value, meta) {
-                final index = value.toInt();
-                if (index < 0 || index >= points.length) {
-                  return const SizedBox.shrink();
-                }
-                return Text(
-                  points[index].label,
-                  style: Theme.of(context).textTheme.bodySmall,
-                );
-              },
+        ),
+        extraLinesData: ExtraLinesData(
+          horizontalLines: [
+            if (flatAllowance != null && flatAllowance > 0)
+              HorizontalLine(
+                y: flatAllowance.toDouble(),
+                color: AppColors.goldAccent,
+                strokeWidth: 1,
+                dashArray: const <int>[4, 3],
+              ),
+          ],
+        ),
+        barGroups: [
+          for (final b in bars)
+            BarChartGroupData(
+              x: b.index,
+              barsSpace: 2,
+              barRods: [
+                _expenseRod(b, dot),
+                if (_paired) _incomeRod(b),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// Expense rod: inside-allowance segment (elevated + hairline) + the part
+  /// past the allowance (semanticExpense) + the 4px temp-income dot on top.
+  BarChartRodData _expenseRod(SpendBar b, double dot) {
+    final base = b.baseCents.toDouble();
+    final over = b.overCents.toDouble();
+    final items = <BarChartRodStackItem>[
+      BarChartRodStackItem(
+        0,
+        base,
+        AppColors.elevated,
+        borderSide: const BorderSide(color: AppColors.hairline, width: 1),
+      ),
+      if (over > 0)
+        BarChartRodStackItem(base, base + over, AppColors.semanticExpense),
+    ];
+    var top = base + over;
+    if (b.hasTempIncome && !_paired) {
+      final from = top > 0 ? top : dot;
+      top = from + dot;
+      items.add(BarChartRodStackItem(from, top, AppColors.semanticIncome));
+    }
+    return BarChartRodData(
+      toY: top,
+      width: _paired ? 7 : 11,
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(2)),
+      rodStackItems: items,
+    );
+  }
+
+  BarChartRodData _incomeRod(SpendBar b) => BarChartRodData(
+        toY: b.tempIncomeCents.toDouble(),
+        color: AppColors.semanticIncome,
+        width: 7,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(2)),
+      );
+}
+
+/// Chart 2 (B): dual-line trend (expense vs income).
+class _TrendChart extends StatelessWidget {
+  const _TrendChart({super.key, required this.points, required this.range});
+
+  final List<PeriodPoint> points;
+  final StatsRange range;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final style = _axisStyle(context);
+    final hasRecords = points.any(
+        (p) => p.expenseCents > 0 || p.incomeCents > 0 || p.baselineIncomeCents > 0);
+    if (points.isEmpty || !hasRecords) {
+      return Card(
+        child: SizedBox(
+          height: 150,
+          child: Center(
+            child: Text(
+              '这个周期还没有记录',
+              key: const Key('stats_trend_empty'),
+              style: theme.textTheme.bodySmall,
             ),
           ),
         ),
-        borderData: FlBorderData(show: false),
-        lineBarsData: [
-          LineChartBarData(
-            spots: [
-              for (var i = 0; i < points.length; i++)
-                FlSpot(i.toDouble(), points[i].expenseCents.toDouble()),
-            ],
-            isCurved: true,
-            color: AppColors.semanticExpense,
-            barWidth: 2,
-            dotData: const FlDotData(show: false),
-          ),
-          LineChartBarData(
-            spots: [
-              for (var i = 0; i < points.length; i++)
-                FlSpot(i.toDouble(), points[i].incomeCents.toDouble()),
-            ],
-            isCurved: true,
-            color: AppColors.semanticIncome,
-            barWidth: 2,
-            dotData: const FlDotData(show: false),
-          ),
-        ],
-        lineTouchData: LineTouchData(
-          touchTooltipData: LineTouchTooltipData(
-            getTooltipItems: (spots) => spots
-                .map((s) => LineTooltipItem(
-                      '${points[s.x.toInt()].label}\n'
-                      '${s.barIndex == 0 ? '支出' : '收入'} ¥${(s.y ~/ 100)}',
-                      Theme.of(context).textTheme.bodySmall!,
-                    ))
-                .toList(),
+      );
+    }
+    var maxY = 0;
+    for (final p in points) {
+      if (p.expenseCents > maxY) maxY = p.expenseCents;
+      if (p.incomeCents > maxY) maxY = p.incomeCents;
+    }
+    final chartMax = maxY <= 0 ? 100.0 : maxY * 1.15;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.m),
+        child: SizedBox(
+          height: 210,
+          child: LineChart(
+            LineChartData(
+              minY: 0,
+              maxY: chartMax,
+              gridData: const FlGridData(show: true, drawVerticalLine: false),
+              borderData: FlBorderData(show: false),
+              titlesData: FlTitlesData(
+                leftTitles: _leftAxis(chartMax, style: style),
+                topTitles:
+                    const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                rightTitles:
+                    const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                bottomTitles: _bottomAxis(
+                  [for (final p in points) p.label],
+                  step: range == StatsRange.daily ? 5 : (range == StatsRange.monthly ? 2 : 1),
+                  style: style,
+                ),
+              ),
+              lineBarsData: [
+                LineChartBarData(
+                  spots: [
+                    for (var i = 0; i < points.length; i++)
+                      FlSpot(i.toDouble(), points[i].expenseCents.toDouble()),
+                  ],
+                  isCurved: true,
+                  color: AppColors.semanticExpense,
+                  barWidth: 2,
+                  dotData: FlDotData(show: points.length < 14),
+                ),
+                LineChartBarData(
+                  spots: [
+                    for (var i = 0; i < points.length; i++)
+                      FlSpot(i.toDouble(), points[i].incomeCents.toDouble()),
+                  ],
+                  isCurved: true,
+                  color: AppColors.semanticIncome,
+                  barWidth: 2,
+                  dotData: FlDotData(show: points.length < 14),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 }
-
 /// Category pie card with legend.
 class _CategoryPieCard extends ConsumerWidget {
   const _CategoryPieCard({

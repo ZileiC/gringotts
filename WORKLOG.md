@@ -19,6 +19,8 @@
 
 ## 2026-09-15（执行层：T-21 统计页图表重整 + 收入/存款语义，分块施工）
 - **Part 1 完成**（服务层）：`lib/services/statistics_service.dart` - 新增 `monthDayLabels` / `monthDays`（日视图 = 所选月整月 28/29/30/31 桶，标签 `M/D`，x 恒为数据点 index）、`incomeBaselinePerDay`（budget.incomeCents / 当月天数，无预算或墓碑 = null）、`monthlyTrend(year)`（12 桶且跨年不再混桶）、`yearlyTrend(baseline)`、`spendBars`（额度内/超额分段 + 临时收入，纯函数）；**删除**旧的 7 桶 `dailyTrend`，旧调用点已改。证据：`flutter test test/statistics_service_test.dart` -> 18 passed（含 28/29/30/31 四例与有/无预算两态）；`flutter analyze` -> No issues found
+- **Part 2 完成**（图 1 + 轴修正）：`lib/pages/stats_page.dart` 新增 `_SpendChartCard`（`Key('stats_spend_chart')`）- 日视图每天一柱（额度内 `elevated` + hairline 边，超额段 `semanticExpense`）、额度 = 可花预算 / 当月天数的 `goldAccent` 1px 虚线（dash `[4,3]`）、临时收入柱顶 4px `semanticIncome` 圆点 + 图下数字行「N 号 临时收入 +（U+00A5）800」（源码用 `\u00a5` 转义）；月/年视图改支出/收入成对柱。**轴**：左轴 4 档金额刻度（0 / 1/3 / 2/3 / max，interval = maxY/3，千分位 + tabular），底轴 `interval: 1` 且 x 只取整数 index（日每 5 天 / 月每 2 月 / 年每年一标 + 末尾必标），T-21 诊断 2 的 `length / 6` 已删除。证据：`test/stats_page_test.dart` +4（柱数 = 当月天数且 x = index、左轴 showTitles 且 interval = maxY/3、底轴 interval = 1、无预算无额度线与红段、有预算金虚线 y = 日额度且 dash [4,3] + 绿点 + 标签、空态）；`flutter test` -> 221 passed；`flutter analyze` -> No issues found
+- **工具链注意（本 session 实测）**：命令通道会吞掉非 CJK 非 ASCII 符号（U+00A5 实测被吞）；新写源码/测试的金额前缀一律用 Dart 转义 `\u00a5`，净结余标题已按集成测试依赖的原文还原（`\u2212` 同样转义）
 ## 2026-09-14（执行层：T-14b 收尾：陈旧断言 2 处 + 帧 md5 清单 + APK；待验收）
 - **起手**：`844a8bf`（Part A `14c942e` + Part B `0cc6190` 已保全）。本轮**只收尾、不重做**：`lib/` 零改动，唯一源码改动 = `integration_test/t13b_full_chain_test.dart`
 - **(1) 陈旧断言共修 2 处（同一根因）**：Part A 后「记一笔」只属分析页，所以当前不在分析 tab 时 `home_record_key` 就 offstage（壳是 IndexedStack）。修法统一为「先断言已回到壳（`tab_home` 在台上）加上 key 不在台上」，不降断言、不加 skip：

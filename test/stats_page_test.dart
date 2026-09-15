@@ -1,12 +1,15 @@
 import 'package:drift/native.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gringotts/app/app.dart';
 import 'package:gringotts/data/app_database.dart';
+import 'package:gringotts/data/repositories/budget_repository.dart';
 import 'package:gringotts/data/repositories/repositories.dart';
 import 'package:gringotts/domain/models.dart';
 import 'package:gringotts/pages/stats_page.dart';
+import 'package:gringotts/services/budget_engine.dart';
 import 'package:gringotts/ui/tokens.dart';
 
 /// T-14 spec alignment on the statistics page (DESIGN_T09 section 8.5):
@@ -121,5 +124,109 @@ void main() {
     expect(find.text('导出 CSV / JSON（带 BOM）'), findsOneWidget);
 
     await disposeTree(tester);
+  });
+
+  group('T-21 charts (structured, no pixels)', () {
+    BarChart barChart(WidgetTester tester) => tester.widget<BarChart>(
+          find.descendant(
+            of: find.byKey(const Key('stats_spend_chart')),
+            matching: find.byType(BarChart),
+          ),
+        );
+
+    testWidgets('day view: one bar per day of the selected month, x = index, '
+        'money axis on, integer bottom interval', (tester) async {
+      await seed(expenseCents: 1500);
+      await pumpStats(tester);
+      final chart = barChart(tester);
+      final now = DateTime.now();
+      final days = BudgetEngine.daysInMonth(now.year, now.month);
+      expect(chart.data.barGroups.length, days,
+          reason: 'T-21 acceptance 1: bar count = selected month length');
+      for (var i = 0; i < chart.data.barGroups.length; i++) {
+        expect(chart.data.barGroups[i].x, i,
+            reason: 'bar x must be the integer data-point index');
+      }
+      final left = chart.data.titlesData.leftTitles.sideTitles;
+      expect(left.showTitles, isTrue,
+          reason: 'T-21 acceptance 2: the left axis carries money ticks');
+      expect(left.interval, closeTo(chart.data.maxY / 3, 0.0001),
+          reason: '4 ticks: 0 / 1/3 / 2/3 / max');
+      expect(chart.data.titlesData.bottomTitles.sideTitles.interval, 1,
+          reason: 'T-21 diagnosis 2: never length / 6');
+      await disposeTree(tester);
+    });
+
+    testWidgets('no budget: guidance line, no allowance line, no red segment',
+        (tester) async {
+      await seed(expenseCents: 1500);
+      await pumpStats(tester);
+      expect(find.byKey(const Key('stats_no_budget_hint')), findsOneWidget);
+      expect(find.text('先设置本月预算'), findsOneWidget);
+      final chart = barChart(tester);
+      expect(chart.data.extraLinesData.horizontalLines, isEmpty,
+          reason: 'without a budget nothing may be drawn as an allowance');
+      final rod = chart.data.barGroups
+          .expand((g) => g.barRods)
+          .firstWhere((r) => r.rodStackItems.isNotEmpty);
+      expect(
+        rod.rodStackItems.any(
+            (i) => i.color == AppColors.semanticExpense),
+        isFalse,
+        reason: 'no allowance means no over-limit segment',
+      );
+      await disposeTree(tester);
+    });
+
+    testWidgets(
+        'budget + temp income: allowance dashed gold line + green dot label',
+        (tester) async {
+      final now = DateTime.now();
+      final day = now.day;
+      final days = BudgetEngine.daysInMonth(now.year, now.month);
+      final repo = BudgetRepository(db);
+      await repo.upsert(
+        yearMonth: BudgetEngine.monthKey(now),
+        incomeCents: 300000,
+        savingsTargetCents: 0,
+      );
+      await seed(expenseCents: 1500);
+      final txRepo = TransactionRepository(db);
+      await txRepo.create(
+        amountCents: 80000,
+        type: TransactionType.income,
+        occurredAt: now,
+      );
+      await pumpStats(tester);
+
+      final chart = barChart(tester);
+      final allowance =
+          BudgetEngine.fixedDailyCents(budgetCents: 300000, daysInMonth: days);
+      final lines = chart.data.extraLinesData.horizontalLines;
+      expect(lines.length, 1, reason: 'T-21 acceptance 3: allowance baseline');
+      expect(lines.first.y, allowance.toDouble());
+      expect(lines.first.color, AppColors.goldAccent);
+      expect(lines.first.dashArray, const <int>[4, 3]);
+
+      // The green dot rides on the expense rod of that day.
+      final rod = chart.data.barGroups[day - 1].barRods.first;
+      expect(
+        rod.rodStackItems.any((i) => i.color == AppColors.semanticIncome),
+        isTrue,
+        reason: 'temporary income is marked on the bar (green dot)',
+      );
+      // ... and is labelled next to the chart.
+      expect(find.byKey(Key('stats_temp_income_${day - 1}')), findsOneWidget);
+      expect(find.text('$day 号 临时收入 +\u00a5800'), findsOneWidget);
+      await disposeTree(tester);
+    });
+
+    testWidgets('empty period shows the empty state, not an empty chart',
+        (tester) async {
+      await pumpStats(tester);
+      expect(find.byKey(const Key('stats_spend_empty')), findsOneWidget);
+      expect(find.text('这个周期还没有记录'), findsWidgets);
+      await disposeTree(tester);
+    });
   });
 }

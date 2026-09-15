@@ -139,7 +139,7 @@ class _StatsPageState extends ConsumerState<StatsPage>
         final points = StatisticsService.monthDays(
           txs,
           month: _month,
-          baselineIncomePerDayCents: StatisticsService.incomeBaselinePerDay(
+          baselineIncomeByDayCents: StatisticsService.incomeBaselineByDay(
             budget: budget,
             month: _month,
           ),

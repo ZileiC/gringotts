@@ -239,7 +239,7 @@ void main() {
       final points = StatisticsService.monthDays(
         const <Transaction>[],
         month: DateTime(2026, 9, 1),
-        baselineIncomePerDayCents: 10000,
+        baselineIncomeByDayCents: List<int>.filled(30, 10000),
       );
       expect(points.length, 30);
       expect(points.every((p) => p.baselineIncomeCents == 10000), isTrue);
@@ -262,7 +262,7 @@ void main() {
           ),
         ],
         month: DateTime(2026, 9, 1),
-        baselineIncomePerDayCents: 10000,
+        baselineIncomeByDayCents: List<int>.filled(30, 10000),
       );
       final twelfth = points[11];
       expect(twelfth.label, '9/12');
@@ -375,7 +375,7 @@ void main() {
           ),
         ],
         month: DateTime(2026, 9, 1),
-        baselineIncomePerDayCents: 10000,
+        baselineIncomeByDayCents: List<int>.filled(30, 10000),
       );
       final bars = StatisticsService.spendBars(
         points,
@@ -449,7 +449,7 @@ void main() {
           StatisticsService.monthDays(
             txs,
             month: month,
-            baselineIncomePerDayCents: StatisticsService.incomeBaselinePerDay(
+            baselineIncomeByDayCents: StatisticsService.incomeBaselineByDay(
               budget: budget,
               month: month,
             ),
@@ -488,12 +488,62 @@ void main() {
       final points = StatisticsService.monthDays(
         monthFlows(),
         month: month,
-        baselineIncomePerDayCents: 20000,
+        baselineIncomeByDayCents: List<int>.filled(30, 20000),
       );
       final payday = points.firstWhere((p) => p.label == '9/12');
       expect(payday.netCents, 20000 + 80000, reason: '保底 + 临时 - 0');
       final spent = points.firstWhere((p) => p.label == '9/3');
       expect(spent.netCents, 20000 - 314500, reason: '保底 - 支出');
+    });
+
+    test('1c) the day-view amortisation sums to the month income exactly '
+        '(31-day October, income not divisible by 31)', () {
+      // 600000 ~/ 31 = 19354 -> a flat stamp sums to only 599974 (¥5,999.74),
+      // while the same card lists 可花预算 ¥6,000. The distributed baseline must
+      // sum back to the budget income exactly.
+      final october = DateTime(2026, 10, 1);
+      final budget = _budget(
+        incomeCents: 600000,
+        savingsTargetCents: 0,
+        yearMonth: '2026-10',
+      );
+      final txs = [
+        _tx(
+          amountCents: 80000,
+          type: TransactionType.income,
+          occurredAt: DateTime(2026, 10, 12),
+        ),
+        _tx(
+          amountCents: 314500,
+          type: TransactionType.expense,
+          occurredAt: DateTime(2026, 10, 3),
+        ),
+      ];
+      final points = StatisticsService.monthDays(
+        txs,
+        month: october,
+        baselineIncomeByDayCents: StatisticsService.incomeBaselineByDay(
+          budget: budget,
+          month: october,
+        ),
+      );
+      expect(points.length, 31);
+      // (a) the summed 保底收入 is the budget income, not 599974.
+      final summed =
+          points.fold<int>(0, (sum, p) => sum + p.baselineIncomeCents);
+      expect(summed, 600000, reason: 'sum of the day baselines = income');
+      // The remainder rides on the earliest days: 26 x 19355 + 5 x 19354.
+      expect(points.first.baselineIncomeCents, 19355);
+      expect(points.last.baselineIncomeCents, 19354);
+      // (b) summarize(points) agrees with totals(txs, baseline).
+      final summary = StatisticsService.summarize(points);
+      final totals =
+          StatisticsService.totals(txs, baselineIncomeCents: 600000);
+      expect(summary.baselineIncomeCents, 600000, reason: '保底收入');
+      expect(summary.netCents, totals.netCents,
+          reason: 'the card and totals() share one 保底 + 临时 - 支出');
+      // (c) exact net: 6000 + 800 - 3145 = 3655.
+      expect(summary.netCents, 365500, reason: '600000 + 80000 - 314500');
     });
 
     test('2) no budget: net = temp income - expense', () {

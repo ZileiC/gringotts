@@ -435,5 +435,52 @@ void main() {
       expect(netValue(tester).style?.color, AppColors.semanticExpense);
       await disposeTree(tester);
     });
+
+    testWidgets(
+        'day view: \u4fdd\u5e95\u6536\u5165 on a 31-day month equals the budget income exactly '
+        '(the card no longer contradicts itself)', (tester) async {
+      // 2026-10 has 31 days and 600000 is not divisible by 31. Stamping the
+      // floored 19354 per day summed to 599974, so the card read \u4fdd\u5e95\u6536\u5165
+      // \u00a55,999.74 next to \u53ef\u82b1\u9884\u7b97 \u00a56,000. The distributed per-day baselines
+      // must sum back to the budget income.
+      final october = DateTime(2026, 10, 1);
+      await BudgetRepository(db).upsert(
+        yearMonth: '2026-10',
+        incomeCents: 600000,
+        savingsTargetCents: 0,
+      );
+      final repo = TransactionRepository(db);
+      await repo.create(
+        amountCents: 80000,
+        type: TransactionType.income,
+        occurredAt: DateTime(2026, 10, 12),
+      );
+      await repo.create(
+        amountCents: 314500,
+        type: TransactionType.expense,
+        occurredAt: DateTime(2026, 10, 3),
+      );
+      final container = ProviderContainer(
+        overrides: [databaseProvider.overrideWithValue(db)],
+      );
+      addTearDown(container.dispose);
+      container.read(selectedMonthProvider.notifier).select(october);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(theme: buildAppTheme(), home: const StatsPage()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // \u4fdd\u5e95\u6536\u5165 = the budget income exactly; before the fix this was 5999.74.
+      expect(find.textContaining('\u4fdd\u5e95\u6536\u5165 \u00a56000'), findsOneWidget);
+      // \u53ef\u82b1\u9884\u7b97 = \u4fdd\u5e95\u6536\u5165 - \u8ba1\u5212\u5b58\u6b3e = the same 600000: the two rows agree.
+      expect(find.textContaining('\u53ef\u82b1\u9884\u7b97 \u00a56000'), findsOneWidget,
+          reason: '\u53ef\u82b1\u9884\u7b97 basis equals the \u4fdd\u5e95\u6536\u5165 row');
+      // 6000 + 800 - 3145 = 3655 (the frozen T-23 number).
+      expect(netValue(tester).data, '\u00a53655');
+      await disposeTree(tester);
+    });
   });
 }

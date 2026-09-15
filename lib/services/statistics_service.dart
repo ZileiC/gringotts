@@ -236,7 +236,12 @@ class StatisticsService {
   }
 
   /// Guaranteed income amortised over the days of [month]:
-  /// `budget.incomeCents / daysInMonth`. Null without a live budget row.
+  /// `budget.incomeCents / daysInMonth`, floored. Null without a live budget
+  /// row.
+  ///
+  /// This is the flat base value (used e.g. as the chart-2 y-scale reference);
+  /// it is NOT what the day-view points carry, because flooring loses the
+  /// remainder. Use [incomeBaselineByDay] for the points so their sum is exact.
   ///
   /// This is the 保底收入 side of the T-21 income semantics. It is derived on
   /// every read and never stored (data iron rule: no derived columns).
@@ -248,15 +253,37 @@ class StatisticsService {
     return budget.incomeCents ~/ BudgetEngine.daysInMonth(month.year, month.month);
   }
 
+  /// The `daysInMonth` per-day guaranteed-income baselines that sum EXACTLY to
+  /// the budget month's income (DESIGN_MAIN 11.7), null without a live row.
+  ///
+  /// A month's income rarely divides evenly by 28/29/30/31, so stamping the
+  /// floored `income ~/ days` on every point would make the summarised 保底收入
+  /// undershoot the budget by up to `days - 1` cents (e.g. ¥6,000 over a 31-day
+  /// month floors to 19354 x 31 = 599974). Here the remainder `r = income % days`
+  /// is spread one cent each over the FIRST `r` days (q + 1), the other
+  /// `days - r` days carry `q`; the list therefore sums to `income` exactly.
+  static List<int>? incomeBaselineByDay({
+    required BudgetMonth? budget,
+    required DateTime month,
+  }) {
+    if (budget == null || budget.deletedAt != null) return null;
+    final days = BudgetEngine.daysInMonth(month.year, month.month);
+    final q = budget.incomeCents ~/ days;
+    final r = budget.incomeCents % days;
+    return [for (var d = 0; d < days; d++) d < r ? q + 1 : q];
+  }
+
   /// Day buckets for the whole selected month (28/29/30/31 bars).
   ///
-  /// [baselineIncomePerDayCents] is the amortised guaranteed income (null when
-  /// the month has no budget); it is stamped on every point so chart 2 can plot
-  /// 保底均摊 + 临时收入 and never collapse onto the x axis.
+  /// [baselineIncomeByDayCents] is the per-day amortised guaranteed income, one
+  /// entry per day in calendar order from [incomeBaselineByDay] (null when the
+  /// month has no budget). It is stamped index-wise so the points sum back to
+  /// the month's budget income exactly; chart 2 plots 保底均摊 + 临时收入 per
+  /// point and never collapses onto the x axis.
   static List<PeriodPoint> monthDays(
     List<Transaction> transactions, {
     required DateTime month,
-    int? baselineIncomePerDayCents,
+    List<int>? baselineIncomeByDayCents,
   }) {
     final inMonth = transactions
         .where((t) =>
@@ -267,14 +294,16 @@ class StatisticsService {
       key: (dt) => '${dt.month}/${dt.day}',
       orderedLabels: monthDayLabels(month),
     );
-    if (baselineIncomePerDayCents == null) return points;
+    if (baselineIncomeByDayCents == null) return points;
     return [
-      for (final p in points)
+      for (var i = 0; i < points.length; i++)
         PeriodPoint(
-          label: p.label,
-          expenseCents: p.expenseCents,
-          incomeCents: p.incomeCents,
-          baselineIncomeCents: baselineIncomePerDayCents,
+          label: points[i].label,
+          expenseCents: points[i].expenseCents,
+          incomeCents: points[i].incomeCents,
+          baselineIncomeCents: i < baselineIncomeByDayCents.length
+              ? baselineIncomeByDayCents[i]
+              : 0,
         ),
     ];
   }

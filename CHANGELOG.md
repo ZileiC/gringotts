@@ -16,7 +16,27 @@ Ground rules already frozen for this milestone: the model receives aggregated st
 never raw transactions — and the API key lives in `flutter_secure_storage`, never in logs, the
 repository or the APK's assets.
 
-## M1.1 — in progress
+## M1.1.1 — 2026-09-15
+
+### Fixed
+- **Statistics charts no longer overflow their card when one value dwarfs the others.** With a
+  monthly budget far above actual spending (or a single unusually large day), the drawn geometry
+  escaped the chart box — the trend line visibly left the card. The y-scale is now resolved by one
+  pure function that clamps an outlier to the top of the plot and labels its real value (for example
+  `额度 ¥250 ↑`), so the spending that matters stays readable instead of collapsing into slivers.
+- **The trend chart's income line carries the amortised monthly income only.** One-off income is
+  annotated with a leader, a dot and its value; it no longer enters the line, where it used to spike
+  through the axis and out of the card.
+- **Visual sizes are no longer converted into data units.** The one-off income marker used to fake a
+  4 px dot as a value on the axis, which could invert a bar's geometry; markers are now positioned in
+  pixels and clamped inside the plot area.
+
+### Added
+- `ChartScale.resolve` — the chart scale and clamp decision as a pure function, covered by unit tests
+  (regular case, single outlier, one data point) and an invariant test that every drawn value stays
+  at or below the axis maximum.
+
+## M1.1 — 2026-09-15
 
 ### Fixed
 - **Statistics net balance now counts the monthly budget income.** The summary card showed the

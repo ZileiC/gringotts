@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>Gringotts · 统计页图表重整 预览稿 v1（2026-09-15）</title>
+<style>
+  :root{
+    --canvas:#0C0B09; --surface:#14120E; --elevated:#1D1A13; --overlay:#262117;
+    --hairline:#2C271C; --ink:#F4EFE2; --ink2:#A69C86;
+    --gold:#E3C36B; --goldDeep:#9C7A24; --goldContainer:#2A2314; --onGoldContainer:#EDD9A3;
+    --expense:#E5484D; --income:#46A758; --onGold:#171204;
+    --sans:-apple-system,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;
+    --serif:"Playfair Display",Georgia,"Times New Roman",serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--canvas);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.6}
+  .wrap{max-width:1140px;margin:0 auto;padding:40px 24px 80px}
+  .eyebrow{font-size:11px;letter-spacing:.16em;color:var(--ink2);text-transform:uppercase}
+  h1{font-size:26px;margin:6px 0 8px;letter-spacing:-.02em}
+  h2{font-size:18px;margin:0}
+  h3{font-size:13px;margin:0 0 10px;color:var(--ink2);letter-spacing:.06em}
+  .pod{color:var(--ink2);font-size:13px;margin:0 0 16px}
+  .note{border:1px solid var(--hairline);border-radius:12px;padding:14px 16px;background:var(--surface);margin:16px 0}
+  .note b{color:var(--gold)}
+  .bad{border:1px solid var(--hairline);border-left:2px solid var(--expense);border-radius:12px;padding:14px 16px;background:var(--surface);margin:14px 0}
+  .bad b{color:var(--expense)}
+  .sec{margin-top:44px}
+  .sec-head{display:flex;align-items:baseline;gap:12px;margin-bottom:4px}
+  .sec-head .idx{font-family:var(--serif);font-size:22px;color:var(--gold)}
+  .tag{font-size:11px;letter-spacing:.1em;border:1px solid var(--gold);color:var(--gold);border-radius:999px;padding:2px 10px;white-space:nowrap}
+  .tag.rec{border-color:var(--gold);background:var(--goldContainer);color:var(--onGoldContainer)}
+  .row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
+  .phone{width:100%;border:1px solid var(--hairline);border-radius:18px;background:var(--canvas);overflow:hidden}
+  .bar{height:36px;border-bottom:1px solid var(--hairline);display:flex;align-items:center;justify-content:space-between;padding:0 12px;font-size:12px}
+  .body{padding:12px}
+  .card{border:1px solid var(--hairline);border-radius:12px;background:var(--surface);padding:11px}
+  .chips{display:flex;gap:6px}
+  .chip{border:1px solid var(--hairline);border-radius:999px;padding:4px 11px;font-size:12px;color:var(--ink2)}
+  .chip.on{border-color:var(--gold);color:var(--gold);background:var(--goldContainer)}
+  .lbl{font-size:10.5px;color:var(--ink2);letter-spacing:.06em}
+  .kv{display:flex;justify-content:space-between;font-size:11.5px;color:var(--ink2);padding:2px 0}
+  .kv b{color:var(--ink)}
+  .cap{font-size:11.5px;color:var(--ink2);margin:8px 0 0}
+  .pros{font-size:12.5px;color:var(--ink2);margin:10px 0 0}
+  .pros b{color:var(--ink);font-weight:600}
+  .pick{margin-top:36px;border:1px dashed var(--hairline);border-radius:12px;padding:16px;font-size:13px}
+  .pick b{color:var(--gold)}
+  code{background:var(--elevated);border:1px solid var(--hairline);border-radius:6px;padding:1px 5px;font-size:12px}
+  svg{display:block;width:100%;height:auto}
+  .tick{font-size:8.5px;fill:var(--ink2);font-family:var(--sans)}
+  .ylab{font-size:9px;fill:var(--ink2);font-family:var(--sans)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="eyebrow">Gringotts · M1 收尾 · 统计页图表重整 预览稿 v1</div>
+  <h1>图表怎么改：两个方向 + 收入/存款语义</h1>
+  <div class="pod">你报的四条我先做了源码核对——<b>四条全部成立</b>，而且根因比"画得不好"更硬：</div>
+
+  <div class="bad">
+    <b>源码级诊断（管理层核过，不是听你说）</b><br>
+    ① <b>只显示 7 天</b>：`StatisticsService.dailyTrend` 把日视图写死成 7 个桶（6 天前…今天），跟"月"这个账期脱节。<br>
+    ② <b>横轴与纵轴对不上</b>：`stats_page.dart:256` 用 `interval: 7 / 6 = 1.1667` 画横轴标签，fl_chart 于是在 x=0 / 1.167 / 2.333… 处落标签、再用 `toInt()` 取名字 ⇒ <b>标签整体滑移</b>，跟数据点不重合。<br>
+    ③ <b>纵轴没有刻度</b>：`stats_page.dart:248-250` 明确写着 `leftTitles: SideTitles(showTitles: false)` —— <b>一个金额刻度都没有</b>，网格只有线没有数。<br>
+    ④ <b>"双线"其实只有一条</b>：代码确实有两条线（支出红 / 收入绿），但<b>收入序列只取 type=income 的流水</b>；你在主页填的月度生活费是 <code>budget_months</code> 里的一个数字、<b>根本不是流水</b> ⇒ 收入线恒为 0、永远贴 X 轴。⑤ 顺带：预算与计划存款<b>完全没进图表</b>，"存款达成 → 资产"也<b>没有任何出口</b>。
+  </div>
+
+  <div class="note">
+    <b>本稿要解决的三件事（语义先行，画法其次）</b><br>
+    ① <b>收入分两类</b>：<b>保底收入</b>＝主页手填的月度生活费（覆盖整月）→ 按当月天数<b>均摊成"每天可花额度"</b>（派生值、不落库）；<b>临时收入</b>＝某天赚到的钱（快记里选收入）→ 计入那一天。<br>
+    ② <b>日视图 = 所选月份的整月</b>（28–31 天），不再固定 7 天；横轴标签<b>与数据点逐一对齐</b>，纵轴<b>必须有金额刻度</b>。<br>
+    ③ <b>端到端闭环</b>：月末「计划存款已达成 → 存入资产」，让攒下来的钱真的进资产页。<br>
+    示例数据（下方所有图统一）：月收入 ¥6,000、计划存款 ¥1,500 ⇒ 可花预算 ¥4,500；当月 30 天 ⇒ <b>日额度 ¥150</b>；12 号临时收入 +¥800。
+  </div>
+
+  <!-- ============ A ============ -->
+  <div class="sec">
+    <div class="sec-head"><span class="idx">A</span><h2>柱 + 额度基线：一眼看出哪天超了</h2><span class="tag rec">推荐</span></div>
+    <p class="pod">每天一根支出柱，金色虚线是当天可花额度；<b>柱超出虚线的部分用红色</b>——"超没超"不用算。当天的临时收入用绿色小点标在柱顶上方。</p>
+    <div class="row">
+      <div class="col">
+        <div class="phone">
+          <div class="bar"><span>2026 年 9 月 ▾</span><span>明细 ›</span></div>
+          <div class="body">
+            <div class="chips"><span class="chip on">日</span><span class="chip">月</span><span class="chip">年</span></div>
+            <div class="card" style="margin-top:10px">
+              <div class="lbl">每日支出 · 虚线＝当天可花 ¥150</div>
+              <svg viewBox="0 0 620 210" preserveAspectRatio="none">
+                <!-- axes -->
+                <line x1="46" y1="8" x2="46" y2="176" stroke="#2C271C" stroke-width="1"/>
+                <line x1="46" y1="176" x2="614" y2="176" stroke="#2C271C" stroke-width="1"/>
+                <!-- y ticks -->
+                <text class="ylab" x="40" y="180" text-anchor="end">¥0</text>
+                <text class="ylab" x="40" y="124" text-anchor="end">¥150</text>
+                <text class="ylab" x="40" y="68" text-anchor="end">¥300</text>
+                <text class="ylab" x="40" y="12" text-anchor="end">¥450</text>
+                <line x1="46" y1="121" x2="614" y2="121" stroke="#2C271C" stroke-width="1"/>
+                <line x1="46" y1="65" x2="614" y2="65" stroke="#2C271C" stroke-width="1"/>
+                <!-- budget baseline = 150 -->
+                <line x1="46" y1="121" x2="614" y2="121" stroke="#E3C36B" stroke-width="1" stroke-dasharray="4 3"/>
+                <!-- bars: 30 days -->
+                <g fill="#F4EFE2" opacity="0.82">
+                  <rect x="49" y="152" width="12" height="24"/><rect x="68" y="134" width="12" height="42"/>
+                  <rect x="87" y="158" width="12" height="18"/><rect x="106" y="121" width="12" height="55"/>
+                  <rect x="125" y="146" width="12" height="30"/><rect x="144" y="112" width="12" height="45"/>
+                  <rect x="163" y="150" width="12" height="26"/><rect x="182" y="140" width="12" height="36"/>
+                  <rect x="201" y="166" width="12" height="10"/><rect x="220" y="128" width="12" height="48"/>
+                  <rect x="239" y="143" width="12" height="33"/><rect x="258" y="118" width="12" height="58"/>
+                  <rect x="277" y="154" width="12" height="22"/><rect x="296" y="134" width="12" height="42"/>
+                  <rect x="315" y="149" width="12" height="27"/><rect x="334" y="126" width="12" height="50"/>
+                  <rect x="353" y="160" width="12" height="16"/><rect x="372" y="139" width="12" height="37"/>
+                  <rect x="391" y="152" width="12" height="24"/><rect x="410" y="118" width="12" height="58"/>
+                  <rect x="429" y="148" width="12" height="28"/><rect x="448" y="131" width="12" height="45"/>
+                  <rect x="467" y="157" width="12" height="19"/><rect x="486" y="136" width="12" height="40"/>
+                  <rect x="505" y="150" width="12" height="26"/><rect x="524" y="120" width="12" height="22"/>
+                  <rect x="543" y="146" width="12" height="30"/><rect x="562" y="154" width="12" height="22"/>
+                  <rect x="581" y="139" width="12" height="37"/><rect x="600" y="158" width="12" height="18"/>
+                </g>
+                <!-- over-baseline parts in red (day 4, 6, 10, 12, 16, 20, 22, 26, 29) -->
+                <g fill="#E5484D">
+                  <rect x="106" y="121" width="12" height="18"/><rect x="144" y="121" width="12" height="18"/>
+                  <rect x="220" y="121" width="12" height="7"/><rect x="258" y="121" width="12" height="6"/>
+                  <rect x="334" y="121" width="12" height="6"/><rect x="410" y="121" width="12" height="9"/>
+                  <rect x="448" y="121" width="12" height="5"/><rect x="524" y="121" width="12" height="3"/>
+                  <rect x="581" y="121" width="12" height="6"/>
+                </g>
+                <!-- temporary income dot on day 12 -->
+                <circle cx="264" cy="86" r="4" fill="#46A758"/>
+                <text class="tick" x="264" y="76" text-anchor="middle" fill="#46A758">+¥800</text>
+                <!-- x labels every 5 days, aligned to the bars -->
+                <text class="tick" x="55" y="190">1</text><text class="tick" x="150" y="190">6</text>
+                <text class="tick" x="245" y="190">11</text><text class="tick" x="340" y="190">16</text>
+                <text class="tick" x="435" y="190">21</text><text class="tick" x="530" y="190">26</text>
+                <text class="tick" x="606" y="190">30</text>
+              </svg>
+            </div>
+            <div class="card" style="margin-top:10px">
+              <div class="lbl">本月</div>
+              <div class="kv"><span>保底收入（生活费）</span><b>¥6,000</b></div>
+              <div class="kv"><span>临时收入</span><b style="color:var(--income)">+¥800</b></div>
+              <div class="kv"><span>支出</span><b>¥3,410</b></div>
+              <div class="kv"><span>可花预算（¥6,000 − ¥1,500）</span><b>¥4,500</b></div>
+            </div>
+          </div>
+        </div>
+        <p class="cap">纵轴有金额刻度、横轴 1/6/11/16/21/26/30 <b>逐一对齐到对应那根柱</b>；红柱顶＝当天超额。</p>
+      </div>
+      <div class="col">
+        <div class="pros">
+          <b>为什么推荐 A</b>：柱天生对齐、不用插值，你说的"位置对不上"从根上消失；额度基线让"保底收入"真正参与画面，而不是变成一条贴轴的废线；红色只在超额处出现，金/白/红三色各司其职，不花。<br><br>
+          <b>月视图（同一方向）</b>：12 个月成对柱（支出／收入），收入柱含该月保底收入 + 临时收入，再叠一条预算额度虚线；<b>年视图</b>同理按年聚合。<br><br>
+          <b>代价</b>：一个月 30 根柱，屏幕窄时柱会细（可设最小柱宽 + 横向滚动，或窄屏自动退化为每 2 天一根聚合柱）。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ B ============ -->
+  <div class="sec">
+    <div class="sec-head"><span class="idx">B</span><h2>双线真做出来：支出线 vs 收入线（含保底分摊）</h2></div>
+    <p class="pod">保持"双线"的说法，但把收入线真的画出量：保底收入按天均摊成一条**平的绿线**（¥200/天），临时收入在当天**向上跳一格**；支出线照实画。</p>
+    <div class="row">
+      <div class="col">
+        <div class="phone">
+          <div class="bar"><span>2026 年 9 月 ▾</span><span>明细 ›</span></div>
+          <div class="body">
+            <div class="chips"><span class="chip on">日</span><span class="chip">月</span><span class="chip">年</span></div>
+            <div class="card" style="margin-top:10px">
+              <div class="lbl">每日 支出 vs 收入（含保底均摊 ¥200/天）</div>
+              <svg viewBox="0 0 620 210">
+                <line x1="46" y1="8" x2="46" y2="176" stroke="#2C271C" stroke-width="1"/>
+                <line x1="46" y1="176" x2="614" y2="176" stroke="#2C271C" stroke-width="1"/>
+                <text class="ylab" x="40" y="180" text-anchor="end">¥0</text>
+                <text class="ylab" x="40" y="124" text-anchor="end">¥150</text>
+                <text class="ylab" x="40" y="68" text-anchor="end">¥300</text>
+                <text class="ylab" x="40" y="12" text-anchor="end">¥450</text>
+                <line x1="46" y1="124" x2="614" y2="124" stroke="#2C271C" stroke-width="1"/>
+                <line x1="46" y1="68" x2="614" y2="68" stroke="#2C271C" stroke-width="1"/>
+                <!-- expense line -->
+                <polyline fill="none" stroke="#E5484D" stroke-width="2" stroke-linejoin="round"
+                  points="55,152 74,134 93,158 112,103 131,146 150,94 169,150 188,140 207,166 226,121 245,143 264,100 283,154 302,134 321,149 340,111 359,160 378,139 397,152 416,100 435,148 454,126 473,157 492,136 511,150 530,140 549,146 568,154 587,133 606,158"/>
+                <!-- income line: baseline 200/day with a bump on day 12 -->
+                <polyline fill="none" stroke="#46A758" stroke-width="2" stroke-dasharray="0"
+                  points="55,86 74,86 93,86 112,86 131,86 150,86 169,86 188,86 207,86 226,86 245,86 264,60 283,60 302,86 321,86 340,86 359,86 378,86 397,86 416,86 435,86 454,86 473,86 492,86 511,86 530,86 549,86 568,86 587,86 606,86"/>
+                <circle cx="264" cy="60" r="3.5" fill="#46A758"/>
+                <text class="tick" x="300" y="52" fill="#46A758">临时收入 +¥800（当天）</text>
+                <text class="tick" x="90" y="80" fill="#46A758">保底收入均摊 ¥200/天</text>
+                <text class="tick" x="55" y="190">1</text><text class="tick" x="150" y="190">6</text>
+                <text class="tick" x="245" y="190">11</text><text class="tick" x="340" y="190">16</text>
+                <text class="tick" x="435" y="190">21</text><text class="tick" x="530" y="190">26</text>
+                <text class="tick" x="606" y="190">30</text>
+              </svg>
+            </div>
+            <div class="card" style="margin-top:10px">
+              <div class="kv"><span>收入线（保底均摊 + 临时）</span><b style="color:var(--income)">有量</b></div>
+              <div class="kv"><span>支出线</span><b style="color:var(--expense)">有量</b></div>
+            </div>
+          </div>
+        </div>
+        <p class="cap">绿线不再贴 X 轴：保底收入每天都在，临时收入当天抬一格。</p>
+      </div>
+      <div class="col">
+        <div class="pros">
+          <b>B 的优点</b>：最贴近你原来对"双线"的期待；趋势感强，月/年视图更好看。<br>
+          <b>B 的代价</b>：① 30 个点的折线在手机上会挤，标签比柱更难对齐；② "我今天超没超额度"要心算（柱+红线是直接看出来的）；③ 均摊出的平绿线信息量低（它每天一样长）。<br>
+          <b>可折中</b>：日视图用 A（柱＋红线），月/年视图用 B（双线）——这也是我倾向的组合。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 存款 → 资产 ============ -->
+  <div class="sec">
+    <div class="sec-head"><span class="idx">III</span><h2>计划存款 → 资产（你说的那件"应该被记下来"的事）</h2></div>
+    <p class="pod">月末（或你主动）出现一张确认卡，一键把计划存款落成一条资产；<b>不确认就永远不写库</b>——攒没攒够由你说，机器不自作主张。</p>
+    <div class="row">
+      <div class="col">
+        <h3>分析页月末提示卡</h3>
+        <div class="phone">
+          <div class="bar"><span>2026 年 9 月 ▾</span><span style="color:var(--gold)">＋ ⚙</span></div>
+          <div class="body">
+            <div class="card">
+              <div class="lbl">9 月结算</div>
+              <div style="font-size:15px;margin:6px 0 8px">这个月的计划存款（¥1,500）攒下来了吗？</div>
+              <div style="display:flex;gap:8px">
+                <span class="tag rec">存进资产</span><span class="tag">这个月没攒够</span>
+              </div>
+            </div>
+            <div class="card" style="margin-top:10px">
+              <div class="lbl">今天还能花</div>
+              <div style="font-family:var(--serif);font-size:28px;color:var(--gold)">¥86</div>
+            </div>
+          </div>
+        </div>
+        <p class="cap">点「存进资产」→ 资产页多一条「存款 · 2026 年 9 月」¥1,500；点「没攒够」→ 本月不再提示。</p>
+      </div>
+      <div class="col">
+        <h3>资产页结果</h3>
+        <div class="phone">
+          <div class="bar"><span>资产</span><span style="color:var(--gold)">＋</span></div>
+          <div class="body">
+            <div class="card">
+              <div class="lbl">总资产净值</div>
+              <div style="font-family:var(--serif);font-size:28px;color:var(--gold)">¥7,500</div>
+            </div>
+            <div class="card" style="margin-top:10px">
+              <div style="display:flex;justify-content:space-between"><span>9 月计划存款</span><b>¥1,500</b></div>
+              <div class="kv"><span>存款 · 2026-09-30 · 服役中</span></div>
+            </div>
+          </div>
+        </div>
+        <p class="cap">这条资产与手记的资产同一套数据（可编辑、可卖、CPD 照算），只是来源标为"计划存款"。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="pick">
+    <b>要你拍的四个点</b>（回 <code>A/A/要/手动</code> 这种简写就行，或直接说哪里不对）：<br>
+    ① 日视图形态：<b>A 柱＋额度红线</b> / B 双线 / A+B 混合（日柱、月年双线）<br>
+    ② 收入怎么画：<b>A 的额度基线＋临时收入绿点</b> / B 的双线（均摊合成一条绿线）<br>
+    ③ 统计页是否加<b>月份按钮</b>并与主页/明细联动（我建议要，三页同一个"当前月"）<br>
+    ④ 存款转资产：<b>月末提示卡＋手动确认</b> / 自动落库 / 只提醒不落库<br>
+    <span style="color:var(--ink2)">你拍完我冻结进 <code>DESIGN_MAIN.md</code> 再派工；本票（T-21）会作为 M1 系列的最后一票收尾，并出一版 APK 给你上真机。</span>
+  </div>
+
+</div>
+</body>
+</html>

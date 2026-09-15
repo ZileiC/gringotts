@@ -185,7 +185,7 @@ void main() {
     await tester.pumpAndSettle(const Duration(seconds: 1));
     // T-13b: the pie section is below the fold of the lazy stats list; the
     // idle frame asserts the net card that is actually on screen.
-    await snap(tester, '06_stats_idle', [find.text('净结余（收入 − 支出）')]);
+    await snap(tester, '06_stats_idle', [find.text('净结余（保底 + 临时 − 支出）')]);
     await snapSink(tester, '07_stats_scrolled', find.byType(StatsPage));
 
     // 5. Ledger: the statistics page's child (T-12c Part A).

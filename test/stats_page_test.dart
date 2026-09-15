@@ -392,4 +392,48 @@ void main() {
       await disposeTree(tester);
     });
   });
+
+  group('T-23 net balance card', () {
+    testWidgets('label and number share the DESIGN_MAIN 11.7 definition',
+        (tester) async {
+      final now = DateTime.now();
+      await BudgetRepository(db).upsert(
+        yearMonth: BudgetEngine.monthKey(now),
+        incomeCents: 600000,
+        savingsTargetCents: 0,
+      );
+      await seed(incomeCents: 80000, expenseCents: 314500);
+      await pumpStats(tester);
+
+      expect(find.byKey(const Key('stats_net_label')), findsOneWidget);
+      expect(find.text('净结余（保底 + 临时 \u2212 支出）'), findsOneWidget);
+      // 6000 + 800 - 3145 = 3655 (the number frozen by T-23).
+      expect(netValue(tester).data, '\u00a53655');
+      expect(netValue(tester).style?.color, AppColors.ink,
+          reason: 'a positive balance stays warm ink');
+      expect(find.textContaining('保底收入 \u00a56000'), findsOneWidget);
+      expect(find.textContaining('临时收入 \u00a5800'), findsOneWidget);
+      expect(find.textContaining('支出 \u00a53145'), findsOneWidget);
+      expect(find.textContaining('可花预算 \u00a56000'), findsOneWidget,
+          reason: '可花预算 = 保底 - 计划存款 = 6000 (nothing planned)');
+      await disposeTree(tester);
+    });
+
+    testWidgets('negative balance stays semanticExpense under the new scope',
+        (tester) async {
+      final now = DateTime.now();
+      await BudgetRepository(db).upsert(
+        yearMonth: BudgetEngine.monthKey(now),
+        incomeCents: 600000,
+        savingsTargetCents: 0,
+      );
+      // 6000 - 9000 = -3000
+      await seed(expenseCents: 900000);
+      await pumpStats(tester);
+      expect(find.byKey(const Key('stats_net_label')), findsOneWidget);
+      expect(netValue(tester).data, '\u00a5-3000');
+      expect(netValue(tester).style?.color, AppColors.semanticExpense);
+      await disposeTree(tester);
+    });
+  });
 }

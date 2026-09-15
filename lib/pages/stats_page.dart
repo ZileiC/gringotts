@@ -114,9 +114,14 @@ class _StatsPageState extends ConsumerState<StatsPage>
         StatsRange.yearly => '全部年份',
       };
 
-  /// Chart series for the selected range: the points (one per x tick) plus the
-  /// spendable allowance that applies to each index (null = 无预算).
-  ({List<PeriodPoint> points, List<int?> allowances}) _series(
+  /// Chart series for the selected range: the points (one per x tick), the
+  /// spendable allowance that applies to each index (null = 无预算) and the
+  /// period's spendable budget (null = the period has no budget row).
+  ({
+    List<PeriodPoint> points,
+    List<int?> allowances,
+    int? spendableCents,
+  }) _series(
     List<Transaction> txs,
     List<BudgetMonth> budgets,
   ) {
@@ -142,11 +147,13 @@ class _StatsPageState extends ConsumerState<StatsPage>
         return (
           points: points,
           allowances: List<int?>.filled(points.length, dayAllowance),
+          spendableCents: spendable,
         );
       case StatsRange.monthly:
         final year = _month.year;
         final incomeByMonth = <int, int>{};
         final allowanceByMonth = <int, int?>{};
+        int? spendableSum;
         for (final b in budgets) {
           final parts = b.yearMonth.split('-');
           if (parts.length != 2) continue;
@@ -155,6 +162,7 @@ class _StatsPageState extends ConsumerState<StatsPage>
           if (y != year || m == null) continue;
           incomeByMonth[m] = b.incomeCents;
           allowanceByMonth[m] = _spendableOf(b);
+          spendableSum = (spendableSum ?? 0) + (_spendableOf(b) ?? 0);
         }
         final points = StatisticsService.monthlyTrend(
           txs,
@@ -166,6 +174,7 @@ class _StatsPageState extends ConsumerState<StatsPage>
           allowances: [
             for (var i = 0; i < points.length; i++) allowanceByMonth[i + 1],
           ],
+          spendableCents: spendableSum,
         );
       case StatsRange.yearly:
         final incomeByYear = <int, int>{};
@@ -187,6 +196,9 @@ class _StatsPageState extends ConsumerState<StatsPage>
               spendableByYear[
                   int.tryParse(p.label.replaceAll('年', '')) ?? 0],
           ],
+          spendableCents: spendableByYear.isEmpty
+              ? null
+              : spendableByYear.values.fold<int>(0, (a, b) => a + b),
         );
     }
   }
@@ -227,7 +239,10 @@ class _StatsPageState extends ConsumerState<StatsPage>
             builder: (context, snapshot) {
               final transactions = snapshot.data ?? const <Transaction>[];
               final series = _series(transactions, budgets);
-              final totals = StatisticsService.totals(transactions);
+              // T-23 / DESIGN_MAIN 11.7: the summary card reads the very same
+              // points chart 2 plots, so card and income line share one
+              // 保底 + 临时 aggregation.
+              final summary = StatisticsService.summarize(series.points);
               final bars = StatisticsService.spendBars(
                 series.points,
                 allowanceByIndex: series.allowances,
@@ -258,12 +273,13 @@ class _StatsPageState extends ConsumerState<StatsPage>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('净结余（收入 \u2212 支出）',
+                            Text('净结余（保底 + 临时 \u2212 支出）',
+                                key: const Key('stats_net_label'),
                                 style: Theme.of(context).textTheme.bodySmall),
                             const SizedBox(height: AppSpacing.xs),
                             CountUpNumber(
                               key: const Key('stats_net_value'),
-                              valueCents: totals.netCents,
+                              valueCents: summary.netCents,
                               builder: (context, cents) => Text(
                                 _yuan(cents),
                                 style: Theme.of(context)
@@ -282,7 +298,17 @@ class _StatsPageState extends ConsumerState<StatsPage>
                             ),
                             const SizedBox(height: AppSpacing.s),
                             Text(
-                              '收入 ${_yuan(totals.incomeCents)} \u00b7 支出 ${_yuan(totals.expenseCents)}',
+                              '保底收入 ${_yuan(summary.baselineIncomeCents)} \u00b7 '
+                              '临时收入 ${_yuan(summary.tempIncomeCents)} \u00b7 '
+                              '支出 ${_yuan(summary.expenseCents)}',
+                              key: const Key('stats_breakdown'),
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                            const SizedBox(height: AppSpacing.xs),
+                            Text(
+                              '可花预算 '
+                              '${series.spendableCents == null ? '未设预算' : _yuan(series.spendableCents!)}',
+                              key: const Key('stats_spendable_budget'),
                               style: Theme.of(context).textTheme.bodySmall,
                             ),
                           ],

@@ -77,7 +77,7 @@ void main() {
     // T-13b: the pie section sits below the fold of the lazy stats list (its
     // own frame is evidence/t13b + the t05 regression); assert the net card.
     await snap(tester, '03_stats', [
-      find.text('净结余（收入 − 支出）'),
+      find.text('净结余（保底 + 临时 − 支出）'),
     ]);
   });
 }

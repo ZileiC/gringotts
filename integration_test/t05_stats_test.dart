@@ -59,7 +59,7 @@ void main() {
     // top-of-page frame asserts the net card only; the pie gets its own frame
     // once it is scrolled into range (see state3b).
     await snapState(tester, 'state1_stats_daily', [
-      find.text('净结余（收入 − 支出）'),
+      find.text('净结余（保底 + 临时 − 支出）'),
     ]);
 
     // 2. Switch to monthly range.
@@ -67,7 +67,7 @@ void main() {
     await tester.pumpAndSettle(const Duration(seconds: 1));
     await snapState(tester, 'state2_stats_monthly', [
       find.text('月'),
-      find.text('净结余（收入 − 支出）'),
+      find.text('净结余（保底 + 临时 − 支出）'),
     ]);
 
     // 3. Switch to yearly range.
@@ -75,7 +75,7 @@ void main() {
     await tester.pumpAndSettle(const Duration(seconds: 1));
     await snapState(tester, 'state3_stats_yearly', [
       find.text('年'),
-      find.text('净结余（收入 − 支出）'),
+      find.text('净结余（保底 + 临时 − 支出）'),
     ]);
 
     // 3b. Category pie (below the fold): scroll it into range and frame it.

@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gringotts/data/app_database.dart';
 import 'package:gringotts/domain/models.dart';
+import 'package:gringotts/services/budget_engine.dart';
 import 'package:gringotts/services/statistics_service.dart';
 
 Transaction _tx({
@@ -433,6 +434,119 @@ void main() {
       final totals = StatisticsService.totals(transactions);
       expect(totals.netCents, 7000,
           reason: 'draft income 500 must not inflate balance');
+    });
+  });
+
+  group('net balance scope (T-23 / DESIGN_MAIN 11.7)', () {
+    final month = DateTime(2026, 9, 1);
+
+    /// The page path: the very points chart 2 plots, summarized as the card
+    /// does, so both sides read one 保底 + 临时 aggregation.
+    PeriodSummary pageSummary(List<Transaction> txs, {BudgetMonth? budget}) =>
+        StatisticsService.summarize(
+          StatisticsService.monthDays(
+            txs,
+            month: month,
+            baselineIncomePerDayCents: StatisticsService.incomeBaselinePerDay(
+              budget: budget,
+              month: month,
+            ),
+          ),
+        );
+
+    List<Transaction> monthFlows() => [
+          _tx(
+            amountCents: 80000,
+            type: TransactionType.income,
+            occurredAt: DateTime(2026, 9, 12),
+          ),
+          _tx(
+            amountCents: 314500,
+            type: TransactionType.expense,
+            occurredAt: DateTime(2026, 9, 3),
+          ),
+        ];
+
+    test('1) budget 6000 + temp 800 - expense 3145 = 3655', () {
+      final budget = _budget(incomeCents: 600000, savingsTargetCents: 0);
+      final summary = pageSummary(monthFlows(), budget: budget);
+      expect(summary.baselineIncomeCents, 600000, reason: '保底收入');
+      expect(summary.tempIncomeCents, 80000, reason: '临时收入');
+      expect(summary.expenseCents, 314500, reason: '支出');
+      expect(summary.incomeCents, 680000, reason: 'the chart-2 income value');
+      expect(summary.netCents, 365500, reason: '6000 + 800 - 3145 = 3655');
+      final totals =
+          StatisticsService.totals(monthFlows(), baselineIncomeCents: 600000);
+      expect(totals.netCents, 365500);
+      expect(totals.netCents, summary.netCents,
+          reason: 'totals() and the card share one definition');
+    });
+
+    test('2) no budget: net = temp income - expense', () {
+      final summary = pageSummary(monthFlows());
+      expect(summary.baselineIncomeCents, 0, reason: 'no invented baseline');
+      expect(summary.netCents, -234500, reason: '800 - 3145');
+      expect(StatisticsService.totals(monthFlows()).netCents, -234500);
+    });
+
+    test('3) year aggregates every month (月 chip and 年 chip)', () {
+      final txs = [
+        _tx(
+          amountCents: 300000,
+          type: TransactionType.income,
+          occurredAt: DateTime(2026, 8, 4),
+        ),
+        _tx(
+          amountCents: 60000,
+          type: TransactionType.expense,
+          occurredAt: DateTime(2026, 8, 9),
+        ),
+        _tx(
+          amountCents: 200000,
+          type: TransactionType.expense,
+          occurredAt: DateTime(2026, 9, 9),
+        ),
+      ];
+      final months = StatisticsService.summarize(
+        StatisticsService.monthlyTrend(
+          txs,
+          year: 2026,
+          baselineIncomeByMonth: const <int, int>{8: 400000, 9: 250000},
+        ),
+      );
+      expect(months.baselineIncomeCents, 650000, reason: '4000 + 2500');
+      expect(months.tempIncomeCents, 300000);
+      expect(months.expenseCents, 260000);
+      expect(months.netCents, 690000, reason: '6500 + 3000 - 2600');
+      final years = StatisticsService.summarize(
+        StatisticsService.yearlyTrend(
+          txs,
+          baselineIncomeByYear: const <int, int>{2026: 650000},
+        ),
+      );
+      expect(years.netCents, 690000);
+    });
+
+    test('4) planned savings move the spendable budget, never the balance',
+        () {
+      final plain = _budget(incomeCents: 600000, savingsTargetCents: 0);
+      final saving = _budget(incomeCents: 600000, savingsTargetCents: 250000);
+      expect(pageSummary(monthFlows(), budget: saving).netCents, 365500);
+      expect(
+        pageSummary(monthFlows(), budget: saving).netCents,
+        pageSummary(monthFlows(), budget: plain).netCents,
+        reason: '计划存款 is a budget deduction, not an expense',
+      );
+      // ... while the spendable budget (chart 1 allowance) is what it moves.
+      expect(
+        BudgetEngine.budgetCents(
+            incomeCents: 600000, savingsTargetCents: 250000),
+        350000,
+      );
+      expect(
+        BudgetEngine.budgetCents(incomeCents: 600000, savingsTargetCents: 0),
+        600000,
+      );
     });
   });
 }

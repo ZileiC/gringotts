@@ -82,6 +82,39 @@ class SpendBar {
   bool get hasTempIncome => tempIncomeCents > 0;
 }
 
+/// Period totals for the statistics summary card and chart 2.
+///
+/// DESIGN_MAIN 11.7 freezes one definition for the page's numbers:
+/// 保底收入 = the period's `budget_months.income_cents` sum (0 without a budget
+/// row, never invented), 临时收入 = confirmed income flows, 支出 = confirmed
+/// expense flows, 净结余 = 保底 + 临时 - 支出. The planned savings target is a
+/// deduction from the spendable budget only; it never touches the balance.
+class PeriodSummary {
+  const PeriodSummary({
+    required this.baselineIncomeCents,
+    required this.tempIncomeCents,
+    required this.expenseCents,
+  });
+
+  /// 保底收入: the period's budget months' income sum.
+  final int baselineIncomeCents;
+
+  /// 临时收入: the period's confirmed income flows.
+  final int tempIncomeCents;
+
+  /// 支出: the period's confirmed expense flows.
+  final int expenseCents;
+
+  /// What chart 2 plots and what the card shows as income: 保底 + 临时.
+  int get incomeCents => baselineIncomeCents + tempIncomeCents;
+
+  /// 净结余 = 保底 + 临时 - 支出 (DESIGN_MAIN 11.7).
+  int get netCents => StatisticsService.netBalanceCents(
+        baselineIncomeCents: baselineIncomeCents,
+        tempIncomeCents: tempIncomeCents,
+        expenseCents: expenseCents,
+      );
+}
 /// One slice of a category chart (pie / donut).
 ///
 /// [colorIndex] is the position of the slice in the canonical palette order,
@@ -317,9 +350,46 @@ class StatisticsService {
         ),
     ];
   }
-  /// Totals for a set of transactions (net balance math).
-  static ({int expenseCents, int incomeCents, int netCents}) totals(
-      List<Transaction> transactions) {
+  /// The one and only net-balance definition (DESIGN_MAIN 11.7):
+  /// `baseline + temp - expense`. The planned savings target is deliberately
+  /// absent - it reduces the spendable budget, never the balance.
+  static int netBalanceCents({
+    required int baselineIncomeCents,
+    required int tempIncomeCents,
+    required int expenseCents,
+  }) =>
+      baselineIncomeCents + tempIncomeCents - expenseCents;
+
+  /// Aggregates the period [points] that chart 2 plots into the summary card's
+  /// numbers. Chart 2 and the card read the same list through this function, so
+  /// the income line and the card can never diverge again (T-23)。
+  static PeriodSummary summarize(List<PeriodPoint> points) {
+    var baseline = 0;
+    var temp = 0;
+    var expense = 0;
+    for (final p in points) {
+      baseline += p.baselineIncomeCents;
+      temp += p.incomeCents;
+      expense += p.expenseCents;
+    }
+    return PeriodSummary(
+      baselineIncomeCents: baseline,
+      tempIncomeCents: temp,
+      expenseCents: expense,
+    );
+  }
+
+  /// Totals for a set of transactions (flow math plus an optional 保底收入).
+  ///
+  /// [baselineIncomeCents] is the period's 保底收入 (the sum of the budget
+  /// months' income); omit it for pure flow totals. [netCents] follows
+  /// DESIGN_MAIN 11.7: 保底 + 临时 - 支出.
+  static ({
+    int baselineIncomeCents,
+    int expenseCents,
+    int incomeCents,
+    int netCents
+  }) totals(List<Transaction> transactions, {int baselineIncomeCents = 0}) {
     var expense = 0;
     var income = 0;
     for (final t in transactions) {
@@ -330,6 +400,15 @@ class StatisticsService {
         income += t.amountCents;
       }
     }
-    return (expenseCents: expense, incomeCents: income, netCents: income - expense);
+    return (
+      baselineIncomeCents: baselineIncomeCents,
+      expenseCents: expense,
+      incomeCents: income,
+      netCents: netBalanceCents(
+        baselineIncomeCents: baselineIncomeCents,
+        tempIncomeCents: income,
+        expenseCents: expense,
+      ),
+    );
   }
 }

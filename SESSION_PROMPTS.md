@@ -46,29 +46,72 @@
 
 > M2.0 正式波（T-15 起）**按用户安排暂缓**；本票验收通过后由管理层请用户指示，不要自行启动。
 
-## C. 备查：T-21 施工 prompt（下一票 = M1 系列收官，规格已冻结）
+## C. 备查：T-21 施工 prompt（下一票 = M1 系列收官，规格已冻结；**已按 deepseek harness 调参**）
 
-> 启用条件：无（规格已冻结在 `DESIGN_MAIN.md` §11，用户 2026-09-15 拍板）。M2.0 正式波仍按用户安排暂缓，**不要在 T-21 里夹带 AI 相关改动**。
+> 启用条件：无（规格冻结在 `DESIGN_MAIN.md` §11，用户 2026-09-15 拍板，含「两图上下排」「临时收入标注不参与图 2 缩放」两条确认）。M2.0 正式波仍暂缓，**不要在 T-21 里夹带 AI 相关改动**。
+> 调参理由：deepseek harness 上一轮在回归阶段反复重跑同一脚本直到崩溃 ⇒ 本 prompt **分块 + 每块立即提交 + 熔断 + 失败可跳过上报**。
 
 ```
-你是 Gringotts 执行层的 session（Codex）。档案 = C:/Users/JHarayden/Desktop/Gringotts；本目录开工会自动读 AGENTS.md。
+你是 Gringotts 执行层的 session（deepseek harness）。档案 = C:/Users/JHarayden/Desktop/Gringotts；开工自动读 AGENTS.md。
 
-先读三样（其余不必读）：PROJECT_STATE.md → TICKETS_M2A.md 的 T-21（含诊断与验收）→ **DESIGN_MAIN.md §11（本票唯一规格来源，逐条照做）**；不要再读别的设计章节。
+读三样即可：PROJECT_STATE.md → TICKETS_M2A.md 的 T-21 → DESIGN_MAIN.md §11（唯一规格，逐条照做）。不要读其他设计章节，不要读历史工单。
 
-本轮任务 = T-21（统计页图表重整 + 收入/存款语义），按 DESIGN_MAIN §11 分五块，每块做完立即 WIP 提交：
-Part A 服务层（StatisticsService）：日视图改为「所选月每一天」（28–31 桶，不再是 7 桶）；月/年口径照 §11.2；新增「保底收入均摊」计算（月收入 ÷ 当月天数）与「临时收入按日」聚合；全部为纯函数可单测。
-Part B 图表层（两张图，§11.2 / §11.3）：图 1 = 支出柱 + 额度虚线（goldAccent dash 4/3）+ 超额段 semanticExpense + 临时收入绿点；图 2 = 双线（支出 semanticExpense / 收入 semanticIncome，收入含保底均摊）；**纵轴必须开金额刻度（原实现是 showTitles:false，必须改）**；**横轴标签 x 必须等于数据点 index（原实现用 length/6 导致滑移，禁止再出现非整数 interval）**；空态/单点/极值不崩。
-Part C 月份联动（§11.4）：统计页顶栏加与主页同款月份按钮（复用同一月历 sheet），selected month 与主页/明细同源，切一处三处同步。
-Part D 存款转资产（§11.5）：budget_months 加 savingsConfirmedAt / savingsSkippedAt（schemaVersion 3→4，addColumn）；AssetCategory 加 savings；分析页 Hero 下方提示卡（两动作 + 幂等）；「存进资产」生成存款类资产、「没攒够」零落库；**派生值一律现算不落库**。
-Part E 收尾：run 受影响 integration（统计/主页/资产相关，例 t05 / t10b / t14b 系脚本；**不要全量重跑 14 个**）→ 出 release APK（桌面 gringotts-T21-release.apk + md5，M1 收官包）→ WORKLOG → commit（T-21: …）→ push。
+任务 = T-21（统计页图表重整 + 收入/存款语义）。**分 5 块，一块做完就 `git commit -m "WIP T-21: Part X"` 并在 WORKLOG 顶部写一行「Part X 完成 + 证据」，然后立刻做下一块。** 不要把 5 块攒到最后一起提交。
 
-硬性规则（上一轮 harness 曾在失败脚本上死循环，管理层已立规矩）：
-① 同一条命令 / 同一个 integration 脚本最多跑 2 次，第 2 次必须由新事实驱动（改了代码或加了日志）；**第 3 次禁止** —— 改为把失败原文 + 已排除假设写进 WORKLOG，commit WIP 后停下报告。
-② 出现 harness 内部错误（如 `DSH ACP: Internal error`）立即停手，不重试刷屏。
-③ 不许为了跑绿而降低断言 / 加 skip / 删测试；不许改 AGENTS.md / DESIGN_MAIN.md / TICKETS_M2A.md。
-④ 数据库迁移前先备份 dev 库（tool/clean_dev_db.py 的 --report 参数可用），迁移测试必须断言旧数据可读。
+Part 1 服务层（先做，纯函数好测）
+文件：lib/services/statistics_service.dart（+ 新增/修改单测 test/statistics_service_test.dart）
+- 日视图改为「所选月每一天」：monthDays(selectedMonth) 桶（28/29/30/31），替换现在写死的 7 桶 dailyTrend
+- 新增 incomeBaselinePerDay = 该月 budget.incomeCents ÷ 该月天数（无预算 → null）
+- 月视图 12 桶、年视图按年（沿用现有口径）
+- 全部为纯函数，可单测；顺手把 dailyTrend 的旧 7 桶调用点全部改掉（grep dailyTrend）
+验收：单测覆盖 28/29/30/31 四种月份天数 + incomeBaselinePerDay（有预算/无预算两态）
 
-验收：DESIGN_MAIN.md §11.6 六条 + T-21「验收」逐条给证据（结构化断言优先，帧 md5 清单入库、PNG 本地）；停下等验收。
+Part 2 图 1（柱 + 额度线 + 超额红段 + 临时收入点）
+文件：lib/pages/stats_page.dart
+- 每天一根柱：不超额部分 elevated 填充 + hairline 边；超过「当天额度」的部分用 AppColors.semanticExpense
+- 当天额度 = 可花预算 ÷ 当月天数；无预算则不画额度线，图上方一行 inkSecondary「先设置本月预算」
+- 额度线 = goldAccent 1px 虚线（dash 4/3）
+- 临时收入：该日有 income 流水 → 柱顶上方 4px semanticIncome 圆点（多笔取合计，点旁标数）
+- 纵轴：必须开左轴金额刻度（现在写的是 leftTitles showTitles:false，必须改成 4 档：0 / ⅓ / ⅔ / max，格式 ¥1,200 千分位）
+- 横轴：标签 x 必须等于数据点 index（现在写的是 interval: length/6，这是 offset 滑移的根因，禁止再出现非整数 interval）；日视图每 5 天一个标签 + 末尾必标
+
+Part 3 图 2（双线，收入含保底均摊）
+文件：lib/pages/stats_page.dart
+- 支出线 semanticExpense；收入线 semanticIncome = 保底均摊（incomeBaselinePerDay）+ 当天临时收入
+- 图 2 纵轴 = max(支出, 保底均摊) × 1.15；**临时收入不参与缩放**：该日画一条 semanticIncome 细虚线引到图内顶部 + 端点 3.5px 圆点 + 数值（如「12 号 临时收入 +¥800」）
+- 无预算：收入线只含临时收入，图下一行说明「未设本月预算，收入线仅含临时收入」
+- 两张图上下排列（图 1 在上）；空态「这个周期还没有记录」，单点/极值不崩
+
+Part 4 月份联动
+文件：lib/pages/stats_page.dart（+ 如需共享状态则加 provider）
+- 统计页顶栏加月份按钮（复用主页同一套月历 sheet 组件，不要新造）
+- selected month 与主页、明细页同源：任一处切换三处同步
+验收：切月后统计页数据 = 该月数据（状态断言），未来月仍灰显不可选
+
+Part 5 存款转资产
+文件：lib/data/app_database.dart（+ 重新生成 .g.dart）、lib/domain/models.dart、分析页 lib/pages/home_page.dart、仓库/服务层
+- budget_months 加两列 savingsConfirmedAt / savingsSkippedAt（nullable DateTime），schemaVersion 3→4 用 addColumn 迁移，旧数据必须可读
+- AssetCategory 加枚举值 savings
+- 分析页 Hero 下方提示卡：条件 = 该月 savingsTargetCents > 0 且两列皆 null；文案两键「存进资产」/「这个月没攒够」；当月最后 3 天加一句「这个月快结束了」
+- 「存进资产」→ 新建资产：name「<M> 月计划存款」、category savings、valueCents = savingsTargetCents、purchasedAt = 该月最后一天 12:00、note「由月度计划存款确认生成」；写 savingsConfirmedAt；**幂等**（同月重复调用返回既有资产，不新建）
+- 「这个月没攒够」→ 只写 savingsSkippedAt，**零资产落库**
+- 派生值一律现算不落库（额度、均摊都不许建列）
+验收：未操作时资产表零新增；确认后资产页出现该条（金额/类别/日期断言）；「没攒够」零新增；重复确认不产生第二条
+
+最后（Part 6 收尾）
+- 受影响 integration 只跑这些：t05_stats_test、t10b_home_test、t13b_full_chain_test（统计页/主页/全链路），**不要跑其余 10 个**
+- flutter analyze（必须 No issues found）+ flutter test（必须全绿，报数量）
+- flutter build apk --release → 复制到桌面 gringotts-T21-release.apk + 记 md5
+- WORKLOG 顶部写执行层条目 → git commit -m "T-21: …" → git push → 停下等验收
+
+硬性规则（上一轮 harness 在失败脚本上死循环直到崩溃，管理层已立规矩，违反即返工）
+① 同一条命令 / 同一个脚本最多跑 2 次；第 2 次必须有新事实（改了代码或加了日志）。**第 3 次禁止** —— 改为把失败原文 + 已排除的假设写进 WORKLOG，commit WIP，**跳过该块继续下一块**，最后在报告里列为遗留。
+② 出现 harness 内部错误（DSH ACP: Internal error 之类）立即停手：不要重试、不要刷屏，把现场写进 WORKLOG 后停止本次施工。
+③ 不许为了跑绿而降低断言 / 加 skip / 删测试；不许改 AGENTS.md / DESIGN_MAIN.md / TICKETS_M2A.md / PROJECT_STATE.md。
+④ 跑迁移测试前先备份 dev 库：python tool/clean_dev_db.py --report evidence/t21/dev_db_cleanup.json（apply 前先 dry-run 看数量）。
+⑤ 报告只写结论 + 证据（命令、数值、文件行号），不要复述过程。
+
+停下等验收。
 ```
 
 ## D. 备查：M2.0 正式波（AI）—— T-15 施工 prompt（⏸ 按用户安排暂缓中）

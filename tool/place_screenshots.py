@@ -1,14 +1,15 @@
 """Place the supplied device screenshots into docs/screenshots/.
 
 Run: uv run --with pillow --python 3.12 python tool/place_screenshots.py
-- trims dead background above/below the real content (some captures carry a long
-  empty tail)
+- paints pure black over the number plate in the two captures that show the car
+  (owner's request: 车牌用纯黑盖住)
+- trims dead background above/below the real content
 - downscales to 420 px wide (2x the README display width of 210)
 - writes PNGs (flat UI compresses well and stays crisp)
 - removes the SVG placeholders they replace
 """
 from pathlib import Path
-from PIL import Image
+from PIL import Image, ImageDraw
 
 UPLOADS = Path(r"C:\Users\JHarayden\.hermes-web-ui\upload\default")
 OUT = Path(__file__).resolve().parent.parent / "docs" / "screenshots"
@@ -24,6 +25,14 @@ SHOTS = [
     ("07-splash", "82274e0fb46f4f1f.jpg", "splash"),
     ("08-asset-detail", "4789e996d3cc5a00.jpg", "asset detail"),
 ]
+
+# Redactions in ORIGINAL pixel coordinates (left, top, right, bottom) - number plates.
+COVERS = {
+    # list thumbnail of the car
+    "04-assets": [(190, 1472, 272, 1502)],
+    # hero photo on the asset detail page
+    "08-asset-detail": [(548, 895, 910, 1000)],
+}
 
 WIDTH = 420
 MARGIN = 16
@@ -50,13 +59,11 @@ def trim_flat(image: Image.Image) -> Image.Image:
         ):
             last = y
             break
-    top = max(0, first - MARGIN)
-    bottom = min(h, last + 1 + MARGIN)
-    return image.crop((0, top, w, bottom))
+    return image.crop((0, max(0, first - MARGIN), w, min(h, last + 1 + MARGIN)))
 
 
 total = 0
-print(f"{'target':18} {'orig':>12} {'trimmed':>12} {'out':>11} {'bytes':>8}")
+print(f"{'target':18} {'orig':>12} {'trimmed':>12} {'out':>11} {'bytes':>8}  covers")
 for name, src, label in SHOTS:
     src_path = UPLOADS / src
     if not src_path.exists():
@@ -64,6 +71,11 @@ for name, src, label in SHOTS:
         continue
     im = Image.open(src_path).convert("RGB")
     orig = im.size
+    covers = COVERS.get(name, [])
+    if covers:
+        draw = ImageDraw.Draw(im)
+        for box in covers:
+            draw.rectangle(box, fill=(0, 0, 0))
     im = trim_flat(im)
     trimmed = im.size
     height = round(im.height * WIDTH / im.width)
@@ -72,7 +84,10 @@ for name, src, label in SHOTS:
     im.save(dst, format="PNG", optimize=True)
     size = dst.stat().st_size
     total += size
-    print(f"{name:18} {str(orig):>12} {str(trimmed):>12} {f'{WIDTH}x{height}':>11} {size:>8}")
+    print(
+        f"{name:18} {str(orig):>12} {str(trimmed):>12} {f'{WIDTH}x{height}':>11} "
+        f"{size:>8}  {covers if covers else '-'}"
+    )
 
 for old in OUT.glob("*.svg"):
     old.unlink()

@@ -2,13 +2,12 @@
 
 > 每个 session 先读本文件；细节以档案为准。新的管理层 session 另读 `HANDOFF_MANAGEMENT.md`（协议/成本/路线图详情，只需读一次）。
 
-## 状态（2026-09-14，T-14b **施工中断已保全区** —— Part A/B 完成全绿，剩收尾五项）
-- **T-14b 进度**：Part A（`14c942e`）+ Part B（`0cc6190`）**已完成并已 push**；管理层实测 `flutter analyze` 零问题、**`flutter test` 207 全绿**；回归 14 个 integration **13 个 exit=0**
-- **剩余（收尾 prompt 已就绪）**：① 修 `t13b_full_chain_test.dart:181` 陈旧断言（明细返回落统计 tab，key 不在台上）② 补 `evidence/t14b/` 帧 md5 清单与断言映射 ③ WORKLOG 执行层条目 ④ 出包 `gringotts-T14b-release.apk` ⑤ 收工三连 → 派工 prompt = `SESSION_PROMPTS.md` §B（含**熔断规则**）
-- **中断事故记录**：上一轮 harness 反复重跑同一脚本（用户截断后 `DSH ACP: Internal error` 刷屏）→ 已保全 WIP、收窄重跑范围、写死熔断规则（见 WORKLOG 顶部与管理层 HANDOFF §7 第 11 条）
-- **M2.0 正式波（含 T-15~T-20）按用户安排暂缓**（2026-09-14）→ 拆票表保留在 `TICKETS_M2A.md` 备查，**未获用户指示前不派工、不催办**
-- **交付物**：桌面 `gringotts-T13b-release.apk`（md5 `e7c75551f5894e22e952df892de914f6`）；**T-14b 完成后出包** `gringotts-T14b-release.apk`（含 T-14 统计页改动 + 底栏重设计）；仓库 github.com/jharayden/gringotts（private）
-- **质量基线**：**196 单测全绿且整轮正常退出**；全量回归 14/14 脚本；dev 库回归后 live 全 0；对比度 ≥ AA（最低 4.89）；零硬编码色值；工作区已内部清理（释放 ≈6.8GB，见 WORKLOG）
+## 状态（2026-09-15，T-14b ✅ 验收通过 —— 前置波修正全部结清，APK 待真机目测）
+- **已关闭**：M2.0 前置波（T-10a → T-14）+ 用户追加的两项修正（**T-14b**：导航语义 = 记一笔仅属分析页；底栏重设计 = 三 tab + 自绘线稿 + 金细线滑动 + 顶栏圆环＋号键 + MiSans）
+- **质量基线**：**207 单测全绿**（`flutter analyze` 零问题）；回归 14/14 脚本（68 帧 md5 清单 + 断言映射 `evidence/t14b/frame_md5.txt`）；dev 库跑后 live 全 0
+- **交付物**：桌面 **`gringotts-T14b-release.apk`**（65,914,644 字节，md5 `8cf25112990f32830d371bc6eedb83ae`，含 T-14 + T-14b 全部改动）—— **待你真机目测**；仓库 github.com/jharayden/gringotts（private）
+- **M2.0 正式波（T-15~T-20）按你安排暂缓**：拆票表在 `TICKETS_M2A.md` 备查；T-15 启用前需先拍 `design/ai_wave_preview.html` 方向；**未获指示前不派工、不催办**
+- **已知观察（非缺陷）**：资产页右下既有「＋」添加资产键与顶栏记一笔「＋」同形不同义，实机若觉混淆可另立小票换形
 
 ## 用户已定调（要点）
 - 定位：AI+ 账本 app；**Android 手机为核心，Windows 辅助**；最终形态 = AI 理财提示 + 经济状况智能分析

@@ -17,9 +17,9 @@
 接手第一件事：读 HANDOFF §8 开放项，确认工作区是否有执行层遗留的未提交施工（若有 → 先 commit 保全，见 §7 第 9 条），再派工。
 ```
 
-## B. 执行层**新 session 开场 prompt**（T-14b **收尾版**，复制即用）
+## B. 【已归档】执行层 T-14b prompt（该票已于 2026-09-15 验收通过，含熔断规则；仅存历史）
 
-> 上一轮施工中断（harness 反复重跑同一脚本 + `DSH ACP: Internal error`）；Part A/B 已完成并保全（`14c942e` + `0cc6190`）。本 prompt 含**熔断规则**，专门防复现同类 loop。
+> 归档说明：T-14b 施工中断 → 保全 → 收尾，两次 prompt 均已完成使命。下一个派工对象取决于用户安排（M2.0 正式波暂缓中）。
 
 ```
 你是 Gringotts 执行层的新 session（Codex）。档案 = C:/Users/JHarayden/Desktop/Gringotts；本目录开工会自动读 AGENTS.md。

@@ -3,6 +3,20 @@
 > 执行层（Codex）每次收工在顶部追加一段：做了什么 / 关键决策 / 遗留问题 / 下一步。管理层（Hermes）通过本文件验收进度。
 > ⚠️ 并发写入约定：追加前先重新读取文件最新版，在头部插入自己的段落，不要重建文件横幅；管理层 patch 前同样先重读。
 
+## 2026-09-15（管理层验收记录：T-14b ✅ 通过 —— 导航语义修正 + 底栏/顶栏重设计全部落地，APK 交付）
+- **验收基线**：`b5b4373`（收尾）+ `14c942e`（Part A）+ `0cc6190`（Part B）；已 push，工作区干净
+- **五层验收**：
+  1. **记录核对** ✓ `b5b4373` 变更面 = WORKLOG + evidence（`frame_md5.txt` 166 行 / APK 记录 / analyze 日志 / 3 份 dev 库清理报告 / rerun 日志与失败留档）+ `integration_test/t13b_full_chain_test.dart`(+17/−2)；**`lib/` 与 `test/` 零改动**（`git diff --stat 844a8bf b5b4373 -- lib test` 为空 ⇒ 管理层在 `844a8bf` 实测的 **207 全绿对当前源码继续成立**，以确定性证据替代盲目重跑）
+  2. **独立复验** ✓（管理层亲跑）`flutter analyze` → **No issues found**
+  3. **源码级审查** ✓ ① `lib/ui/record_key.dart`：`SizedBox(48×48)` 包 36 视觉圆 + `Border.all(goldAccent, 1.25)` + **CustomPaint 矢量加号**（16 设计框 / stroke 1.75 / round cap / 端点内缩半笔宽，并在注释里写明为何禁用字体「＋」）；**无任何 Text 节点**；按下 `goldContainer` 渐入 + 0.96 缩放 + 触感，`disableAnimations` 下 duration = 0（只变色不动）② `tokens.dart`：`recordKeyVisual 36 / recordKeyHit 48 / recordRingStroke 1.25 / recordPlusSize 16 / recordPlusStroke 1.75 / topBarHeight 56 / uiFamily 'MiSans' / tabLabel 12 / tabLabelHeight 16` —— 与 §8 逐值一致 ③ `home_page.dart` 顶栏 `height: AppSpacing.topBarHeight`(56) + `RecordKey(key: 'home_record_key')` ④ `home_shell.dart` 底栏用 `LineTabIcon` 枚举 + `fontFamily: uiFamily` + `tabLetterSpacing`；**`Icons.` 在 home_shell 内零命中**（通用图标已清除）
+  4. **独立 integration** ✓（管理层亲跑 `t13b_full_chain_test -d windows`）**All tests passed（54s）**，export 段跑通：`files=2 bom=true csv_merchant=true json_asset=true schema=3`、`teardown live_tx=0 live_assets=0 exported_files_removed=2`；**帧比对：10 帧中 6 帧（01/02/03/04/07/10）与其运行逐字节相同**，4 帧不同（05/06/08/09）**恰为其清单声明的「内嵌本次时钟」帧**（并列出 5 轮历史 md5）⇒ **其声明被验证成立**；跑后直读 sqlite：业务表 **live 全 0**
+  5. **UI 目检 + 数学复核** ✓ 分析页帧：顶栏右侧**只有金环＋号（无文字）**+ 齿轮，底栏**只有三 tab**、选中分析金字金图标 + 底部金线；资产页帧：顶栏**无该键**、选中资产金字 + 金线，无空槽。图标为手绘细线风格（折线+点 / 层叠框 / 三竖线）。数学复核：帧宽 1264 ÷ 3 ⇒ tab 中心 **210.7 / 632.0 / 1053.3**，与其像素校验报告的金线中心 210.7（分析）/ 632.0（资产）**逐位吻合**；APK 内已核 `MiSans-{Regular,Medium,Demibold}.ttf`(13660/13808/13856 B) + Playfair + MaterialIcons（4KB 子集）
+- **熔断纪律执行良好**：t13b 只跑 **2 次**（第 2 次由 `:243` 新事实驱动），未触第 3 次；第 1 次失败原文留档 `evidence/t14b/regression/t13b_rerun1.stale_assertion.txt`；未降断言、未 skip、未删测试；照片孤儿 apply 与 MiSans subset 未重复执行；全程无 harness 内部错误
+- **收尾时新发现并同修**：除管理层定位的 `:181` 外，`t13b_full_chain_test.dart:243`（从详情返回——详情属**资产 tab** 子页）是**同一根因的第二处**，由「跑完 export 段」暴露；两处均改为「断言壳在 + key 不在台上 → 切回分析 tab → 断言 key 在台上」，**正向断言全部保留**
+- **交付**：`C:\Users\JHarayden\Desktop\gringotts-T14b-release.apk`（65,914,644 字节，md5 `8cf25112990f32830d371bc6eedb83ae`；含 T-14 统计页改动 + Part A/B 全部改动）——**待用户真机目测**
+- **观察（非缺陷，供真机留意）**：资产页右下角本身有一个「＋」添加资产键（既有功能），与顶栏的记一笔「＋」**同形不同义**；若实机上觉得容易混，可在后续票换形（如资产用带文字的键或换图标）
+- **结论：T-14b ✅ 验收通过**。M2.0 正式波按用户安排仍处暂缓；**T-14b 关闭后，前置波 + 用户追加的两项修正（导航语义 / 底栏重设计）全部结清**
+
 ## 2026-09-14（执行层：T-14b 收尾：陈旧断言 2 处 + 帧 md5 清单 + APK；待验收）
 - **起手**：`844a8bf`（Part A `14c942e` + Part B `0cc6190` 已保全）。本轮**只收尾、不重做**：`lib/` 零改动，唯一源码改动 = `integration_test/t13b_full_chain_test.dart`
 - **(1) 陈旧断言共修 2 处（同一根因）**：Part A 后「记一笔」只属分析页，所以当前不在分析 tab 时 `home_record_key` 就 offstage（壳是 IndexedStack）。修法统一为「先断言已回到壳（`tab_home` 在台上）加上 key 不在台上」，不降断言、不加 skip：

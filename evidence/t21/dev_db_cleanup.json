@@ -1,8 +1,8 @@
 {
   "database": "C:\\Users\\JHarayden\\AppData\\Roaming\\dev.jharayden\\gringotts\\gringotts.sqlite",
-  "applied": false,
-  "tombstone_timestamp": {},
-  "backup": null,
+  "applied": true,
+  "tombstone_timestamp": 1789449632,
+  "backup": "C:\\Users\\JHarayden\\AppData\\Roaming\\dev.jharayden\\gringotts\\gringotts.sqlite.pre-clean-20260915-132032.bak",
   "retire_tables": [
     "transactions",
     "assets",
@@ -55,6 +55,10 @@
       "tombstoned": 0
     }
   },
-  "rows_tombstoned": {},
+  "rows_tombstoned": {
+    "transactions": 0,
+    "assets": 0,
+    "asset_photos": 0
+  },
   "note": "tombstone only - no row is physically deleted (AGENTS.md data rule)"
 }

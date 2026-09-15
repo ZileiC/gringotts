@@ -1,0 +1,8 @@
+# T-21 release deliverable (M1 closing package)
+# build: `flutter build apk --release` -> build/app/outputs/flutter-apk/app-release.apk
+# log:   evidence/t21/apk_build.log.txt (Gradle assembleRelease 86.8s, 63.4MB)
+# copy:  C:/Users/JHarayden/Desktop/gringotts-T21-release.apk
+gringotts-T21-release.apk  bytes=66504468  md5=8cd0d04b0aaad7f4df7b9bab00c21d87
+gringotts-T14b-release.apk bytes=65914644  md5=8cf25112990f32830d371bc6eedb83ae (previous release)
+# delta vs T-14b: +589,824 bytes = statistics charts (bar + dual line), the shared
+# month sheet extraction and the T-21 savings card / V4 schema.

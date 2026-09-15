@@ -12,6 +12,7 @@ import '../services/budget_engine.dart';
 import '../pages/ledger_page.dart';
 import '../services/export_service.dart';
 import '../services/statistics_service.dart';
+import '../ui/month_sheet.dart';
 import '../ui/motion.dart';
 import '../ui/tokens.dart';
 
@@ -36,11 +37,19 @@ class _StatsPageState extends ConsumerState<StatsPage>
   /// Monthly budgets for the chart allowances and the amortised baseline.
   BudgetRepository get _budgetRepo => ref.read(budgetRepositoryProvider);
 
-  /// Statistics-page month. T-21 part 4 replaces this with the shared
-  /// selected-month state so the analysis / ledger / stats pages stay in sync.
-  DateTime get _month {
-    final now = DateTime.now();
-    return DateTime(now.year, now.month, 1);
+  /// Shared selected month: analysis / ledger / stats are one source
+  /// (DESIGN_MAIN 11.4).
+  DateTime get _month => ref.watch(selectedMonthProvider);
+
+  /// Month button: reuses the home calendar sheet component.
+  Future<void> _openMonthSheet() {
+    return showMonthSheet(
+      context,
+      sheetKey: const Key('stats_month_sheet'),
+      selected: _month,
+      onSelected: (month) =>
+          ref.read(selectedMonthProvider.notifier).select(month),
+    );
   }
 
   @override
@@ -186,7 +195,14 @@ class _StatsPageState extends ConsumerState<StatsPage>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('统计'),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('统计'),
+            const SizedBox(width: AppSpacing.m),
+            _StatsMonthButton(month: _month, onTap: _openMonthSheet),
+          ],
+        ),
         actions: [
           TextButton(
             key: const Key('stats_ledger_entry'),
@@ -874,6 +890,56 @@ class _CategoryPieCard extends ConsumerWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// Month button of the statistics top bar (same visual language and sheet as
+/// the analysis page, own keys so tests can tell the two apart).
+class _StatsMonthButton extends StatelessWidget {
+  const _StatsMonthButton({required this.month, required this.onTap});
+
+  final DateTime month;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return SizedBox(
+      height: 40,
+      child: OutlinedButton(
+        key: const Key('stats_month_button'),
+        onPressed: onTap,
+        style: OutlinedButton.styleFrom(
+          backgroundColor: AppColors.elevated,
+          foregroundColor: AppColors.ink,
+          side: const BorderSide(color: AppColors.hairline),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
+          minimumSize: const Size(0, 40),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.m),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '${month.year} 年 ${month.month} 月',
+              style: theme.textTheme.bodyLarge?.copyWith(
+                fontFamily: AppFont.uiFamily,
+                fontFeatures: AppFont.tabularFigures,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            const Icon(
+              Icons.arrow_drop_down,
+              size: 18,
+              color: AppColors.inkSecondary,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

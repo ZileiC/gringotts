@@ -9,6 +9,22 @@ import '../pages/home_shell.dart';
 import '../ui/splash.dart';
 import '../ui/tokens.dart';
 
+/// Selected calendar month (first day), shared by the analysis page, the
+/// ledger page and the statistics page (DESIGN_MAIN 11.4: one source).
+class SelectedMonth extends Notifier<DateTime> {
+  @override
+  DateTime build() {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, 1);
+  }
+
+  /// Switches every page that watches the shared month.
+  void select(DateTime month) => state = DateTime(month.year, month.month, 1);
+}
+
+final NotifierProvider<SelectedMonth, DateTime> selectedMonthProvider =
+    NotifierProvider<SelectedMonth, DateTime>(SelectedMonth.new);
+
 /// Provides the singleton [AppDatabase] for the whole app.
 final Provider<AppDatabase> databaseProvider = Provider<AppDatabase>((ref) {
   final db = openConnection();

@@ -126,16 +126,24 @@ class LedgerPage extends ConsumerStatefulWidget {
 }
 
 class _LedgerPageState extends ConsumerState<LedgerPage> {
-  late DateTime _month;
   LedgerFilter _filter = LedgerFilter.all;
 
   DateTime _now() => widget.now?.call() ?? DateTime.now();
 
+  /// Shared selected month (analysis / ledger / stats are one source).
+  DateTime get _month => ref.watch(selectedMonthProvider);
+
   @override
   void initState() {
     super.initState();
-    final now = _now();
-    _month = DateTime(now.year, now.month, 1);
+    // An injected clock (tests) aligns the shared month with it on first mount.
+    if (widget.now != null) {
+      final now = _now();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ref.read(selectedMonthProvider.notifier).select(now);
+      });
+    }
   }
 
   bool get _isCurrentMonth {
@@ -144,7 +152,8 @@ class _LedgerPageState extends ConsumerState<LedgerPage> {
   }
 
   void _shiftMonth(int delta) {
-    setState(() => _month = DateTime(_month.year, _month.month + delta, 1));
+    ref.read(selectedMonthProvider.notifier)
+        .select(DateTime(_month.year, _month.month + delta, 1));
   }
 
   Future<void> _openEdit(Transaction transaction, List<Category> categories) {

@@ -8,6 +8,7 @@ import 'package:gringotts/data/app_database.dart';
 import 'package:gringotts/data/repositories/budget_repository.dart';
 import 'package:gringotts/data/repositories/repositories.dart';
 import 'package:gringotts/domain/models.dart';
+import 'package:gringotts/pages/home_page.dart';
 import 'package:gringotts/pages/stats_page.dart';
 import 'package:gringotts/services/budget_engine.dart';
 import 'package:gringotts/ui/tokens.dart';
@@ -329,6 +330,65 @@ void main() {
       expect(find.byKey(const Key('stats_spend_chart')), findsOneWidget);
       await revealTrend(tester);
       expect(find.byKey(const Key('stats_trend_card')), findsOneWidget);
+      await disposeTree(tester);
+    });
+
+    testWidgets(
+        'month button drives the shared month (analysis / ledger / stats)',
+        (tester) async {
+      final now = DateTime.now();
+      final prev = DateTime(now.year, now.month - 1, 1);
+      await TransactionRepository(db).create(
+        amountCents: 6000,
+        type: TransactionType.expense,
+        occurredAt: DateTime(prev.year, prev.month, 12),
+      );
+      final container = ProviderContainer(
+        overrides: [databaseProvider.overrideWithValue(db)],
+      );
+      addTearDown(container.dispose);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(theme: buildAppTheme(), home: const StatsPage()),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(container.read(selectedMonthProvider),
+          DateTime(now.year, now.month, 1));
+
+      await tester.tap(find.byKey(const Key('stats_month_button')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('stats_month_sheet')), findsOneWidget,
+          reason: 'the stats page reuses the home calendar sheet component');
+      if (prev.year != now.year) {
+        await tester.tap(find.byKey(const Key('month_sheet_year_prev')));
+        await tester.pumpAndSettle();
+      }
+      await tester.tap(find.byKey(Key('month_sheet_cell_${prev.month}')));
+      await tester.pumpAndSettle();
+
+      expect(container.read(selectedMonthProvider),
+          DateTime(prev.year, prev.month, 1),
+          reason: 'T-21 acceptance 4: one shared selected month');
+      // The chart now buckets the previous month, not the current one.
+      final chart = barChart(tester);
+      expect(chart.data.barGroups.length,
+          BudgetEngine.daysInMonth(prev.year, prev.month));
+
+      // The analysis page reads the same state.
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            theme: buildAppTheme(),
+            home: const HomePage(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('${prev.year} 年 ${prev.month} 月'), findsWidgets,
+          reason: 'the analysis month button follows the shared state');
       await disposeTree(tester);
     });
   });

@@ -2,16 +2,17 @@ import 'package:flutter/material.dart';
 
 import '../ui/line_icons.dart';
 import '../ui/tokens.dart';
+import 'ai_page.dart';
 import 'assets_page.dart';
 import 'home_page.dart';
 import 'quick_entry_page.dart';
 import 'stats_page.dart';
 
-/// Root shell (T-12c / T-14b): three peer tabs only.
+/// Root shell (T-12c / T-14b, M2.0 IA): four peer tabs only.
 ///
 /// IA ruling (2026-09-14): the 记一笔 action belongs to the analysis page and
-/// lives in its top bar; the bottom bar carries nothing but the three peer
-/// tabs. The speed-entry page is the analysis page's child, so returning from
+/// lives in its top bar; the bottom bar carries nothing but the peer tabs
+/// (分析 / AI / 资产 / 统计). The speed-entry page is the analysis page's child, so returning from
 /// it always lands on analysis.
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
@@ -41,6 +42,7 @@ class _HomeShellState extends State<HomeShell> {
         index: _index,
         children: [
           HomePage(onRecord: _openQuickEntry),
+          const AiPage(),
           const AssetsPage(),
           const StatsPage(),
         ],
@@ -53,8 +55,8 @@ class _HomeShellState extends State<HomeShell> {
   }
 }
 
-/// Bottom bar (T-14b / DESIGN_MAIN section 8.3): exactly the three peer tabs,
-/// nothing else. A fixed [AppSpacing.navTabHeight] row keeps the bar height
+/// Bottom bar (T-14b / DESIGN_MAIN section 8.3 + DESIGN_AI.md section 1):
+/// the four peer tabs, nothing else. A fixed [AppSpacing.navTabHeight] row keeps the bar height
 /// identical on every tab. Each tab is a hand-drawn 1.25px line icon plus a
 /// MiSans label; the selected tab is gold with a 16x1.5 gold line sliding
 /// under it (180ms; reduce-motion switches without displacement).
@@ -99,7 +101,10 @@ class _BottomTabs extends StatelessWidget {
               // the 180ms move is a position transition, not a rebuild blink.
               AnimatedAlign(
                 key: const Key('tab_selected_indicator_slide'),
-                alignment: Alignment(index - 1.0, 1),
+                alignment: Alignment(
+                  _tabs.length > 1 ? index * 2 / (_tabs.length - 1) - 1 : 0,
+                  1,
+                ),
                 duration:
                     animationsDisabled ? Duration.zero : AppMotion.tabIndicator,
                 curve: Curves.easeOutCubic,
@@ -135,6 +140,7 @@ class _TabSpec {
 
 const List<_TabSpec> _tabs = <_TabSpec>[
   _TabSpec(Key('tab_home'), '分析', LineTabIcon.analysis, Key('tab_icon_home')),
+  _TabSpec(Key('tab_ai'), 'AI', LineTabIcon.ai, Key('tab_icon_ai')),
   _TabSpec(Key('tab_assets'), '资产', LineTabIcon.assets, Key('tab_icon_assets')),
   _TabSpec(Key('tab_stats'), '统计', LineTabIcon.stats, Key('tab_icon_stats')),
 ];

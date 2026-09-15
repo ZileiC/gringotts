@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -20,7 +20,7 @@ import 'package:integration_test/integration_test.dart';
 ///
 /// T-14b Part A ruling: 记一笔 belongs to the analysis page only - it exists
 /// inside the analysis top bar and nowhere else. The bottom bar is exactly the
-/// three peer tabs and keeps one height on every tab.
+/// four peer tabs and keeps one height on every tab.
 ///
 /// Preconditions declared up front (AGENTS.md evidence clause):
 /// - nothing is seeded, so the dev database is left exactly as found; no frame
@@ -115,9 +115,16 @@ void main() {
 
     // ---- 1) peer tabs: an index change, never a route push; no CTA outside
     // the analysis tab (existence assertion, on stage and in the subtree) ----
-    await tester.tap(find.byKey(const Key('tab_assets')));
+    await tester.tap(find.byKey(const Key('tab_ai')));
     await tester.pumpAndSettle(const Duration(seconds: 1));
     expect(shellIndex(tester), 1);
+    expect(cta, findsNothing,
+        reason: 'the AI tab must not render a record entry');
+    expect(barHeight(), analysisBarHeight,
+        reason: 'bottom bar height is constant across tabs');
+    await tester.tap(find.byKey(const Key('tab_assets')));
+    await tester.pumpAndSettle(const Duration(seconds: 1));
+    expect(shellIndex(tester), 2);
     expect(cta, findsNothing,
         reason: 'the assets tab must not render a record entry');
     expect(
@@ -140,7 +147,7 @@ void main() {
 
     await tester.tap(find.byKey(const Key('tab_stats')));
     await tester.pumpAndSettle(const Duration(seconds: 1));
-    expect(shellIndex(tester), 2);
+    expect(shellIndex(tester), 3);
     expect(cta, findsNothing,
         reason: 'the stats tab must not render a record entry');
     expect(

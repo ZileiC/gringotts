@@ -8,11 +8,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gringotts/app/app.dart';
 import 'package:gringotts/data/app_database.dart';
+import 'package:gringotts/pages/ai_page.dart';
 import 'package:gringotts/pages/assets_page.dart';
 import 'package:gringotts/pages/home_page.dart';
 import 'package:gringotts/pages/home_shell.dart';
 import 'package:gringotts/pages/quick_entry_page.dart';
 import 'package:gringotts/pages/stats_page.dart';
+import 'package:gringotts/services/ai_key_store.dart';
+import 'package:gringotts/services/ai_providers.dart';
 import 'package:gringotts/ui/line_icons.dart';
 import 'package:gringotts/ui/tokens.dart';
 
@@ -22,7 +25,7 @@ import 'package:gringotts/ui/tokens.dart';
 /// 3. top bar stays 56, key is 36 optic / 48 hit, 320x640 does not overflow,
 /// 4. bottom bar height is constant and the gold selection line is keyed,
 /// 5. tabs + month button use MiSans, Playfair stays in brand moments only,
-/// 6. the three tab icons are hand-drawn (no matching Icons.* anywhere).
+/// 6. the four tab icons are hand-drawn (no matching Icons.* anywhere; T-15
 /// The subset faces are loaded into the test font manager so the 320dp
 /// overflow assertion measures the same metrics the phone will render (the
 /// flutter_test default Ahem font is a 1em square and would overstate every
@@ -67,7 +70,10 @@ void main() {
     }
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [databaseProvider.overrideWithValue(db)],
+        overrides: [
+          databaseProvider.overrideWithValue(db),
+          aiKeyStoreProvider.overrideWithValue(InMemoryAiKeyStore()),
+        ],
         child: MaterialApp(theme: buildAppTheme(), home: const HomeShell()),
       ),
     );
@@ -396,14 +402,19 @@ void main() {
   testWidgets('6) the three tab icons are hand-drawn line widgets',
       (tester) async {
     await pumpShell(tester);
-    expect(find.byType(LineTabIconView), findsNWidgets(3));
+    expect(find.byType(LineTabIconView), findsNWidgets(4));
     for (final key in const [
       Key('tab_icon_home'),
+      Key('tab_icon_ai'),
       Key('tab_icon_assets'),
       Key('tab_icon_stats'),
     ]) {
       expect(find.byKey(key), findsOneWidget);
     }
+    final aiIcon = tester.widget<LineTabIconView>(
+        find.byKey(const Key('tab_icon_ai')));
+    expect(aiIcon.icon, LineTabIcon.ai);
+    expect(aiIcon.strokeWidth, AppSpacing.aiIconStroke);
     await disposeTree(tester);
   });
 
@@ -431,6 +442,7 @@ void main() {
     expect(File('lib/ui/line_icons.dart').readAsStringSync().contains('Icons.'),
         isFalse);
     expect(shell.contains('LineTabIcon.analysis'), isTrue);
+    expect(shell.contains('LineTabIcon.ai'), isTrue);
     expect(shell.contains('LineTabIcon.assets'), isTrue);
     expect(shell.contains('LineTabIcon.stats'), isTrue);
 

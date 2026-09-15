@@ -1,17 +1,20 @@
-﻿import 'package:drift/native.dart';
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gringotts/app/app.dart';
 import 'package:gringotts/data/app_database.dart';
+import 'package:gringotts/pages/ai_page.dart';
 import 'package:gringotts/pages/assets_page.dart';
 import 'package:gringotts/pages/home_page.dart';
 import 'package:gringotts/pages/home_shell.dart';
 import 'package:gringotts/pages/quick_entry_page.dart';
 import 'package:gringotts/pages/stats_page.dart';
+import 'package:gringotts/services/ai_key_store.dart';
+import 'package:gringotts/services/ai_providers.dart';
 import 'package:gringotts/ui/tokens.dart';
 
-/// T-12c Part A + T-14b Part A acceptance: three peer tabs switch without
+/// T-12c / T-14b / T-15 acceptance: four peer tabs switch without
 /// pushing; the 记一笔 entry lives on the analysis page only (never on assets
 /// or stats); it pushes the speed-entry child, so back always lands on
 /// analysis; the bottom bar keeps one constant height on every tab. A real
@@ -33,7 +36,10 @@ void main() {
   Future<void> pumpShell(WidgetTester tester) async {
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [databaseProvider.overrideWithValue(db)],
+        overrides: [
+          databaseProvider.overrideWithValue(db),
+          aiKeyStoreProvider.overrideWithValue(InMemoryAiKeyStore()),
+        ],
         child: MaterialApp(theme: buildAppTheme(), home: const HomeShell()),
       ),
     );
@@ -67,19 +73,25 @@ void main() {
   Finder recordKeyAnywhere() =>
       find.byKey(const Key('home_record_key'), skipOffstage: false);
 
-  testWidgets('three peer tabs are siblings; switching does not push',
+  testWidgets('four peer tabs are siblings; switching does not push',
       (tester) async {
     await pumpShell(tester);
 
     // IndexedStack builds all three peers; the inactive ones are offstage.
     expect(stackIndex(tester), 0);
     expect(find.byType(HomePage), findsOneWidget);
+    expect(find.byType(AiPage, skipOffstage: false), findsOneWidget);
     expect(find.byType(AssetsPage, skipOffstage: false), findsOneWidget);
     expect(find.byType(StatsPage, skipOffstage: false), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key('tab_assets')));
+    await tester.tap(find.byKey(const Key('tab_ai')));
     await tester.pumpAndSettle();
     expect(stackIndex(tester), 1);
+    expect(find.byType(AiPage), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('tab_assets')));
+    await tester.pumpAndSettle();
+    expect(stackIndex(tester), 2);
     expect(find.byType(AssetsPage), findsOneWidget,
         reason: 'the selected peer is on stage');
     expect(find.byType(HomePage), findsNothing,
@@ -88,7 +100,7 @@ void main() {
 
     await tester.tap(find.byKey(const Key('tab_stats')));
     await tester.pumpAndSettle();
-    expect(stackIndex(tester), 2);
+    expect(stackIndex(tester), 3);
 
     await tester.tap(find.byKey(const Key('tab_home')));
     await tester.pumpAndSettle();
@@ -110,10 +122,18 @@ void main() {
       findsOneWidget,
     );
 
+    // AI: no record entry either.
+    await tester.tap(find.byKey(const Key('tab_ai')));
+    await tester.pumpAndSettle();
+    expect(stackIndex(tester), 1);
+    expect(find.byKey(const Key('home_record_key')), findsNothing,
+        reason: 'the AI tab has no record entry');
+    expect(find.byType(QuickEntryPage), findsNothing);
+
     // Assets: nothing on stage, and the key is not mounted under AssetsPage.
     await tester.tap(find.byKey(const Key('tab_assets')));
     await tester.pumpAndSettle();
-    expect(stackIndex(tester), 1);
+    expect(stackIndex(tester), 2);
     expect(find.byKey(const Key('home_record_key')), findsNothing,
         reason: 'the assets tab has no record entry');
     expect(
@@ -128,7 +148,7 @@ void main() {
     // Statistics: same existence assertion.
     await tester.tap(find.byKey(const Key('tab_stats')));
     await tester.pumpAndSettle();
-    expect(stackIndex(tester), 2);
+    expect(stackIndex(tester), 3);
     expect(find.byKey(const Key('home_record_key')), findsNothing,
         reason: 'the stats tab has no record entry');
     expect(
@@ -149,7 +169,7 @@ void main() {
     await disposeShell(tester);
   });
 
-  testWidgets('bottom bar height is identical on all three tabs',
+  testWidgets('bottom bar height is identical on all four tabs',
       (tester) async {
     await pumpShell(tester);
 
@@ -159,6 +179,10 @@ void main() {
     final analysisHeight = barHeight();
     expect(analysisHeight, AppSpacing.navTabHeight,
         reason: 'tab row is a fixed 56dp, plus the safe-area inset');
+
+    await tester.tap(find.byKey(const Key('tab_ai')));
+    await tester.pumpAndSettle();
+    expect(barHeight(), analysisHeight);
 
     await tester.tap(find.byKey(const Key('tab_assets')));
     await tester.pumpAndSettle();

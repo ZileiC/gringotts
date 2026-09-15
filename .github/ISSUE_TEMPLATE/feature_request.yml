@@ -1,0 +1,61 @@
+name: Feature request
+description: Propose a capability, a screen change, or a number that should behave differently.
+title: "[feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Gringotts is deliberately small: it optimises for one number (what you can still spend
+        today) and refuses to become an accountant's tool. Proposals that protect that focus land
+        best. Structural UI changes will be answered with a preview draft before any spec is frozen.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind of request
+      options:
+        - New capability
+        - Change to an existing screen
+        - Number / calculation semantics
+        - Data model or export
+        - Performance or accessibility
+        - Documentation
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the situation you are in, not the solution yet.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you would like to happen
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+      description: Including "do nothing" — saying why that is not enough is useful.
+    validations:
+      required: false
+  - type: dropdown
+    id: privacy
+    attributes:
+      label: Does this touch data leaving the device?
+      options:
+        - "No — purely local"
+        - "Yes — it would send data to an AI provider"
+        - "Not sure"
+    validations:
+      required: true
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and the roadmap in the README
+          required: true

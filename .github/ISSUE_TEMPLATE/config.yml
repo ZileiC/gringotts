@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security report (private)
+    url: https://github.com/jharayden/gringotts/security/advisories/new
+    about: Please report vulnerabilities privately instead of opening an issue.
+  - name: Roadmap and current tickets
+    url: https://github.com/jharayden/gringotts/blob/main/TICKETS_M2A.md
+    about: Check what is already planned or in flight before proposing something new.
+  - name: How this repository is built
+    url: https://github.com/jharayden/gringotts/blob/main/HANDOFF_MANAGEMENT.md
+    about: Review protocol, evidence rules and the AI-orchestrated workflow.

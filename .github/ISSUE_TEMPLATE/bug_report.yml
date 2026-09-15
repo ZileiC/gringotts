@@ -1,0 +1,81 @@
+name: Bug report
+description: Something in Gringotts behaves wrong, crashes, or loses data.
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. The single most useful thing you can give me is the **exact build**
+        and a **value-level** description of what went wrong — "the number was wrong" beats "the UI
+        glitched".
+  - type: input
+    id: build
+    attributes:
+      label: Build
+      description: Which APK are you on? The filename or the md5 from evidence/TXX/apk_md5.txt.
+      placeholder: gringotts-T21-release.apk (md5 8cd0d04b0aaa…)
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Device and OS
+      placeholder: Pixel 7 · Android 14 · 1080×2400
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where does it happen?
+      options:
+        - Quick entry
+        - Analysis (home)
+        - Ledger (明细)
+        - Assets
+        - Statistics
+        - Budget / allowance numbers
+        - Export
+        - Splash / navigation
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Set a monthly budget of …
+        2. Record an entry of …
+        3. Switch to Statistics and …
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What actually happened
+      description: Include the numbers you saw. If data was lost, say which entry disappeared.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Screenshots or logs (optional)
+      description: Drag files in. Please avoid pasting personal financial detail beyond the case.
+    validations:
+      required: false
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues for the same problem
+          required: true
+        - label: This is not a security issue (those go to SECURITY.md instead)
+          required: true

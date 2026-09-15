@@ -1,0 +1,27 @@
+# Normalise line endings (Windows dev box + CI friendly).
+* text=auto eol=lf
+
+# Binary assets: never touch.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.svg text
+*.ico binary
+*.ttf binary
+*.otf binary
+*.pdf binary
+*.jar binary
+*.keystore binary
+*.jks binary
+*.sqlite binary
+*.bak binary
+
+# Generated / vendored code: keep it out of diffs and language stats.
+*.g.dart linguist-generated=true
+*.freezed.dart linguist-generated=true
+pubspec.lock linguist-generated=true -diff
+
+# Docs are prose.
+*.md text eol=lf

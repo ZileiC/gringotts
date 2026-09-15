@@ -2,7 +2,8 @@
 
 > 每个 session 先读本文件；细节以档案为准。新的管理层 session 另读 `HANDOFF_MANAGEMENT.md`（协议/成本/路线图详情，只需读一次）。
 
-## 状态（2026-09-15，**T-21 ✅ 通过 → M1 系列全部关闭**；M1 收官包已交付）
+## 状态（2026-09-15，**仓库已公开**；T-21 ✅ → M1 系列全部关闭，M1 收官包已交付）
+- **仓库**：**github.com/jharayden/gringotts 已公开**（MIT、12 topics、英文 README + 中文 `README_zh.md`）；**界面截图待你供图**（`docs/screenshots/` 8 张占位已入库，README 展示 6 张）
 - **M1 系列 100% 关闭**：前置波（T-10a→T-14）+ 追加修正（T-14b 导航语义/底栏重设计）+ **T-21 统计页图表重整与收入·存款语义（`38235eb`）**
 - **交付物**：桌面 **`gringotts-T21-release.apk`**（66,504,468 字节，md5 `8cd0d04b0aaad7f4df7b9bab00c21d87`）—— **M1 收官包，待你真机目测**
 - **质量基线**：**237 单测全绿**（analyze 零问题）；受影响 3 个 integration 全 exit=0；dev 库真库迁移 V3→V4 已复核（`user_version=4`，业务表 live 全 0）

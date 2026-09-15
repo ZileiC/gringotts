@@ -17,6 +17,14 @@
 - **观察（非缺陷，供真机留意）**：资产页右下角本身有一个「＋」添加资产键（既有功能），与顶栏的记一笔「＋」**同形不同义**；若实机上觉得容易混，可在后续票换形（如资产用带文字的键或换图标）
 - **结论：T-14b ✅ 验收通过**。M2.0 正式波按用户安排仍处暂缓；**T-14b 关闭后，前置波 + 用户追加的两项修正（导航语义 / 底栏重设计）全部结清**
 
+## 2026-09-15（管理层：仓库**已公开** + GitHub 规范化文件补齐 + 截图占位待用户供图）
+- **动作**：`gh repo edit --visibility public`（用户指示）；description 与 **12 个 topics** 已设；默认分支 `main`；仓库体积 18.8MB；`license: MIT`（GitHub 已识别）
+- **新增文件**（`18c2a66` + LICENSE 修正）：`README.md`（**英文默认**；logo 头图 + 徽章 + 六格界面预览 + 原则/功能/架构/数据规则/设计系统/快速开始/质量与证据/路线图/施工记录索引）、`README_zh.md`（中文镜像 + 顶部语言切换 `English · 中文`）、`LICENSE`（MIT 纯文本）、`CHANGELOG.md`（Keep a Changelog，按里程碑）、`CONTRIBUTING.md`、`SECURITY.md`、`CODE_OF_CONDUCT.md`（Contributor Covenant 2.1）、`THIRD_PARTY_NOTICES.md`（MiSans / Playfair / Material Icons 授权）、`.github/ISSUE_TEMPLATE/{bug_report,feature_request}.yml` + `config.yml`、`.github/PULL_REQUEST_TEMPLATE.md`、`.gitattributes`、`.editorconfig`、`docs/logo.png`（1254→720 等比）、`docs/screenshots/*.svg`（8 张占位）、`docs/legacy/`（M1 三张根目录截图 `git mv` 迁入）
+- **公开前安全检查** ✓ 全仓 `git grep` + 全历史 `git log -p --all` 扫密钥模式（sk-/ghp_/AKIA/PRIVATE KEY）**零命中**；无 `.env`/密钥文件入库；`build/`、`.dart_tool/`、`*.iml` 未跟踪
+- **截图（不 push，先占位）**：8 张占位已入库、README 展示 6 张；**待用户提供真机竖屏截图**（清单见交付消息）→ 替换 `docs/screenshots/` 同名文件并更新 README 引用
+- **⚠️ 主动风险提示**：内部流程文档随仓库公开，`HANDOFF_MANAGEMENT.md` / `WORKLOG.md` 含**用户原话引用（含粗口）与内部运营细节**（成本、化名、情绪记录）；已告知用户并给出两选项：① 脱敏保留结构 ② 内部文档移出公开仓库（留私有副本）——**等用户裁决**
+- **验证**：README / README_zh / LICENSE / CHANGELOG / logo / 占位 SVG 经 `raw.githubusercontent` 全 HTTP 200；仓库页 title、description、`license=MIT`、`topics=12` 复核通过
+
 ## 2026-09-15（管理层验收记录：T-21 ✅ 通过 —— **M1 系列全部关闭**；含 2 项 P3 证据挂账立 T-22）
 - **验收基线**：`d96da7d`（P1 服务层）+ `0f138fa`（P2 图1+轴修正）+ `5902382`（P3 图2）+ `30afb1e`（P4 月份联动）+ `64b1966`（P5 存款转资产）+ 收工 `38235eb`；已 push，工作区干净
 - **五层验收**：

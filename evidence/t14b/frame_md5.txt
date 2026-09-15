@@ -1,0 +1,166 @@
+# T-14b regression frames -- md5 manifest + 8.5 assertion map (2026-09-14)
+# runner : flutter test integration_test/<script>.dart -d windows
+# logs   : evidence/t14b/regression/<script>.t14b.log, except t13b =
+#          evidence/t14b/regression/t13b_full_chain_test.t14b.rerun.log (the passing
+#          rerun after the stale-assertion fix; the pre-fix failing log stays as .t14b.log)
+# PNGs are local and NOT committed (dotfiles under evidence/); this md5 list is the
+# committed record. md5 = first 12 hex chars, same convention as
+# evidence/regression/.T13b_regression_frame_md5.txt.
+#
+# scope = the T-14b regression: 14 scripts / 68 frames. 13 scripts exit=0; t13b failed
+# at the stale assertion (t13b_full_chain_test.dart:181) so its export frames were not
+# produced. Only t13b was re-run after the fix (exit=0, 10/10 frames, export segment
+# included); the other 13 records stand from the regression run.
+#
+# vs the T-13b record (evidence/regression/.T13b_regression_frame_md5.txt): 61 of the
+# 66 same-named frames changed. Every frame that shows the shell changed (Part B bottom
+# bar + hand-drawn icons + MiSans + the analysis-top-bar record key; T-14 negative-net
+# colour + hairline export key). The 5 unchanged frames have no shell chrome in view:
+#   t09e 01_splash_brand_frame, t09c 08_ledger, t11 03_income, t12c 02_entry_pushed,
+#   t13b 02_quick_entry.
+# Two names changed in T-14 and are therefore new here:
+#   01_home_idle -> 01_quick_entry_idle (t09c); 02_keyboard_after_splash -> 02_home_after_splash (t09e).
+#
+# run-dependent frames (embed the run own clock; not byte-stable across reruns):
+#   t13b 05_ledger / 06_ledger_edited (seeded row time), 08_asset_detail /
+#   09_asset_edited (asset purchase date). Same-day t13b reruns gave
+#   05: 5bb1b5791d1f (T-13b) -> 84728c4dd80b (T-14) -> b8f9dbd88809 (T-14b) ->
+#       16adab61dc37 -> 54957e316254; 06: 0a8c46718e00 -> f31e2576aa99 ->
+#       c865232dd5a9 -> 9a76938d70e5 -> 08d9098902fb. Values below = final passing run.
+#
+# t04/t05 write their PNGs to the repo root (.t04_*.png / .t05_*.png); those local
+# dotfiles were removed by the 2026-09-14 workspace cleanup, so only the md5s from
+# the regression logs survive (below). evidence/regression/.t04_*.png is an older
+# T-12c-era copy, not the T-14b design -- do not use it.
+
+[t04_assets_test]  # .t04_<name>.png (repo root; local copy removed 2026-09-14)
+  state1_home                      md5=7ec3aaf2d3fe
+  state2_assets_dashboard          md5=ac143d703fe7
+  state3_assets_with_cpd           md5=90a68bf161c9
+  state4_sold_realized             md5=f3d6b04033b5
+
+[t05_stats_test]  # .t05_<name>.png (repo root; local copy removed 2026-09-14)
+  state1_stats_daily               md5=a04e9fd6b29c
+  state2_stats_monthly             md5=cb352c616b11
+  state3_stats_yearly              md5=901596ab0deb
+  state3b_category_pie             md5=4b9174248116
+
+[t09a_reskin_test]  # evidence/regression/.t09a_<name>.png
+  01_quick_entry                   md5=e8a32c0356f2
+  02_assets                        md5=ac143d703fe7
+  03_stats                         md5=a04e9fd6b29c
+
+[t09b_detail_flow_test]  # evidence/regression/.t09b_<name>.png
+  01_list_with_tile                md5=defc54de7e5c
+  02_detail_hero                   md5=de6758eef7de
+  03_detail_photo2                 md5=9259dd4c6247
+  04_back_to_list                  md5=defc54de7e5c
+  05_detail_sold_review            md5=20b9e522092e
+
+[t09c_motion_test]  # evidence/regression/.t09c_<name>.png
+  01_quick_entry_idle              md5=e8a32c0356f2
+  02_home_cta_pressed              md5=4d780b7894ca
+  03_assets_stagger_mid            md5=bbd41227abe6
+  04_assets_settled                md5=95d0ccc1ad93
+  05_assets_scrolled_sink          md5=dba5a7453128
+  06_stats_idle                    md5=a04e9fd6b29c
+  07_stats_scrolled                md5=42896f121ed3
+  08_ledger                        md5=2b1d8da8c891
+
+[t09c2_base_motion_test]  # evidence/regression/.t09c2_<name>.png
+  01_category_selected             md5=a3b179764055
+  03_net_value_settled             md5=9c11a7b4335c
+  04_detail_hero_relay             md5=1ae4226d0279
+  05_reduce_motion_assets          md5=ac143d703fe7
+  06_reduce_motion_scrolled        md5=ac143d703fe7
+
+[t09d_edit_flow_test]  # evidence/regression/.t09d_<name>.png
+  01_list_cover_before             md5=89a3ec2fc81b
+  02_edit_sheet                    md5=294f61714505
+  03_date_picked                   md5=1f7978479ec6
+  04_photos_added                  md5=d3056a390170
+  05_cover_swapped                 md5=e268168f6545
+  06_detail_after_save             md5=1dace8d76eea
+  07_list_cover_after              md5=32045f8c7ece
+  08_snackbar_above_cta            md5=1368a649f7df
+
+[t09e_brand_test]  # evidence/t09e/.t09e_<name>.png
+  02_home_after_splash             md5=7ec3aaf2d3fe
+  01_splash_brand_frame            md5=45da58b2d03f
+
+[t10b_home_test]  # evidence/t10b/.t10b_<name>.png
+  01_onboarding                    md5=7ec3aaf2d3fe
+  02_budget_set                    md5=a7bf3af21017
+  03_overspent                     md5=c95776c9d7f4
+  04_donut_empty                   md5=19390fe00ebd
+
+[t11_quick_entry_test]  # evidence/t11/.t11_<name>.png
+  01_idle                          md5=e8a32c0356f2
+  02_input                         md5=b1385ac00b90
+  03_income                        md5=0f548efa0461
+  04_top                           md5=a5958488a61f
+
+[t12_ledger_test]  # evidence/t12/.t12_<name>.png
+  01_list                          md5=0733c6acd7f7
+  02_filter_income                 md5=f244d8062daa
+  03_edit_sheet                    md5=a28922406f23
+
+[t12c_shell_test]  # evidence/t12c/.t12c_<name>.png
+  01_tab_assets                    md5=ac143d703fe7
+  02_entry_pushed                  md5=c9330abf629d
+  03_month_sheet                   md5=bc1a979906e6
+  04_history_month                 md5=1cd970f47479
+
+[t13a_assets_sheet_test]  # evidence/t13a/.t13a_<name>.png
+  01_assets_net_value              md5=34109b58acba
+  02_month_sheet_normal            md5=84619134b37b
+  03_month_sheet_short             md5=1a399a736e83
+  04_month_sheet_short_last_row    md5=f8b34eaa666c
+
+[t13b_full_chain_test]  # evidence/t13b/.t13b_<name>.png
+  01_shell_home                    md5=7ec3aaf2d3fe
+  02_quick_entry                   md5=2210436f2dff
+  03_home_after_entry              md5=61e15fc7fab2
+  04_stats                         md5=220edd808fec
+  05_ledger                        md5=54957e316254
+  06_ledger_edited                 md5=08d9098902fb
+  07_assets_with_cpd               md5=602bf9d78772
+  08_asset_detail                  md5=7fd4207c7266
+  09_asset_edited                  md5=16522a8a154f
+  10_stats_exported                md5=d3fa23e3b731
+# ---------------------------------------------------------------------------
+# 8.5 assertion -> evidence. Hard assertions = test/t14b_design_test.dart; the real-engine
+# frames are additionally pixel-checked in evidence/t14b/visual_checks.txt.
+#
+# (1) record key exists on the analysis tab only (assets/stats: no key, no slot, no push)
+#     widget : t14b_design_test 1) record key exists on analysis and not in assets/stats
+#     frames : t09e 02_home_after_splash -- ring bbox (1162,14)-(1197,49) = 36x36, the only
+#              gold cluster in the analysis top bar (visual_checks.txt)
+#              t12c 01_tab_assets -- top-bar gold pixels = 0 (visual_checks.txt)
+#              t13b 04_stats / t09a 03_stats -- stats tab frames, no ring in the top bar
+#              (visual check only, not scripted)
+# (2) the key is plus-only, no text node
+#     widget : t14b_design_test 2) (no Text descendant; 36 optic inside 48 hit)
+#     frame  : t09e 02_home_after_splash -- plus = 3-connected horizontal/vertical gold runs
+#              with an empty interior (stroked, not filled), no text pixels (visual_checks.txt)
+# (2b) press beat: goldContainer fade + micro scale (from 8.2, outside the seven)
+#     widget : t14b_design_test 2b) / 2c); frame: t09c 02_home_cta_pressed
+# (3) top bar constant 56; key visual 36 / hit >= 48; 320x640 no overflow
+#     widget : t14b_design_test 3)
+#     frame  : the 36x36 ring measurement of t09e 02_home_after_splash pins the visual size
+# (4) bottom bar height constant + selected-tab gold line key (slides on switch)
+#     widget : t14b_design_test 4) and 4b)
+#     frames : t09e 02_home_after_splash -- gold line row 680 at x=203..217 (analysis centre
+#              210.7); t12c 01_tab_assets -- row 680 at x=624..639 (assets centre 632.0)
+#              => the same 16x1.5 key moved with the selected tab
+# (5) tabs + month button family = MiSans; Playfair only in brand moments
+#     widget : t14b_design_test 5); source audit 6b) (grep: no serif in tabs/keys)
+# (6) the three tab icons are hand-drawn 1.25px line widgets (no Icons.*)
+#     widget : t14b_design_test 6) / 6b) (source has no matching Icons.*)
+#     frames : the bottom bar of every in-shell frame (e.g. t09e 02_home_after_splash,
+#              t12c 01_tab_assets, t10b 01_onboarding)
+# (7) analyze clean + tests green + Windows real-engine frames (Dart PNG + md5 list)
+#     evidence : flutter analyze -- no issues; flutter test -- All tests passed (207)
+#              (management measurement on 844a8bf); the frames above; the run logs in
+#              evidence/t14b/regression/ and this md5 list
+# ---------------------------------------------------------------------------

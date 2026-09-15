@@ -1,0 +1,64 @@
+{
+  "database": "C:\\Users\\JHarayden\\AppData\\Roaming\\dev.jharayden\\gringotts\\gringotts.sqlite",
+  "applied": true,
+  "tombstone_timestamp": 1789437444,
+  "backup": "C:\\Users\\JHarayden\\AppData\\Roaming\\dev.jharayden\\gringotts\\gringotts.sqlite.pre-clean-20260915-095724.bak",
+  "retire_tables": [
+    "transactions",
+    "assets",
+    "asset_photos"
+  ],
+  "kept_tables": [
+    "categories"
+  ],
+  "before": {
+    "transactions": {
+      "total": 168,
+      "live": 1,
+      "tombstoned": 167
+    },
+    "assets": {
+      "total": 179,
+      "live": 0,
+      "tombstoned": 179
+    },
+    "asset_photos": {
+      "total": 104,
+      "live": 0,
+      "tombstoned": 104
+    },
+    "categories": {
+      "total": 9,
+      "live": 9,
+      "tombstoned": 0
+    }
+  },
+  "after": {
+    "transactions": {
+      "total": 168,
+      "live": 0,
+      "tombstoned": 168
+    },
+    "assets": {
+      "total": 179,
+      "live": 0,
+      "tombstoned": 179
+    },
+    "asset_photos": {
+      "total": 104,
+      "live": 0,
+      "tombstoned": 104
+    },
+    "categories": {
+      "total": 9,
+      "live": 9,
+      "tombstoned": 0
+    }
+  },
+  "rows_tombstoned": {
+    "transactions": 1,
+    "assets": 0,
+    "asset_photos": 0
+  },
+  "note": "tombstone only - no row is physically deleted (AGENTS.md data rule)"
+}

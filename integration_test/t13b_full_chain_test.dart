@@ -178,7 +178,15 @@ void main() {
     // offstage under it: pop back before switching tabs.
     await tap(tester, find.byKey(const Key('ledger_back')), settle: 2);
     expect(find.byKey(const Key('ledger_back')), findsNothing);
-    expect(cta, findsOneWidget, reason: 'back on the shell after 明细');
+    // 明细 is the statistics tab's child, so popping back lands on the
+    // statistics tab: the shell is on screen again, but the analysis-page
+    // record key sits offstage under the shell's IndexedStack.
+    expect(find.byKey(const Key('tab_home')), findsOneWidget,
+        reason: 'back on the shell after 明细');
+    expect(cta, findsNothing,
+        reason: 'the record key belongs to the analysis tab (offstage here)');
+    await tap(tester, find.byKey(const Key('tab_home')), settle: 2);
+    expect(cta, findsOneWidget, reason: 'switching back to 分析 shows the CTA');
     await tap(tester, find.byKey(const Key('tab_assets')), settle: 2);
     expect(find.text('总资产净值'), findsOneWidget);
     await tap(tester, find.byIcon(Icons.add), settle: 1);
@@ -232,7 +240,12 @@ void main() {
     // directly - its SliverAppBar back button can be scrolled out of view.
     tester.state<NavigatorState>(find.byType(Navigator).first).pop();
     await tester.pumpAndSettle(const Duration(seconds: 2));
-    expect(cta, findsOneWidget, reason: 'back on the shell after 详情');
+    // 详情 was pushed from the assets tab, so the shell is back but the
+    // analysis CTA is offstage (same rule as the 明细 return above).
+    expect(find.byKey(const Key('tab_home')), findsOneWidget,
+        reason: 'back on the shell after 详情');
+    expect(cta, findsNothing,
+        reason: 'the assets tab is selected, so the analysis CTA is offstage');
     await tap(tester, find.byKey(const Key('tab_stats')), settle: 2);
     // Export: tap, then step only far enough for the snackbar (2 s) to be up.
     final exportButton = find.text('导出 CSV / JSON（带 BOM）');

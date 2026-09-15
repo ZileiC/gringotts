@@ -3,6 +3,21 @@
 > 执行层（Codex）每次收工在顶部追加一段：做了什么 / 关键决策 / 遗留问题 / 下一步。管理层（Hermes）通过本文件验收进度。
 > ⚠️ 并发写入约定：追加前先重新读取文件最新版，在头部插入自己的段落，不要重建文件横幅；管理层 patch 前同样先重读。
 
+## 2026-09-14（执行层：T-14b 收尾：陈旧断言 2 处 + 帧 md5 清单 + APK；待验收）
+- **起手**：`844a8bf`（Part A `14c942e` + Part B `0cc6190` 已保全）。本轮**只收尾、不重做**：`lib/` 零改动，唯一源码改动 = `integration_test/t13b_full_chain_test.dart`
+- **(1) 陈旧断言共修 2 处（同一根因）**：Part A 后「记一笔」只属分析页，所以当前不在分析 tab 时 `home_record_key` 就 offstage（壳是 IndexedStack）。修法统一为「先断言已回到壳（`tab_home` 在台上）加上 key 不在台上」，不降断言、不加 skip：
+  - `:181`（从明细返回）：按管理层定位的行号改。明细是统计页子页，返回落统计 tab，于是断言壳在加上 key 不在台上，然后 `tap(tab_home)`，再断言 key 在台上（正向断言保留）
+  - `:243`（从详情返回，导出段入口）：**由「继续跑完 export 段」暴露**。详情是资产 tab 子页，pop 后落资产 tab，同一 offstage 模式，所以同模式修（断言壳在加上 key 不在台上），随后照原样切 `tab_stats`（导出本就需要统计 tab，不绕行）
+  - 两处都是 IA 变更后的**语义修正**而非新缺陷；分析页「key 在台上」的正向断言仍在（开局 `:95`、快记返回 `:132`）
+- **(2) 重跑范围**：按令**只重跑 `t13b_full_chain_test`**（共 2 次：第 1 次暴露 `:243`，第 2 次由该新事实驱动）；**未全量重跑 14 个**；未触及 `t12c_shell_test` 故未跑。第 1 次日志被第 2 次覆盖，`:243` 失败原文已留档 `evidence/t14b/regression/t13b_rerun1.stale_assertion.txt`
+- **(3) t13b 结果 = exit 0，export 段跑完**（`All tests passed`；日志 `evidence/t14b/regression/t13b_full_chain_test.t14b.rerun.log`）：CSV 前三字节 `EF BB BF`（BOM），正文含编辑后商户 `瑞幸咖啡`／金额 `2000`；JSON `assets` 含 `T13B 相机Pro`、`transactions` 含 `瑞幸咖啡`、schema=3；`T13B_TEARDOWN live_tx=0 live_assets=0 exported_files_removed=2`
+- **(4) 帧证据补齐**：新增 `evidence/t14b/frame_md5.txt` = 14 脚本／**68 帧** md5 清单（PNG 本地、清单入库）+ DESIGN_MAIN 第 8.5 节七条逐条「哪帧 + 哪个单测证明」映射（以 `visual_checks.txt` 像素校验为基础）。与 T-13b 记录比对：66 个同名帧中 **61 变 / 5 未变**。变的是所有出现壳的帧（Part B 底栏加自绘图标加 MiSans 加顶栏圆环键；T-14 统计页负值色与描边导出键）；5 个未变都是**无壳帧**：`t09e 01_splash_brand_frame` / `t09c 08_ledger` / `t11 03_income` / `t12c 02_entry_pushed` / `t13b 02_quick_entry`。T-14 两个更名帧（`01_quick_entry_idle`／`02_home_after_splash`）记为新增。`t13b 05/06/08/09` 属**跑时相关帧**（画面嵌本次时钟），清单已标注并列出各轮历史 md5
+- **(5) 出包**：`flutter build apk --release` exit=0（Gradle assembleRelease 211.6s／62.9MB），桌面交付 **`gringotts-T14b-release.apk`**：`bytes=65914644`、`md5=8cf25112990f32830d371bc6eedb83ae`；记录 `evidence/t14b/apk_md5.txt` 与 `apk_build.log.txt`。包内已核 `assets/flutter_assets/fonts/MiSans-{Regular,Medium,Demibold}.ttf`（各约 13.8KB 十进制口径，与先前记录同口径；MaterialIcons 仅存 4076B）；T-14 统计页改动加 Part A/B 均已入包（比 T-13b 包 +37168B，约等于 MiSans 三面）
+- **(6) 质量**：`flutter analyze` 报 **No issues found!**（`evidence/t14b/flutter_analyze.log.txt`）。`flutter test` **未重跑**：本轮零 `lib/`、零 `test/` 改动，管理层在 `844a8bf` 实测 **207 全绿** 对当前代码仍成立（守反浪费铁律的禁盲目重跑）
+- **前置清理**：上轮 t13b 中途失败未 teardown，dev 库留 1 活行，故 `tool/clean_dev_db.py --apply` 两次：`pre_rerun`（tx live 1 到 0）、`pre_rerun2`（tx 加 asset live 1/1 到 0/0），报告在 `evidence/t14b/`
+- **熔断执行**：同一脚本 2 次（第 2 次由新事实驱动），**未触第 3 次**；全程无 harness 内部错误；未降断言、未 skip、未删测试；照片孤儿 apply 与 MiSans subset 均未重复执行
+- **下一步**：**停下等管理层验收**（依据 = DESIGN_MAIN 第 8.5 节七条 + 本票「验收（全票）」七项）。M2.0 正式波按用户安排暂缓，未获指示前不派工；T-15 前仍需先拍 `design/ai_wave_preview.html` 方向
+
 ## 2026-09-14（管理层：T-14b 施工**中断事故** —— Part A/B 已保全，剩一例断言待修 + 收尾）
 - **事故**：deepseek harness 执行 T-14b 到回归阶段开始**反复重跑同一脚本**（用户手动截断后 harness 抛 `Error: DSH ACP: Internal error` 刷屏）——属**反浪费铁律（AGENTS.md 工作流程第 2 条）违背形态**，已作为下一轮 prompt 的重点防线
 - **保全动作（管理层）**：两个 WIP 提交 `14c942e`（Part A）+ `0cc6190`（Part B）原本**未 push**（本地 ahead 2）→ 已 `git push` 保全；`evidence/t14b/`（回归日志 + 像素校验 + photo GC 记录）随后一并提交，**已采集证据不致丢失**

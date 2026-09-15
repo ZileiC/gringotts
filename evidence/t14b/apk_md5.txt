@@ -1,0 +1,8 @@
+# T-14b release deliverable (includes the T-14 statistics-page edits + the T-14b Part A/B UI)
+# build: `flutter build apk --release` -> build/app/outputs/flutter-apk/app-release.apk
+# log:   evidence/t14b/apk_build.log.txt (Gradle assembleRelease 211.6s, 62.9MB)
+# copy:  C:/Users/JHarayden/Desktop/gringotts-T14b-release.apk
+gringotts-T14b-release.apk  bytes=65914644  md5=8cf25112990f32830d371bc6eedb83ae
+gringotts-T13b-release.apk  bytes=65877476  md5=e7c75551f5894e22e952df892de914f6 (previous release)
+# delta vs T-13b: +37,168 bytes = the three subset MiSans faces (fonts/MiSans-*.ttf, ~13.8KB each)
+#   plus the Part B line-icon code, minus further MaterialIcons tree-shaking.

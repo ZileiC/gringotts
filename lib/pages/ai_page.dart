@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../services/ai_providers.dart';
@@ -16,7 +16,7 @@ class AiPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final configured =
-        ref.watch(aiConfigProvider).valueOrNull?.configured ?? false;
+        ref.watch(aiConfigProvider).value?.configured ?? false;
     return Scaffold(
       key: const Key('ai_page'),
       backgroundColor: AppColors.canvas,

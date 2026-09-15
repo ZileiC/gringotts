@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -52,7 +52,7 @@ class AiConfigController extends AsyncNotifier<AiConfigState> {
 
   /// Selecting a preset restores that preset's baseURL + default model.
   void selectProvider(AiProviderId id) {
-    final current = state.valueOrNull;
+    final current = state.value;
     if (current == null) return;
     final next = current.copyWith(settings: AiSettings.fromPreset(id));
     state = AsyncData(next);
@@ -60,14 +60,14 @@ class AiConfigController extends AsyncNotifier<AiConfigState> {
   }
 
   void updateSettings(AiSettings settings) {
-    final current = state.valueOrNull;
+    final current = state.value;
     if (current == null) return;
     state = AsyncData(current.copyWith(settings: settings));
     unawaited(ref.read(aiKeyStoreProvider).writeSettings(settings));
   }
 
   void updateApiKey(String apiKey) {
-    final current = state.valueOrNull;
+    final current = state.value;
     if (current == null) return;
     state = AsyncData(current.copyWith(apiKey: apiKey));
     unawaited(ref.read(aiKeyStoreProvider).writeApiKey(apiKey));

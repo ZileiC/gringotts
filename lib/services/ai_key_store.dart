@@ -1,4 +1,4 @@
-﻿import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'ai_settings.dart';
 
@@ -46,11 +46,12 @@ class SecureAiKeyStore implements AiKeyStore {
 /// Non-persistent store for widget tests and previews: same contract, no
 /// platform channels. Production always uses [SecureAiKeyStore].
 class InMemoryAiKeyStore implements AiKeyStore {
-  InMemoryAiKeyStore({String? apiKey, AiSettings? settings})
-      : _apiKey = apiKey ?? '',
-        _settings = settings;
+  InMemoryAiKeyStore({String? apiKey, AiSettings? settings}) {
+    _apiKey = apiKey ?? '';
+    _settings = settings;
+  }
 
-  String _apiKey;
+  String _apiKey = '';
   AiSettings? _settings;
 
   @override

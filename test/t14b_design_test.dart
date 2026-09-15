@@ -8,7 +8,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gringotts/app/app.dart';
 import 'package:gringotts/data/app_database.dart';
-import 'package:gringotts/pages/ai_page.dart';
 import 'package:gringotts/pages/assets_page.dart';
 import 'package:gringotts/pages/home_page.dart';
 import 'package:gringotts/pages/home_shell.dart';

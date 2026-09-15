@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -95,14 +95,14 @@ class HttpAiTransport implements AiTransport {
 /// One OpenAI-compatible client shared by the config page's probe and (later,
 /// T-16) the analysis request.
 class AiClient {
-  AiClient({AiTransport transport = const HttpAiTransport()})
-      : _transport = transport;
+  AiClient({this.transport = const HttpAiTransport()});
 
   /// Default one-request deadline (DESIGN_AI.md section 5 item 4).
   static const Duration defaultTimeout =
       Duration(seconds: aiDefaultTimeoutSeconds);
 
-  final AiTransport _transport;
+  /// Transport seam: dart:io in production, a fake in tests.
+  final AiTransport transport;
 
   /// `baseURL` + `/chat/completions`: the OpenAI-compatible endpoint, no
   /// vendor SDK (DESIGN_AI.md section 12).
@@ -126,7 +126,7 @@ class AiClient {
         : Duration(seconds: settings.timeoutSeconds);
     final stopwatch = Stopwatch()..start();
     try {
-      final response = await _transport.send(
+      final response = await transport.send(
         uri: endpointFor(settings.baseUrl),
         apiKey: apiKey,
         body: jsonEncode(<String, dynamic>{

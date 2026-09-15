@@ -122,6 +122,7 @@ void main() {
         reason: 'the AI tab must not render a record entry');
     expect(barHeight(), analysisBarHeight,
         reason: 'bottom bar height is constant across tabs');
+    print('T12C_AI index=1 cta_onstage=false bar_height=${barHeight().toStringAsFixed(1)}');
     await tester.tap(find.byKey(const Key('tab_assets')));
     await tester.pumpAndSettle(const Duration(seconds: 1));
     expect(shellIndex(tester), 2);
@@ -143,7 +144,7 @@ void main() {
       find.text('资产档案'),
     ]);
     // ignore: avoid_print
-    print('T12C_TABS assets=1 stats=2 record_cta_onstage=false');
+    print('T12C_TABS ai=1 assets=2 stats=3 record_cta_onstage=false');
 
     await tester.tap(find.byKey(const Key('tab_stats')));
     await tester.pumpAndSettle(const Duration(seconds: 1));

@@ -40,18 +40,26 @@ cloud, no telemetry.
 
 | Analysis | Quick entry | Ledger |
 |---|---|---|
-| <img src="docs/screenshots/01-analysis.svg" width="220" alt="Analysis page" /> | <img src="docs/screenshots/02-quick-entry.svg" width="220" alt="Quick entry" /> | <img src="docs/screenshots/03-ledger.svg" width="220" alt="Ledger" /> |
-| Living allowance, progress, today's breakdown, savings card | Two inputs, a real keypad, nine categories, one confirm key | Month → day → entry, full-field edit, tombstones |
+| <img src="docs/screenshots/01-analysis.png" width="210" alt="Analysis page: today's allowance, budget progress, today's breakdown" /> | <img src="docs/screenshots/02-quick-entry.png" width="210" alt="Quick entry: name and amount inputs, keypad, nine categories" /> | <img src="docs/screenshots/03-ledger.png" width="210" alt="Ledger: month, day and entry rows with per-day totals" /> |
+| Living allowance, budget progress, today's breakdown, AI slot | Two inputs, a purpose-built keypad, nine always-visible categories | Month → day → entry, with each day's net total on the right |
 
-| Assets | Statistics · day | Statistics · month |
-|---|---|---|
-| <img src="docs/screenshots/04-assets.svg" width="220" alt="Assets page" /> | <img src="docs/screenshots/05-stats-daily.svg" width="220" alt="Statistics day view" /> | <img src="docs/screenshots/06-stats-month.svg" width="220" alt="Statistics month view" /> |
-| Net value, cost-per-day, held days, sell and realised review | Spend bars against the daily allowance, plus a true income line | Twelve paired columns against the month budget |
+| Assets | Asset detail |
+|---|---|
+| <img src="docs/screenshots/04-assets.png" width="210" alt="Assets: net value, cost per day, held days" /> | <img src="docs/screenshots/08-asset-detail.png" width="210" alt="Asset detail: photo, value, cost per day, sell and retire" /> |
+| Net value, cost per day, held days, sold and realised | Photo, cost per day, edit / sell / retire / delete |
+
+| Statistics · day | Statistics · month |
+|---|---|
+| <img src="docs/screenshots/05-stats-daily.png" width="210" alt="Statistics day view: spend bars against the daily allowance plus the trend chart" /> | <img src="docs/screenshots/06-stats-month.png" width="210" alt="Statistics month view: paired monthly bars and the trend chart" /> |
+| Every day of the month; over-limit segments turn red; a two-line trend underneath | The same pair of charts across twelve months, measured against the month budget |
+
+<br />
+
+<img src="docs/screenshots/07-splash.png" width="240" alt="Splash screen: the Gringotts mark and wordmark" />
+
+<sub>Splash — the brand moment, held until the first frame is ready</sub>
 
 </div>
-
-> Real device captures are being swapped in — the frames above are placeholders so the layout is
-> honest about what is coming. The splash and asset-detail shots land with them.
 
 ## Principles
 

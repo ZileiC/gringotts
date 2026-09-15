@@ -39,17 +39,26 @@
 
 | 分析 | 快记 | 明细 |
 |---|---|---|
-| <img src="docs/screenshots/01-analysis.svg" width="220" alt="分析页" /> | <img src="docs/screenshots/02-quick-entry.svg" width="220" alt="快记页" /> | <img src="docs/screenshots/03-ledger.svg" width="220" alt="明细页" /> |
-| 实时额度、进度、今日构成、存款确认卡 | 两个输入、一副好键盘、九宫格类别、一枚描边确认键 | 月 → 日 → 条目，全字段可改，删除即墓碑 |
+| <img src="docs/screenshots/01-analysis.png" width="210" alt="分析页：今天还能花、预算进度、今日构成" /> | <img src="docs/screenshots/02-quick-entry.png" width="210" alt="快记页：两个输入、键盘、九宫格类别" /> | <img src="docs/screenshots/03-ledger.png" width="210" alt="明细页：月、日、条目与当日合计" /> |
+| 实时额度、预算进度、今日构成、AI 位 | 两个输入、一副为场景定制的键盘、九宫格类别常驻 | 月 → 日 → 条目，每天右侧是当日净额 |
 
-| 资产 | 统计 · 日 | 统计 · 月 |
-|---|---|---|
-| <img src="docs/screenshots/04-assets.svg" width="220" alt="资产页" /> | <img src="docs/screenshots/05-stats-daily.svg" width="220" alt="统计页日视图" /> | <img src="docs/screenshots/06-stats-month.svg" width="220" alt="统计页月视图" /> |
-| 净值、日均成本、持有天数、卖出与变现复盘 | 每日支出柱对着当天额度，另加一条真正的收入线 | 十二个月成对柱，对着当月预算线 |
+| 资产 | 资产详情 |
+|---|---|
+| <img src="docs/screenshots/04-assets.png" width="210" alt="资产页：净值、日均成本、持有天数" /> | <img src="docs/screenshots/08-asset-detail.png" width="210" alt="资产详情：照片、价值、日均成本、卖出与退役" /> |
+| 净值、日均成本、持有天数、已实现盈亏 | 照片、日均成本、编辑 / 卖出 / 退役 / 删除 |
+
+| 统计 · 日 | 统计 · 月 |
+|---|---|
+| <img src="docs/screenshots/05-stats-daily.png" width="210" alt="统计页日视图：每日支出柱对着当天额度，下面是趋势图" /> | <img src="docs/screenshots/06-stats-month.png" width="210" alt="统计页月视图：每月成对柱与趋势图" /> |
+| 整月每一天；超出额度的柱段变红；下方是双线趋势 | 同一对图换成十二个月，对着当月预算 |
+
+<br />
+
+<img src="docs/screenshots/07-splash.png" width="240" alt="启动画面：Gringotts 徽标与 wordmark" />
+
+<sub>启动画面 —— 品牌时刻，等第一帧就绪</sub>
 
 </div>
-
-> 真机截图正在替换中——上面暂时是占位稿，让版面结构先说实话。启动画面与资产详情截图随之一并补上。
 
 ## 设计原则
 

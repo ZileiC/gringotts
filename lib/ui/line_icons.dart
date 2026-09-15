@@ -1,15 +1,17 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import 'tokens.dart';
 
-/// Hand-drawn 1.25px line icons for the three bottom tabs (T-14b /
+/// Hand-drawn 1.25px line icons for the four bottom tabs (T-14b / T-15 /
 /// DESIGN_MAIN section 8.3).
 ///
 /// These are deliberately *not* Material Icons: the tab glyphs share the
 /// black-gold hairline language of the app. Geometry is authored on a 20x20
 /// grid and scaled by [size], so every stroke stays crisp at the 20pt tab
 /// size while tests can still measure it.
-enum LineTabIcon { analysis, assets, stats }
+enum LineTabIcon { analysis, ai, assets, stats }
 
 /// Renders one [LineTabIcon] at [color] (stroke only, round caps/joins).
 class LineTabIconView extends StatelessWidget {
@@ -75,6 +77,22 @@ class _LineTabIconPainter extends CustomPainter {
           ..lineTo(p(16, 5.5).dx, p(16, 5.5).dy);
         canvas.drawPath(path, paint);
         canvas.drawCircle(p(16, 5.5), 1.6 * scale, paint);
+      case LineTabIcon.ai:
+        // Six-point starburst (DESIGN_AI.md section 13): three hairlines
+        // through the centre at 0 / 60 / 120 degrees, authored on a 16x16
+        // frame centred in the 20pt slot with round caps; the endpoints are
+        // inset by half the stroke width so the caps stay inside the frame.
+        final centre = p(10, 10);
+        final reach = AppSpacing.aiIconGrid / 2 * scale - strokeWidth / 2;
+        for (var i = 0; i < 3; i++) {
+          final angle = i * math.pi / 3;
+          final direction = Offset(math.cos(angle), math.sin(angle));
+          canvas.drawLine(
+            centre - direction * reach,
+            centre + direction * reach,
+            paint,
+          );
+        }
       case LineTabIcon.assets:
         // Two stacked frames: the back frame peeks above the front one, so the
         // hidden overlap is never drawn twice.

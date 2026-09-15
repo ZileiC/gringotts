@@ -155,6 +155,15 @@ abstract final class AppSpacing {
   static const double tabIndicatorWidth = 16;
   static const double tabIndicatorHeight = 1.5;
 
+  /// AI tab starburst (DESIGN_AI.md section 13): the glyph is authored on a
+  /// 16x16 frame with a 1.25pt stroke, centred inside the 20pt tab slot.
+  static const double aiIconGrid = 16;
+  static const double aiIconStroke = 1.25;
+
+  /// AI config page controls: preset chip height and outlined button height.
+  static const double aiChipHeight = 36;
+  static const double controlHeight = 44;
+
   // Speed-entry page geometry (T-11 / DESIGN_MAIN section 4.1-4.2).
   /// Project-name input height.
   static const double entryNameHeight = 44;

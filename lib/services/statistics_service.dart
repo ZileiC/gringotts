@@ -43,7 +43,13 @@ class PeriodPoint {
   /// Income line value: 保底均摊 + 临时收入.
   int get incomeLineCents => baselineIncomeCents + incomeCents;
 
-  int get netCents => incomeCents - expenseCents;
+  /// Net balance of this bucket under the frozen DESIGN_MAIN 11.7 scope:
+  /// 保底 + 临时 - 支出 (planned savings are a budget deduction, never here).
+  int get netCents => StatisticsService.netBalanceCents(
+        baselineIncomeCents: baselineIncomeCents,
+        tempIncomeCents: incomeCents,
+        expenseCents: expenseCents,
+      );
 }
 
 /// One bar of chart 1 (每日支出  额度对照).

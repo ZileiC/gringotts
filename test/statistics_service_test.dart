@@ -317,7 +317,8 @@ void main() {
       expect(trend[8].label, '9月');
       expect(trend[8].expenseCents, 1200);
       expect(trend[8].baselineIncomeCents, 450000);
-      expect(trend[8].netCents, -700);
+      // 450000 (保底) + 500 (临时) - 1200 (支出) under the 11.7 scope.
+      expect(trend[8].netCents, 449300);
       // 2025 rows are excluded from a 2026 view.
       expect(trend[7].expenseCents, isNot(3000 + 7777));
       // Months without a budget keep a 0 baseline.
@@ -348,7 +349,8 @@ void main() {
       expect(trend[1].label, '2026年');
       expect(trend[1].expenseCents, 4000);
       expect(trend[1].baselineIncomeCents, 130000);
-      expect(trend[1].netCents, -4000);
+      // 130000 (保底) + 0 (临时) - 4000 (支出), same scope as the card.
+      expect(trend[1].netCents, 126000);
     });
   });
 
@@ -480,6 +482,18 @@ void main() {
       expect(totals.netCents, 365500);
       expect(totals.netCents, summary.netCents,
           reason: 'totals() and the card share one definition');
+    });
+
+    test('1b) the per-bucket net uses the same definition', () {
+      final points = StatisticsService.monthDays(
+        monthFlows(),
+        month: month,
+        baselineIncomePerDayCents: 20000,
+      );
+      final payday = points.firstWhere((p) => p.label == '9/12');
+      expect(payday.netCents, 20000 + 80000, reason: '保底 + 临时 - 0');
+      final spent = points.firstWhere((p) => p.label == '9/3');
+      expect(spent.netCents, 20000 - 314500, reason: '保底 - 支出');
     });
 
     test('2) no budget: net = temp income - expense', () {

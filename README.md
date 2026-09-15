@@ -1,38 +1,17 @@
 <div align="center">
-
-<img src="docs/logo.png" alt="Gringotts" width="180" />
+  <img src="docs/logo.png" alt="Gringotts" width="120" />
+</div>
 
 # Gringotts
 
-**A local-first, AI-augmented ledger for Android.**
-Dark, black-and-gold, built around one number: what you can still spend today.
+An offline expense tracker for Android. You enter a monthly income and how much of it you want to
+save; the app turns that into a daily allowance and tracks what you spend against it. There is no
+account and no server, so the whole ledger is a SQLite file on the phone.
 
 **English** · [中文](README_zh.md)
 
-[![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter&logoColor=white)](https://flutter.dev)
-[![Drift](https://img.shields.io/badge/Drift-SQLite-0B5563)](https://drift.simonbinder.eu)
-[![Riverpod](https://img.shields.io/badge/Riverpod-2.x-1B3A6B)](https://riverpod.dev)
-[![Platform](https://img.shields.io/badge/platform-Android%20%C2%B7%20Windows%20preview-3DDC84?logo=android&logoColor=white)](#getting-started)
-[![Tests](https://img.shields.io/badge/tests-237%20passing-46A758)](#quality-and-evidence)
-[![Status](https://img.shields.io/badge/status-M1%20complete-9C7A24)](#roadmap)
 [![License](https://img.shields.io/badge/license-MIT-E3C36B)](LICENSE)
-
-</div>
-
----
-
-## What it is
-
-Most expense trackers ask you to become an accountant. Gringotts asks one question and answers it
-every time you open it: **how much can I still spend today, and where has it been going?**
-
-You enter a monthly income and what you want to save. Gringotts turns that into a daily allowance,
-watches every entry against it, and — from M2 onward — uses an AI provider *you* configure to
-explain what happened and suggest what to do next. Everything lives on your device. No account, no
-cloud, no telemetry.
-
-> Design north star: **calm confidence.** A number you can act on, a screen that stays quiet,
-> and no decoration that pretends to be insight.
+[![Platform](https://img.shields.io/badge/platform-Android-3DDC84?logo=android&logoColor=white)](#build)
 
 ## Screens
 
@@ -40,178 +19,102 @@ cloud, no telemetry.
 
 | Analysis | Quick entry | Ledger |
 |---|---|---|
-| <img src="docs/screenshots/01-analysis.png" width="210" alt="Analysis page: today's allowance, budget progress, today's breakdown" /> | <img src="docs/screenshots/02-quick-entry.png" width="210" alt="Quick entry: name and amount inputs, keypad, nine categories" /> | <img src="docs/screenshots/03-ledger.png" width="210" alt="Ledger: month, day and entry rows with per-day totals" /> |
-| Living allowance, budget progress, today's breakdown, AI slot | Two inputs, a purpose-built keypad, nine always-visible categories | Month → day → entry, with each day's net total on the right |
+| <img src="docs/screenshots/01-analysis.png" width="210" alt="Analysis screen: today's allowance, budget progress, today's breakdown" /> | <img src="docs/screenshots/02-quick-entry.png" width="210" alt="Quick entry: name and amount inputs, keypad, nine categories" /> | <img src="docs/screenshots/03-ledger.png" width="210" alt="Ledger: month, day and entry rows with per-day totals" /> |
 
 | Assets | Asset detail |
 |---|---|
 | <img src="docs/screenshots/04-assets.png" width="210" alt="Assets: net value, cost per day, held days" /> | <img src="docs/screenshots/08-asset-detail.png" width="210" alt="Asset detail: photo, value, cost per day, sell and retire" /> |
-| Net value, cost per day, held days, sold and realised | Photo, cost per day, edit / sell / retire / delete |
 
-| Statistics · day | Statistics · month |
+| Statistics, day view | Statistics, month view |
 |---|---|
-| <img src="docs/screenshots/05-stats-daily.png" width="210" alt="Statistics day view: spend bars against the daily allowance plus the trend chart" /> | <img src="docs/screenshots/06-stats-month.png" width="210" alt="Statistics month view: paired monthly bars and the trend chart" /> |
-| Every day of the month; over-limit segments turn red; a two-line trend underneath | The same pair of charts across twelve months, measured against the month budget |
+| <img src="docs/screenshots/05-stats-daily.png" width="210" alt="Statistics day view: spend bars against the daily allowance, plus the trend chart" /> | <img src="docs/screenshots/06-stats-month.png" width="210" alt="Statistics month view: paired monthly bars and the trend chart" /> |
 
 <br />
 
-<img src="docs/screenshots/07-splash.png" width="240" alt="Splash screen: the Gringotts mark and wordmark" />
-
-<sub>Splash — the brand moment, held until the first frame is ready</sub>
+<img src="docs/screenshots/07-splash.png" width="240" alt="Splash screen" />
 
 </div>
 
-## Principles
+## What it does
 
-- **One number first.** The hero of the app is the allowance that is left for today. Everything
-  else is evidence for that number.
-- **The ledger must not interrupt recording.** Choosing a category is never a gate: an entry is
-  written the moment you confirm it, and can be refined afterwards.
-- **Attention is the budget.** Dark-only theme, black-and-gold, hairline borders. No shadows, no
-  gradient fills, no glow, no looping animation — the palette is a system, not a theme park.
-- **Serif only for brand moments.** Playfair appears on the hero allowance, the net-value figure,
-  the wordmark and the keypad digits. Everything else is a workhorse sans (MiSans).
-- **Derived values are never stored.** Budget, allowance, cost-per-day and every chart series are
-  computed on read. The database holds facts, not conclusions.
+- Records an entry in about three seconds: a name, an amount, a keypad with a decimal point and nine
+  categories that stay on screen
+- Parses combined input, so typing `瑞幸 15` fills in the merchant and the amount in one line
+- Turns the monthly budget into a daily allowance and shows what is left of it on the analysis screen
+- Keeps the ledger as month, day, entry, with each day's net total on the right
+- Draws two statistics charts: daily spending against that day's allowance, and a trend of spending
+  against income
+- Tracks assets with purchase value, held days and cost per day, and reviews the result when one is
+  sold
+- Attaches photos to entries and assets. Images are hashed, compressed and stored as files, and the
+  database keeps only the path
+- Exports the ledger as CSV or JSON
+- Shows a setup prompt when there is no budget yet
 
-## Features
+## Build
 
-**Capture**
-- Quick entry: two inputs (name + amount), a purpose-built 4×3 keypad, nine always-visible
-  categories, outline confirm key — sized for a three-second entry
-- Mixed-input parsing: `瑞幸 15` names the merchant and the amount in one line
-- Time-of-day and frequency aware category pre-fill, with a one-tap lunch pattern hint
-- Photo attachment: content-hash naming, compressed before it ever reaches the database
-
-**Understand**
-- Monthly income + planned savings → daily allowance, with both the fixed baseline and the live
-  remaining allowance on the analysis page
-- Today's spending as a donut, against the budget progress bar
-- Statistics rebuilt around two charts: spend bars measured against the day's allowance (over-limit
-  days turn red), and a genuine two-line trend whose income line carries the amortised monthly
-  income rather than sitting on the axis
-- One shared month across analysis, ledger and statistics — switch it once, all three follow
-- Category share, day/month/year roll-ups, CSV + JSON export with a UTF-8 BOM
-
-**Assets**
-- Assets with purchase value, status, photos, held days and cost-per-day
-- Sell an asset and review the realised gain or loss against the plan
-- A month-end prompt can turn the planned savings into a real asset in one tap (and stays out of
-  the database unless you confirm it)
-
-**Data & privacy**
-- Local-first: SQLite on device, one app, no server, no account
-- UUID primary keys, `created_at` / `updated_at` columns and tombstone deletes on every table —
-  no physical deletes, and the schema is sync-ready by construction
-- Money is stored as integer cents. No floats anywhere in the money path
-- The M2 AI layer is bring-your-own-key: the key lives in `flutter_secure_storage` and is never
-  logged, committed or hard-coded; the model receives aggregated statistics, never your raw ledger
-
-## Architecture
-
-```
-lib/
-├── app/            app shell, routing, shared providers (theme, selected month)
-├── data/           drift database, table definitions, generated code, repositories
-├── domain/         plain models and enums (transaction, asset, budget)
-├── services/       budget engine, statistics, parsing, pre-fill, export, savings plan
-├── pages/          analysis · quick entry · ledger · assets · asset detail · statistics
-└── ui/             design tokens, motion, month sheet, hand-drawn line icons, record key
-```
-
-| Concern | Choice | Why |
-|---|---|---|
-| Framework | Flutter (Android primary, Windows for preview/regression) | one codebase, real device parity for the UI we care about |
-| Persistence | Drift over SQLite | typed queries, migrations we can test on real files |
-| State | Riverpod | testable providers; the same repository streams feed every screen |
-| Charts | fl_chart | drawings stay local; the AI only ever writes words |
-| Fonts | MiSans (UI) + Playfair Display (brand moments) | a subset MiSans keeps the APK honest at ~14 KB per weight |
-
-### Data rules the code enforces
-
-1. Money is `int` cents; formatting happens at the edge.
-2. Every table carries `created_at` / `updated_at` / `deleted_at`; deletes are `deleted_at` stamps.
-3. Nothing derived is persisted — `budget = income − savings` is arithmetic on read, and so is
-   every allowance, cost-per-day and chart series.
-4. An entry is authoritative the moment it is confirmed. There is no draft pipeline to babysit.
-5. Migrations are additive and tested against real previous-version files
-   (`schemaVersion` 4 today, covering V1→V4 paths).
-
-## Design system
-
-`lib/ui/tokens.dart` is the single source for colour, type and spacing; components are not allowed
-to hard-code either. Two rules do most of the visual work:
-
-- **Gold discipline.** Champagne gold is allowed as a border, a label, a hairline, a chart accent
-  and a handful of named gradient moments — never as body text, dividers or large fills.
-- **No fake depth.** Hairlines and tonality instead of shadows, a single 0.96 press scale instead
-  of bounce, and every animation degrades cleanly under `reduce-motion`.
-
-The full reference — colour roles, type scale, spacing, motion, component language, the rules for
-presenting money and measured contrast values — is in
-[`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md).
-
-## Getting started
+Needs Flutter 3.x and the Android SDK. The Windows target is what runs the preview and the
+integration tests.
 
 ```bash
-# prerequisites: Flutter 3.x (stable), Android SDK for APKs, Windows desktop toolchain for preview
 flutter pub get
-dart run build_runner build --delete-conflicting-outputs   # regenerate drift code after schema edits
-
-flutter analyze                    # must stay clean
-flutter test                       # unit + widget suite
-flutter test integration_test/xxx_test.dart -d windows     # real-engine evidence script
-
-flutter build apk --release        # the actual deliverable
+dart run build_runner build --delete-conflicting-outputs   # after a schema change
+flutter analyze
+flutter test
+flutter build apk --release
 ```
 
-## Quality and evidence
+## How it is built
 
-This project treats "it works on my machine" as a bug report. Every change ships with
+Flutter, Drift over SQLite, Riverpod. `lib/services` holds the budget, statistics, parsing and
+export logic as pure functions, `lib/data` the tables and repositories, `lib/ui` the design tokens
+and shared widgets, and `lib/pages` the six screens.
 
-- `flutter analyze` at zero issues and the unit suite green (237 tests at the time of writing),
-- widget and service tests that pin **values, not pictures**: a number, a colour, a geometry or a
-  database row,
-- real-engine integration scripts, where an export is checked byte-wise (BOM, the edited merchant,
-  the edited amount, the JSON payload) rather than eyeballed,
-- migrations verified against real previous-version database files,
-- and frame-based evidence only where a value assertion cannot express the claim, with every frame's
-  in-run uniqueness stated explicitly.
+Money is an integer number of cents. Every table carries `created_at`, `updated_at` and
+`deleted_at`, and deletes set a tombstone, which keeps rows around for a later sync. Derived
+numbers, meaning the budget, the daily allowance, cost per day and every chart series, are computed
+on read.
+
+## Tests
+
+`flutter test` runs 252 unit and widget tests. The scripts in `integration_test/` run on the Windows
+engine and check values instead of pictures: an export is verified byte by byte (BOM, edited
+merchant, edited amount, JSON payload), and migrations are tested against real database files from
+earlier versions. `flutter analyze` reports no issues.
+
+## Design
+
+Dark theme, black and gold, hairline borders instead of shadows. Colours, type and spacing come from
+`lib/ui/tokens.dart`, and a widget that hard-codes a hex value counts as a bug. Contrast numbers and
+the rules the charts follow are in [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md).
 
 ## Roadmap
 
-| Milestone | Contents | State |
-|---|---|---|
-| **M1.0** | Local core ledger: quick entry, ledger, assets + cost-per-day, statistics, export, brand UI | ✅ |
-| **M2.0 pre-wave** | Budget engine, analysis home, quick-entry redesign, ledger, navigation shell, two-chart statistics, savings → asset | ✅ |
-| **M2.0** | Bring-your-own AI: provider config, AI analysis and suggestions on the analysis page, conversation window, report commentary, recurring-bill tracking, widget, local encryption | in design |
-| **M3.0** | Expert skill packs (economics/personal finance), daily briefings, weekly and monthly reviews, anomaly detection | planned |
-| **M4.0** | Windows companion: mirrored app plus an analysis workbench, encrypted export/import first, LAN sync later | planned |
+- M1: local ledger. Done.
+- M2: bring your own AI provider, with analysis and suggestions on the home screen, a chat window,
+  report commentary, recurring bills, a home screen widget and local encryption. In progress.
+- M3: finance and economics skill packs, daily briefings, weekly and monthly reviews.
+- M4: a Windows companion with an analysis workbench, then encrypted export and import, then LAN
+  sync.
 
 ## Contributing
 
-Issues and pull requests are welcome — see [`CONTRIBUTING.md`](CONTRIBUTING.md). In short: open an
-issue first for anything structural, keep changes inside the existing design tokens, and expect a
-review that asks for evidence rather than screenshots.
+Issues and pull requests are welcome; [CONTRIBUTING.md](CONTRIBUTING.md) has the house rules. The
+short version: a change that alters behaviour should come with a test for the number, colour or
+database row it touched, and anything structural is worth an issue first.
 
 ## Security
 
-Please report vulnerabilities privately — see [`SECURITY.md`](SECURITY.md). The short version: no
-secrets belong in this repository, API keys live in secure storage on the device, and the AI layer
-is designed to never receive raw transaction data.
+Report vulnerabilities privately, as described in [SECURITY.md](SECURITY.md). API keys belong in
+`flutter_secure_storage` and nowhere else, and the AI layer is built to send aggregated statistics
+rather than the ledger itself.
 
 ## License
 
-[MIT](LICENSE) for the code. Bundled third-party assets keep their own licences — see
-[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+MIT, see [LICENSE](LICENSE). Bundled fonts and icons keep their own licences, listed in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
-## Acknowledgements
+## Credits
 
-Built with [Flutter](https://flutter.dev), [Drift](https://drift.simonbinder.eu),
-[Riverpod](https://riverpod.dev) and [fl_chart](https://github.com/imaNNeo/fl_chart).
-Type: [MiSans](https://hyperos.mi.com/font) (UI) and
-[Playfair Display](https://fonts.google.com/specimen/Playfair+Display) (brand moments).
-
-<div align="center">
-<sub>Gringotts · the vault keeps its own books</sub>
-</div>
+Flutter, Drift, Riverpod and fl_chart do the heavy lifting. Type is MiSans for the interface and
+Playfair Display for the wordmark and the two brand numbers.

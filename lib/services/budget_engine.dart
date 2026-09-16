@@ -13,12 +13,14 @@ import 'dart:math' as math;
 
 import '../data/app_database.dart';
 import '../domain/models.dart';
+import 'statistics_service.dart';
 
 /// Derived budget figures for one calendar month.
 ///
 /// The budget-derived fields ([budgetCents], [fixedDailyCents],
-/// [remainingCents], [liveDailyCents]) are null when no budget row exists for
-/// the month - the home page then shows onboarding instead of fake numbers.
+/// [remainingCents], [todayQuotaCents], [todayRemainingCents]) are null when
+/// no budget row exists for the month - the home page then shows onboarding
+/// instead of fake numbers.
 /// Actual spending ([spentCents], [todaySpentCents]) is always computed.
 class BudgetSnapshot {
   const BudgetSnapshot({
@@ -26,6 +28,8 @@ class BudgetSnapshot {
     required this.fixedDailyCents,
     required this.remainingCents,
     required this.liveDailyCents,
+    required this.todayQuotaCents,
+    required this.todayRemainingCents,
     required this.spentCents,
     required this.todaySpentCents,
     required this.todayCount,
@@ -43,7 +47,23 @@ class BudgetSnapshot {
   final int? remainingCents;
 
   /// Live quota: remainingCents / remainingDays, floored and clamped at 0.
+  ///
+  /// Superseded by [todayQuotaCents]/[todayRemainingCents] (T-15c): the old
+  /// 'leftover spread over the days left'口径 put today's own spending back on
+  /// today. Kept for callers/tests that still read it; the home Hero and the
+  /// quick-entry preview no longer do.
   final int? liveDailyCents;
+
+  /// 今日额度 Q_d (DESIGN_MAIN section 2.2 v2):
+  /// floor((B + I - E-) / D) in integer cents, floored toward -infinity.
+  ///
+  /// Null when there is no live budget row, and null for a history month
+  /// (section 2.3: a past month has no 'today').
+  final int? todayQuotaCents;
+
+  /// 今天还能花 = Q_d - T (1:1, never clamped: negative means overspent).
+  /// Null whenever [todayQuotaCents] is null.
+  final int? todayRemainingCents;
 
   /// Confirmed expense total for the month.
   final int spentCents;
@@ -127,6 +147,34 @@ class BudgetEngine {
     return math.max(0, _floorDiv(remainingCents, remainingDays));
   }
 
+  /// 今日额度 Q_d = floor((B + I - E-) / D) (DESIGN_MAIN section 2.2 v2).
+  ///
+  /// [budgetCents] is B (income - planned savings), [tempIncomeCents] is the
+  /// month's confirmed income I (section 2.2b/11.7) and
+  /// [spentBeforeTodayCents] is E- = S - T, the month's confirmed spending
+  /// excluding today. Integer cents, floored toward -infinity, never clamped.
+  static int todayQuotaCents({
+    required int budgetCents,
+    required int tempIncomeCents,
+    required int spentBeforeTodayCents,
+    required int remainingDays,
+  }) {
+    assert(remainingDays > 0);
+    return _floorDiv(
+      budgetCents + tempIncomeCents - spentBeforeTodayCents,
+      remainingDays,
+    );
+  }
+
+  /// 今天还能花 = Q_d - T. The 1:1 invariant (a record of X drops it by exactly
+  /// X) and the no-clamp rule (section 2.3) both live here, once, so no caller
+  /// can drift into a second formula.
+  static int todayRemainingCents({
+    required int todayQuotaCents,
+    required int todaySpentCents,
+  }) =>
+      todayQuotaCents - todaySpentCents;
+
   /// Confirmed expense cents in [year]-[month] (drafts/income/transfer excluded).
   static int spentCentsInMonth(
     List<Transaction> transactions, {
@@ -168,6 +216,7 @@ class BudgetEngine {
     BudgetMonth? budget,
     required List<Transaction> transactions,
     required DateTime now,
+    bool isCurrentMonth = true,
   }) {
     final days = daysInMonth(now.year, now.month);
     final left = remainingDays(year: now.year, month: now.month, day: now.day);
@@ -181,6 +230,8 @@ class BudgetEngine {
         fixedDailyCents: null,
         remainingCents: null,
         liveDailyCents: null,
+        todayQuotaCents: null,
+        todayRemainingCents: null,
         spentCents: spent,
         todaySpentCents: today.cents,
         todayCount: today.count,
@@ -194,11 +245,41 @@ class BudgetEngine {
       savingsTargetCents: live.savingsTargetCents,
     );
     final remaining = monthly - spent;
+
+    // T-15c: 今天还能花 shares the v2 formula the Hero and the quick-entry
+    // preview both read. A history month has no 'today' (section 2.3), so the
+    // two derived values stay null there.
+    int? quota;
+    int? todayLeft;
+    if (isCurrentMonth) {
+      // 临时收入 I: the ONE income aggregation from section 11.7, month-scoped
+      // (this engine receives every month's rows, like the other helpers).
+      final tempIncome = StatisticsService.totals(
+        transactions
+            .where((t) =>
+                t.occurredAt.year == now.year && t.occurredAt.month == now.month)
+            .toList(),
+      ).incomeCents;
+      final quotaValue = todayQuotaCents(
+        budgetCents: monthly,
+        tempIncomeCents: tempIncome,
+        spentBeforeTodayCents: spent - today.cents,
+        remainingDays: left,
+      );
+      quota = quotaValue;
+      todayLeft = todayRemainingCents(
+        todayQuotaCents: quotaValue,
+        todaySpentCents: today.cents,
+      );
+    }
+
     return BudgetSnapshot(
       budgetCents: monthly,
       fixedDailyCents: fixedDailyCents(budgetCents: monthly, daysInMonth: days),
       remainingCents: remaining,
       liveDailyCents: liveDailyCents(remainingCents: remaining, remainingDays: left),
+      todayQuotaCents: quota,
+      todayRemainingCents: todayLeft,
       spentCents: spent,
       todaySpentCents: today.cents,
       todayCount: today.count,

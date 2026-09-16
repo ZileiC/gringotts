@@ -133,6 +133,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                         budget: budget,
                         transactions: transactions,
                         now: asOf,
+                        isCurrentMonth: _isCurrentMonth,
                       );
                       return _HomeContent(
                         controller: _scroll,
@@ -311,7 +312,7 @@ class _HomeContent extends StatelessWidget {
   }
 }
 
-/// Hero: live daily allowance (brand serif + gold gradient).
+/// Hero: 今天还能花 (brand serif + gold gradient), v2 口径 (T-15c).
 class _HeroCard extends StatelessWidget {
   const _HeroCard({required this.snapshot});
 
@@ -320,35 +321,88 @@ class _HeroCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final live = snapshot.liveDailyCents ?? 0;
     final fixed = snapshot.fixedDailyCents ?? 0;
     final remaining = snapshot.remainingCents ?? 0;
+    final budget = snapshot.budgetCents ?? 0;
+    final today = snapshot.todayRemainingCents;
+
+    // DESIGN_MAIN section 2.3: a history month has no 'today', so the engine
+    // returns no quota and the Hero shows the month's baseline instead of
+    // pretending there is a live allowance.
+    if (today == null) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.l),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('本月基准日额度', style: theme.textTheme.bodySmall),
+              const SizedBox(height: AppSpacing.s),
+              ShaderMask(
+                shaderCallback: (bounds) =>
+                    AppGradient.goldText.createShader(bounds),
+                child: Text(
+                  '\u00a5${_money(fixed)}',
+                  style: const TextStyle(
+                    fontFamily: 'PlayfairDisplay',
+                    fontWeight: FontWeight.w600,
+                    fontSize: AppFont.brandNumber,
+                    color: AppColors.goldAccent,
+                    fontFeatures: AppFont.tabularFigures,
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.s),
+              Text(
+                '基准 \u00a5${_money(fixed)}/天 \u00b7 已花 \u00a5${_money(snapshot.spentCents)} \u00b7 '
+                '预算 \u00a5${_money(budget)}',
+                style: theme.textTheme.bodySmall,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.l),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('今天还能花 · Today\'s Allowance',
+            Text('今天还能花  Today\'s Allowance',
                 style: theme.textTheme.bodySmall),
             const SizedBox(height: AppSpacing.s),
-            ShaderMask(
-              shaderCallback: (bounds) =>
-                  AppGradient.goldText.createShader(bounds),
-              child: Text(
-                '¥${_money(live)}',
+            if (today < 0)
+              // section 2.3: never clamp to 0 - overspending stays visible.
+              Text(
+                '今天已超 \u00a5${_money(-today)}',
                 style: const TextStyle(
-                  fontFamily: 'PlayfairDisplay',
-                  fontWeight: FontWeight.w600,
-                  fontSize: AppFont.brandNumber,
-                  color: AppColors.goldAccent,
+                  fontSize: AppFont.h4,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.semanticExpense,
                   fontFeatures: AppFont.tabularFigures,
                 ),
+              )
+            else
+              ShaderMask(
+                shaderCallback: (bounds) =>
+                    AppGradient.goldText.createShader(bounds),
+                child: Text(
+                  '\u00a5${_money(today)}',
+                  style: const TextStyle(
+                    fontFamily: 'PlayfairDisplay',
+                    fontWeight: FontWeight.w600,
+                    fontSize: AppFont.brandNumber,
+                    color: AppColors.goldAccent,
+                    fontFeatures: AppFont.tabularFigures,
+                  ),
+                ),
               ),
-            ),
             const SizedBox(height: AppSpacing.s),
             Text(
-              '基准 ¥${_money(fixed)}/天 · 剩余 ¥${_money(remaining)} · '
+              '今日已花 \u00a5${_money(snapshot.todaySpentCents)} \u00b7 '
+              '基准 \u00a5${_money(fixed)}/天 \u00b7 剩余 \u00a5${_money(remaining)} \u00b7 '
               '剩 ${snapshot.remainingDays} 天',
               style: theme.textTheme.bodySmall,
             ),
@@ -358,7 +412,6 @@ class _HeroCard extends StatelessWidget {
     );
   }
 }
-
 /// T-21 / DESIGN_MAIN 11.5: month-end planned-savings -> asset card.
 ///
 /// Two actions only: 存进资产 (creates one savings asset) and 这个月没攒够

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -479,11 +479,13 @@ class _BudgetLinkRow extends StatelessWidget {
       transactions: transactions,
       now: now,
     );
-    final remaining = snapshot.remainingCents;
-    if (remaining == null) return const SizedBox.shrink();
-    final after = BudgetEngine.liveDailyCents(
-      remainingCents: remaining - amountCents,
-      remainingDays: snapshot.remainingDays,
+    // T-15c: the projection goes through the same derived function the Hero
+    // reads (DESIGN_MAIN section 2.2 v2) - one formula, two call sites.
+    final quota = snapshot.todayQuotaCents;
+    if (quota == null) return const SizedBox.shrink();
+    final after = BudgetEngine.todayRemainingCents(
+      todayQuotaCents: quota,
+      todaySpentCents: snapshot.todaySpentCents + amountCents,
     );
     return Container(
       padding: const EdgeInsets.symmetric(
@@ -502,11 +504,15 @@ class _BudgetLinkRow extends StatelessWidget {
             color: AppColors.inkSecondary,
           ),
           children: [
-            const TextSpan(text: '记这笔后，今天还能花 '),
             TextSpan(
-              text: '¥${_money(after)}',
-              style: const TextStyle(
-                color: AppColors.goldAccent,
+              text: after < 0 ? '记这笔后，今天已超 ' : '记这笔后，今天还能花 ',
+            ),
+            TextSpan(
+              text: '\u00a5${_money(after < 0 ? -after : after)}',
+              style: TextStyle(
+                color: after < 0
+                    ? AppColors.semanticExpense
+                    : AppColors.goldAccent,
                 fontWeight: FontWeight.w600,
                 fontFeatures: AppFont.tabularFigures,
               ),

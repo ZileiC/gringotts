@@ -384,9 +384,9 @@ void main() {
       transactions: const <Transaction>[],
       now: midday,
     );
-    final before = BudgetEngine.liveDailyCents(
-      remainingCents: snapshot.remainingCents!,
-      remainingDays: snapshot.remainingDays,
+    final before = BudgetEngine.todayRemainingCents(
+      todayQuotaCents: snapshot.todayQuotaCents!,
+      todaySpentCents: snapshot.todaySpentCents,
     );
     expect(baseline, contains('记这笔后，今天还能花 ¥${money(before)}'));
 
@@ -394,9 +394,9 @@ void main() {
     await tapKey(tester, '1');
     await tapKey(tester, '5');
     final after = linkRowText(tester);
-    final projected = BudgetEngine.liveDailyCents(
-      remainingCents: snapshot.remainingCents! - 1500,
-      remainingDays: snapshot.remainingDays,
+    final projected = BudgetEngine.todayRemainingCents(
+      todayQuotaCents: snapshot.todayQuotaCents!,
+      todaySpentCents: snapshot.todaySpentCents + 1500,
     );
     expect(after, isNot(baseline), reason: 'the row must track the amount');
     expect(after, contains('记这笔后，今天还能花 ¥${money(projected)}'));

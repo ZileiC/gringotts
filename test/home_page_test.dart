@@ -240,6 +240,45 @@ void main() {
     expect(find.text('先设置本月预算'), findsNothing);
   });
 
+  testWidgets('T-15c hero sub-line: four items, and a history month shows the baseline',
+      (tester) async {
+    final budget = _budget(incomeCents: 140000, savingsTargetCents: 0);
+    await tester.pumpWidget(harness(budget: budget, categories: categories));
+    await tester.pumpAndSettle();
+
+    final snapshot = BudgetEngine.compute(
+      budget: budget,
+      transactions: const <Transaction>[],
+      now: DateTime.now(),
+    );
+    expect(snapshot.todayQuotaCents, isNotNull);
+    // DESIGN_MAIN section 3.2: 今日已花 / 基准 / 剩余 / 剩 N 天, none omitted.
+    expect(
+        find.textContaining('今日已花 \u00a5${_money(snapshot.todaySpentCents)}'),
+        findsOneWidget);
+    expect(
+        find.textContaining('基准 \u00a5${_money(snapshot.fixedDailyCents!)}/天'),
+        findsOneWidget);
+    expect(find.textContaining('剩余 \u00a5${_money(snapshot.remainingCents!)}'),
+        findsOneWidget);
+    expect(find.textContaining('剩 ${snapshot.remainingDays} 天'), findsOneWidget);
+
+    // Section 2.3: a history month has no 'today' -> baseline eyebrow.
+    final now = DateTime.now();
+    final targetMonth = now.month == 1 ? 12 : now.month - 1;
+    await tester.tap(find.byKey(const Key('home_month_button')));
+    await tester.pumpAndSettle();
+    if (now.month == 1) {
+      await tester.tap(find.byKey(const Key('month_sheet_year_prev')));
+      await tester.pumpAndSettle();
+    }
+    await tester.tap(find.byKey(Key('month_sheet_cell_$targetMonth')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('本月基准日额度'), findsOneWidget);
+    expect(find.textContaining('今天还能花'), findsNothing);
+  });
+
   testWidgets('overspend -> red state with readable over-budget copy',
       (tester) async {
     final budget = _budget(incomeCents: 100000, savingsTargetCents: 0);

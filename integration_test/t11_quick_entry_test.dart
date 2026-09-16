@@ -264,9 +264,9 @@ void main() {
     await tester.pumpAndSettle(const Duration(seconds: 2));
 
     // Link row is live before keying (amount 0).
-    final baseline = BudgetEngine.liveDailyCents(
-      remainingCents: snapshot.remainingCents!,
-      remainingDays: snapshot.remainingDays,
+    final baseline = BudgetEngine.todayRemainingCents(
+      todayQuotaCents: snapshot.todayQuotaCents!,
+      todaySpentCents: snapshot.todaySpentCents,
     );
     expect(
       find.textContaining('记这笔后，今天还能花 ¥${_money(baseline)}'),
@@ -287,9 +287,9 @@ void main() {
     await tester.ensureVisible(find.byKey(const Key('entry_name')));
     await tester.pumpAndSettle();
 
-    final projected = BudgetEngine.liveDailyCents(
-      remainingCents: snapshot.remainingCents! - 1500,
-      remainingDays: snapshot.remainingDays,
+    final projected = BudgetEngine.todayRemainingCents(
+      todayQuotaCents: snapshot.todayQuotaCents!,
+      todaySpentCents: snapshot.todaySpentCents + 1500,
     );
     expect(
       find.textContaining('记这笔后，今天还能花 ¥${_money(projected)}'),

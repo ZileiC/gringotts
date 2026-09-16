@@ -1,11 +1,11 @@
 blank_issues_enabled: false
 contact_links:
   - name: Security report (private)
-    url: https://github.com/jharayden/gringotts/security/advisories/new
+    url: https://github.com/ZileiC/gringotts/security/advisories/new
     about: Please report vulnerabilities privately instead of opening an issue.
   - name: Roadmap
-    url: https://github.com/jharayden/gringotts#roadmap
+    url: https://github.com/ZileiC/gringotts#roadmap
     about: Check what is already planned or in flight before proposing something new.
   - name: Design system
-    url: https://github.com/jharayden/gringotts/blob/main/docs/DESIGN_SYSTEM.md
+    url: https://github.com/ZileiC/gringotts/blob/main/docs/DESIGN_SYSTEM.md
     about: Colour roles, type scale, motion and the rules for presenting money.

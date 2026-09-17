@@ -370,7 +370,7 @@ class _HeroCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('今天还能花  Today\'s Allowance',
+            Text('今天还能花 \u00b7 Today\'s Allowance',
                 style: theme.textTheme.bodySmall),
             const SizedBox(height: AppSpacing.s),
             if (today < 0)

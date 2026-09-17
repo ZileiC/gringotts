@@ -122,6 +122,7 @@ void main() {
         reason: 'the AI tab must not render a record entry');
     expect(barHeight(), analysisBarHeight,
         reason: 'bottom bar height is constant across tabs');
+    // ignore: avoid_print
     print('T12C_AI index=1 cta_onstage=false bar_height=${barHeight().toStringAsFixed(1)}');
     await tester.tap(find.byKey(const Key('tab_assets')));
     await tester.pumpAndSettle(const Duration(seconds: 1));
